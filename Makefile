@@ -67,14 +67,18 @@ images/initrd.img: images
 overhead.img:
 	dd if=/dev/zero of=overhead.img bs=2M count=1
 
-usb.img: Packages/.downloaded LiveOS/squashfs.img EFI/BOOT/fonts/unicode.pf2 EFI/BOOT/grubx64.efi EFI/BOOT/MokManager.efi EFI/BOOT/BOOTX64.EFI EFI/BOOT/grub.cfg overhead.img
+usb.img: Packages/.downloaded LiveOS/squashfs.img EFI/BOOT/fonts/unicode.pf2 EFI/BOOT/grubx64.efi EFI/BOOT/MokManager.efi EFI/BOOT/BOOTX64.EFI EFI/BOOT/grub.cfg overhead.img syslinux.cfg
 	truncate -s $$(du -ks --total Packages/ LiveOS/ EFI/ images/ overhead.img|tail -n1|cut - -f1)k usb.img
 	parted -s usb.img mklabel msdos
 	parted -s usb.img mkpart primary fat32 1M 100%
 	parted -s usb.img set 1 boot on
 	dd conv=notrunc bs=440 count=1 if=/usr/share/syslinux/mbr.bin of=usb.img
 	guestfish -a usb.img run : mkfs vfat /dev/sda1
+	env MTOOLS_SKIP_CHECK=1 mlabel -i usb.img@@1M ::HVINABOX
 	syslinux -t 1048576 usb.img
+	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s syslinux.cfg ::
+	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s ks.cfg ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s Packages ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s EFI ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s LiveOS ::
+	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s images ::
