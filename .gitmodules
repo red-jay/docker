@@ -1,0 +1,3 @@
+[submodule "centos-comps"]
+	path = centos-comps
+	url = https://git.centos.org/git/sig-core/comps.git
