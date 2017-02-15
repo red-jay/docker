@@ -4,20 +4,26 @@ kscheck: ks.cfg
 Packages:
 	mkdir Packages
 
+repodata:
+	mkdir repodata
+
 # thie _guarantees_ we can resolve the base group data, even if not mirrored.
-Packages/repodata/repomd.xml: Packages centos-comps/c7-x86_64-comps.xml
-	cd Packages && createrepo_c -g ../centos-comps/c7-x86_64-comps.xml .
+repodata/repomd.xml: centos-comps/c7-x86_64-comps.xml
+	createrepo_c -g ./centos-comps/c7-x86_64-comps.xml .
 
-Packages/repodata/installed-groups.txt: ks.cfg ks-dumpgroups.py
-	./ks-dumpgroups.py > Packages/repodata/installed-groups.txt
+repodata/installed-groups.txt: ks.cfg ks-dumpgroups.py repodata
+	./ks-dumpgroups.py > repodata/installed-groups.txt
 
-Packages/repodata/.unwound-groups: Packages/repodata/installed-groups.txt Packages/repodata/repomd.xml unwind-groups.sh
-	./unwind-groups.sh Packages/repodata/installed-groups.txt
-	touch Packages/repodata/.unwound-groups
+repodata/installed-packages.txt: ks.cfg ks-dumppkgs.py repodata
+	./ks-dumppkgs.py > repodata/installed-packages.txt
 
-Packages/.downloaded: Packages/repodata/base-group.txt Packages/repodata/core-group.txt ks.cfg
-	repotrack -a x86_64 -p ./Packages $$(cat Packages/repodata/group-*.txt)
-	$(MAKE) Packages/repodata/repomd.xml
+repodata/.unwound-groups: repodata/installed-groups.txt repodata/repomd.xml unwind-groups.sh
+	./unwind-groups.sh repodata/installed-groups.txt
+	touch repodata/.unwound-groups
+
+Packages/.downloaded: repodata/.unwound-groups ks.cfg repodata/installed-packages.txt
+	repotrack -a x86_64 -p ./Packages $$(cat ./repodata/group-*.txt) $$(cat ./repodata/installed-packages.txt)
+	$(MAKE) -B repodata/repomd.xml
 	touch Packages/.downloaded
 
 LiveOS:
@@ -64,11 +70,14 @@ images/pxeboot/initrd.img: images/pxeboot
 
 images/initrd.img: images
 
+discinfo:
+	curl -L -o discinfo http://mirror.centos.org/centos/7/os/x86_64/.discinfo
+
 overhead.img:
 	dd if=/dev/zero of=overhead.img bs=2M count=1
 
-usb.img: Packages/.downloaded LiveOS/squashfs.img EFI/BOOT/fonts/unicode.pf2 EFI/BOOT/grubx64.efi EFI/BOOT/MokManager.efi EFI/BOOT/BOOTX64.EFI EFI/BOOT/grub.cfg overhead.img syslinux.cfg
-	truncate -s $$(du -ks --total Packages/ LiveOS/ EFI/ images/ overhead.img|tail -n1|cut - -f1)k usb.img
+usb.img: Packages/.downloaded repodata/repomd.xml LiveOS/squashfs.img EFI/BOOT/fonts/unicode.pf2 EFI/BOOT/grubx64.efi EFI/BOOT/MokManager.efi EFI/BOOT/BOOTX64.EFI EFI/BOOT/grub.cfg overhead.img syslinux.cfg discinfo
+	truncate -s $$(du -ks --total Packages/ LiveOS/ EFI/ images/ repodata/ overhead.img|tail -n1|cut - -f1)k usb.img
 	parted -s usb.img mklabel msdos
 	parted -s usb.img mkpart primary fat32 1M 100%
 	parted -s usb.img set 1 boot on
@@ -77,8 +86,10 @@ usb.img: Packages/.downloaded LiveOS/squashfs.img EFI/BOOT/fonts/unicode.pf2 EFI
 	env MTOOLS_SKIP_CHECK=1 mlabel -i usb.img@@1M ::HVINABOX
 	syslinux -t 1048576 usb.img
 	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s syslinux.cfg ::
+	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s discinfo ::.discinfo
 	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s ks.cfg ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s Packages ::
+	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s repodata ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s EFI ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s LiveOS ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s images ::
