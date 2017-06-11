@@ -50,7 +50,12 @@ sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive bash /root/d
 sudo rm "${IMGDIR}/root/dl-pkgs.sh"
 
 # create package pool
-sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C sh -c 'cd /var/cache/apt && dpkg-scanpackages archives /dev/null | gzip -9c > Packages.gz'
+sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C mkdir -p '/repository/dists/stable/main/binary'
+sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C sh -c 'cd /var/cache/apt/archives && mv *.deb /repository/dists/stable/main/binary'
+sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C sh -c 'cd /repository/dists/stable/main/binary && apt-ftparchive packages . > Packages'
+sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C sh -c 'cd /repository/dists/stable/main/binary && apt-ftparchive release . > Release'
+sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C find /repository -type d -exec chmod a+rx {} \;
+sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C find /repository -type f -exec chmod a+r {} \;
 
 # unmount filesystems
 sudo umount "${IMGDIR}/dev"
