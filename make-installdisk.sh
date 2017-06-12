@@ -92,6 +92,9 @@ done
 # create tarball
 sudo tar cp -C "${IMGDIR}" . > image.tar
 
+# clean out IMGDIR
+sudo rm -rf "${IMGDIR}"
+
 # create backing store
 truncate -s3G image.img
 
