@@ -50,12 +50,21 @@ sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive bash /root/d
 sudo rm "${IMGDIR}/root/dl-pkgs.sh"
 
 # create package pool
-sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C mkdir -p '/repository/dists/stable/main/binary'
-sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C sh -c 'cd /var/cache/apt/archives && mv *.deb /repository/dists/stable/main/binary'
-sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C sh -c 'cd /repository/dists/stable/main/binary && apt-ftparchive packages . > Packages'
-sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C sh -c 'cd /repository/dists/stable/main/binary && apt-ftparchive release . > Release'
+sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C mkdir -p '/repository/dists/archive/main/binary-amd64'
+sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C sh -c 'cd /var/cache/apt/archives && mv *.deb /repository/dists/archive/main/binary-amd64'
+sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C sh -c 'cd /repository && apt-ftparchive packages dists/archive/main/binary-amd64 > dists/archive/main/binary-amd64/Packages'
+sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C sh -c 'cd /repository/dists/archive && apt-ftparchive -o APT::FTPArchive::Release::Components="main" release .  > Release'
 sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C find /repository -type d -exec chmod a+rx {} \;
 sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C find /repository -type f -exec chmod a+r {} \;
+
+# hack debootstrap
+sudo cp debootstrap-archive "${IMGDIR}/usr/share/debootstrap/scripts/archive"
+
+# write some notes
+{
+  printf "To bootstrap a new chroot from the /repository archive, run\n"
+  printf '`/usr/sbin/debootstrap archive PATH`\n'
+} | sudo tee "${IMGDIR}/etc/motd"
 
 # unmount filesystems
 sudo umount "${IMGDIR}/dev"
