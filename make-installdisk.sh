@@ -10,7 +10,7 @@ set -o pipefail
 IMGDIR=$(mktemp -d /var/tmp/hvdisk-XXXXXX)
 
 # create a chroot
-sudo debootstrap --verbose --arch=amd64 xenial "${IMGDIR}"
+sudo debootstrap --verbose --arch=amd64 --keyring=./ubuntu-archive-keyring.gpg xenial "${IMGDIR}"
 
 # mount filesystems
 sudo mount --bind /dev  "${IMGDIR}/dev"
@@ -37,10 +37,21 @@ sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get -y u
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y ubuntu-standard casper lupin-casper
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y discover laptop-detect os-prober
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y linux-generic
-sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y lvm2 thin-provisioning-tools cryptsetup mdadm debootstrap
+sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y lvm2 thin-provisioning-tools cryptsetup mdadm debootstrap xfsprogs bcache-tools dkms
+sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-server
 
 # patch live system login capability
 sudo cp pam-login "${IMGDIR}/etc/pam.d/login"
+
+# copy fio packages, install
+if [ -d "fio-files" ] ; then
+  fio_list=""
+  for f in "fio-files/"*.dev ; do
+    sudo cp "${f}" "${IMGDIR}/var/cache/apt/archives"
+    fio_list="$(basename ${f}) ${fio_list}"
+  done
+  sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTENT=noninteractive sh -c "cd /var/cache/apt/archives && dpkg -i ${fio_list}"
+fi
 
 # get packages to install next phase
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y apt-rdepends dpkg-dev
