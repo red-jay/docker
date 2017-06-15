@@ -115,7 +115,8 @@ run
 part-init /dev/sda mbr
 part-add /dev/sda p 63 -1
 part-set-bootable /dev/sda 1 true
-mkfs ext2 /dev/sda1 label:HVINABOX
+mkfs ext2 /dev/sda1
+set-e2label /dev/sda1 HVINABOX
 mount /dev/sda1 /
 extlinux /
 tar-in image.tar /
