@@ -37,7 +37,7 @@ sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get -y u
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y ubuntu-standard casper lupin-casper
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y discover laptop-detect os-prober
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y linux-generic
-sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y lvm2 thin-provisioning-tools cryptsetup mdadm debootstrap xfsprogs bcache-tools dkms
+sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y lvm2 thin-provisioning-tools cryptsetup mdadm debootstrap xfsprogs bcache-tools dkms syslinux extlinux
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-server
 
 # patch live system login capability
@@ -118,8 +118,8 @@ part-set-bootable /dev/sda 1 true
 mkfs ext2 /dev/sda1
 set-e2label /dev/sda1 HVINABOX
 mount /dev/sda1 /
-extlinux /
 tar-in image.tar /
+command "extlinux -i /"
 umount /dev/sda1
 upload /usr/share/syslinux/mbr.bin /dev/sda
 _EOF_
