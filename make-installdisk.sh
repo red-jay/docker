@@ -46,7 +46,7 @@ sudo cp pam-login "${IMGDIR}/etc/pam.d/login"
 # copy fio packages, install
 if [ -d "fio-files" ] ; then
   fio_list=""
-  for f in "fio-files/"*.dev ; do
+  for f in "fio-files/"*.deb ; do
     sudo cp "${f}" "${IMGDIR}/var/cache/apt/archives"
     fio_list="$(basename ${f}) ${fio_list}"
   done
