@@ -38,7 +38,7 @@ sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get inst
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y discover laptop-detect os-prober
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y linux-generic
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y lvm2 thin-provisioning-tools cryptsetup mdadm debootstrap xfsprogs bcache-tools dkms syslinux extlinux
-sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-server
+sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-server augeas-tools
 
 # patch live system login capability
 sudo cp pam-login "${IMGDIR}/etc/pam.d/login"
@@ -80,6 +80,10 @@ sudo cp debootstrap-archive "${IMGDIR}/usr/share/debootstrap/scripts/archive"
 
 # copy over the fancy blockdev initscript
 sudo cp blockdev-init.sh "${IMGDIR}/root/blockdev-init.sh"
+
+# and the install-to-target scripts
+sudo cp minsys-install.sh "${IMGDIR}/root/minsys-install.sh"
+sudo cp iomemory_md.sh "${IMGDIR}/root/iomemory_md.sh"
 
 # if we have a ssh pubkey to induct, add it now.
 if [ -f ssh.pub ] ; then
