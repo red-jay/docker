@@ -72,10 +72,23 @@ sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C find /repository -type f -exec chmod
 sudo cp debootstrap-archive "${IMGDIR}/usr/share/debootstrap/scripts/archive"
 
 # write some notes
+# shellcheck disable=SC2016
 {
   printf "To bootstrap a new chroot from the /repository archive, run\n"
   printf '`/usr/sbin/debootstrap archive PATH`\n'
 } | sudo tee "${IMGDIR}/etc/motd"
+
+# copy over the fancy blockdev initscript
+sudo cp blockdev-init.sh "${IMGDIR}/root/blockdev-init.sh"
+
+# if we have a ssh pubkey to induct, add it now.
+if [ -f ssh.pub ] ; then
+  sudo mkdir -p "${IMGDIR}/root/.ssh"
+  sudo cp ssh.pub "${IMGDIR}/root/.ssh/authorized_keys"
+  sudo chown -R root:root "${IMGDIR}/root/.ssh"
+  sudo chmod 0700 "${IMGDIR}/root/.ssh"
+  sudo chmod 0600 "${IMGDIR}/root/.ssh/authorized_keys"
+fi
 
 # unmount filesystems
 sudo umount "${IMGDIR}/dev"
@@ -100,7 +113,8 @@ for initrd in ${IMGDIR}/boot/initrd.img* ; do
   } | sudo tee -a "${IMGDIR}/syslinux.cfg" > /dev/null
 done
 
-# create tarball
+# create tarball - sudo needs to create it, but we want the user to _own_ it ;)
+# shellcheck disable=SC2024
 sudo tar cp -C "${IMGDIR}" . > image.tar
 
 # clean out IMGDIR
