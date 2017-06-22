@@ -141,20 +141,22 @@ if [ -b /dev/fioa ] && [ -b /dev/fiob ] ; then
   fi
 fi
 
+# save the sys,data vols for LUKS
+sys_luks_dev=/dev/md/system
+data_luks_dev=/dev/md/data
+
 # create raid volumes - we want word splitting on the _dev variables
 # shellcheck disable=SC2086
 {
-  mdadm --create /dev/md/efi    -Nefi    -l1  -n5 --metadata=1.0 ${efi_sp_dev}
+  mdadm --create /dev/md/efi        -Nefi    -l1  -n5 --metadata=1.0 ${efi_sp_dev}
   wipefs -a      /dev/md/efi
-  mdadm --create /dev/md/boot   -Nboot   -l1  -n5 --metadata=1.0 ${boot_dev}
+  mdadm --create /dev/md/boot       -Nboot   -l1  -n5 --metadata=1.0 ${boot_dev}
   wipefs -a      /dev/md/boot
-  mdadm --create /dev/md/system -Nsystem -l10 -n5 --metadata=1.1 ${sys_dev}	# linux lets you do this. don't think about how _too_ hard.
-  wipefs -a      /dev/md/system
-  mdadm --create /dev/md/data   -Ndata   -l6  -n5 --metadata=1.1 ${data_dev}
-  wipefs -a      /dev/md/data
+  mdadm --create "${sys_luks_dev}"  -Nsystem -l10 -n5 --metadata=1.1 ${sys_dev}	# linux lets you do this. don't think about how _too_ hard.
+  wipefs -a      "${sys_luks_dev}"
+  mdadm --create "${data_luks_dev}" -Ndata   -l6  -n5 --metadata=1.1 ${data_dev}
+  wipefs -a      "${data_luks_dev}"
 }
-# save the data vol for LUKS
-data_luks_dev=/dev/md/data
 
 # if we have cache_dev, make that array, then the bcache
 if [ ! -z "${cache_dev}" ] ; then
@@ -163,7 +165,7 @@ mdadm --create /dev/md/cache  -Ncache  -l1  -n2 --metadata=1.1 ${cache_dev}
 wipefs -a      /dev/md/cache
 
 # create bcache volume
-make-bcache -w 4096 -B /dev/md/data
+make-bcache -w 4096 -B "${data_luks_dev}"
 make-bcache -w 4096 -C /dev/md/cache
 cacheuuid=$(bcache-super-show /dev/md/cache |awk '$1 ~ "cset.uuid" { print $2 }')
 # sleep for bcache :x
@@ -171,21 +173,29 @@ while [ ! -f /sys/block/bcache0/bcache/attach ] ; do sleep 1 ; done
 echo "${cacheuuid}" > /sys/block/bcache0/bcache/attach
 echo writeback > /sys/block/bcache0/bcache/cache_mode
 
-# override the data vol for LUKS
+# HEADSUP: override the data vol for LUKS
 data_luks_dev=/dev/bcache0
+fi
+
+# unwind any symlinks
+if [ -L "${sys_luks_dev}" ] ; then
+  sys_luks_dev="$(dirname "${sys_luks_dev}")/$(readlink "${sys_luks_dev}")"
+fi
+if [ -L "${data_luks_dev}" ] ; then
+  sys_luks_dev="$(dirname "${data_luks_dev}")/$(readlink "${data_luks_dev}")"
 fi
 
 # create luks volumes
 luksopts="-c aes-xts-plain64 -s 512 -h sha256 -i 5000"
 # shellcheck disable=SC2086
-printf 'changeit' | cryptsetup luksFormat ${luksopts} /dev/md/system -
-luks_sys_uuid=$(file -s /dev/md/system | awk -F'UUID: ' '{print $2}')
+printf 'changeit' | cryptsetup luksFormat ${luksopts} "${sys_luks_dev}" -
+luks_sys_uuid=$(file -s "${sys_luks_dev}" | awk -F'UUID: ' '{print $2}')
 luks_sys_map="luks-${luks_sys_uuid}"
-printf 'changeit' | cryptsetup luksOpen /dev/md/system "${luks_sys_map}" -
+printf 'changeit' | cryptsetup luksOpen "${sys_luks_dev}" "${luks_sys_map}" -
 
 # shellcheck disable=SC2086
 printf 'changeit' | cryptsetup luksFormat ${luksopts} "${data_luks_dev}" -
-luks_data_uuid=$(file -s ${data_luks_dev} | awk -F'UUID: ' '{print $2}')
+luks_data_uuid=$(file -s "${data_luks_dev}" | awk -F'UUID: ' '{print $2}')
 luks_data_map="luks-${luks_data_uuid}"
 printf 'changeit' | cryptsetup luksOpen "${data_luks_dev}" "${luks_data_map}" -
 
