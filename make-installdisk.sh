@@ -48,9 +48,9 @@ if [ -d "fio-files" ] ; then
   fio_list=""
   for f in "fio-files/"*.deb ; do
     sudo cp "${f}" "${IMGDIR}/var/cache/apt/archives"
-    fio_list="$(basename ${f}) ${fio_list}"
+    fio_list="$(basename "${f}") ${fio_list}"
   done
-  sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTENT=noninteractive sh -c "cd /var/cache/apt/archives && dpkg -i ${fio_list}"
+  sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive sh -c "cd /var/cache/apt/archives && dpkg -i ${fio_list}"
 fi
 
 # get packages to install next phase
