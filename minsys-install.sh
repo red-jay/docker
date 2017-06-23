@@ -55,7 +55,7 @@ if [ ! -z "${fio_array}" ] ; then
   fio_arrayname=$(mdadm -D /dev/${fio_array} | awk -F: '$1 ~ "Name" { gsub(" .*","",$3) ; print $3 }')
   fio_devs=''
   fio_slaves=(/sys/block/md123/slaves/fio*)
-  for dev in ${fio_slaves[@]} ; do
+  for dev in "${fio_slaves[@]}" ; do
     fio_devs="/dev/${dev#/sys/block/${fio_array}/slaves/},${fio_devs}"
   done
   printf 'softdep %s pre: iomemory-vsl\n' "${fio_raidlevel}" >> /mnt/target/etc/modprobe.d/iomemory-vsl.conf
@@ -67,3 +67,26 @@ if [ ! -z "${fio_array}" ] ; then
   cmdline="${cmdline:0:-3} iomemory_md=${fio_arrayname}:${fio_devs:0:-1}${cmdline: -3}"
   augtool -r /mnt/target set /files/etc/default/grub/GRUB_CMDLINE_LINUX_DEFAULT "${cmdline}"
 fi
+
+# rebuild the initrd now, install grub, generate config
+chroot /mnt/target env LC_ALL=C mkinitramfs -o /boot/initrd.img-${target_kver} ${target_kver}
+
+bootdev=$(basename "$(awk '$2 == "/mnt/target/boot" { print $1 }' < /proc/mounts)")
+bootdisk=''
+if [ -d "/sys/class/block/${bootdev}/slaves" ] ; then
+  # md device
+  for slave in /sys/class/block/${bootdev}/slaves/* ; do
+    sdev=$(basename "${slave}")
+    sdev="${sdev/[0-9]*/}"
+    bootdisk="/dev/${sdev} ${bootdisk}"
+  done
+else
+  # disk?
+  bootdisk="/dev/${bootdev/[0-9]*/}"
+fi
+
+for disk in ${bootdisk} ; do
+  chroot /mnt/target grub-install "${disk}"
+done
+
+chroot /mnt/target grub-mkconfig -o /boot/grub/grub.cfg
