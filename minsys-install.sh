@@ -53,6 +53,17 @@ if [ ! -z "${fio_array}" ] ; then
   fio_array=${fio_array#/sys/block/}
   read fio_raidlevel < "/sys/block/${fio_array}/md/level"
   fio_arrayname=$(mdadm -D /dev/${fio_array} | awk -F: '$1 ~ "Name" { gsub(" .*","",$3) ; print $3 }')
+  fio_devs=''
+  fio_slaves=(/sys/block/md123/slaves/fio*)
+  for dev in ${fio_slaves[@]} ; do
+    fio_devs="/dev/${dev#/sys/block/${fio_array}/slaves/},${fio_devs}"
+  done
   printf 'softdep %s pre: iomemory-vsl\n' "${fio_raidlevel}" >> /mnt/target/etc/modprobe.d/iomemory-vsl.conf
   cp 'iomemory_md.sh' /mnt/target/etc/initramfs-tools/scripts/local-top/iomemory_md
+  cmdline=$(augtool -r /mnt/target print /files/etc/default/grub/GRUB_CMDLINE_LINUX_DEFAULT)
+  cmdline="${cmdline#* = }"
+  # since we know the _last_ three characters of this are quoting, splice like this
+  # while we're here, do not print the last character of fio_devs (a comma)
+  cmdline="${cmdline:0:-3} iomemory_md=${fio_arrayname}:${fio_devs:0:-1}${cmdline: -3}"
+  augtool -r /mnt/target set /files/etc/default/grub/GRUB_CMDLINE_LINUX_DEFAULT "${cmdline}"
 fi
