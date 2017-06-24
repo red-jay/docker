@@ -35,6 +35,9 @@ chroot_ag install -y lvm2 thin-provisioning-tools cryptsetup mdadm xfsprogs bcac
 target_kver=(/mnt/target/boot/vmlinuz-*-generic)
 target_kver=${target_kver#/mnt/target/boot/vmlinuz-}
 
+# disable grub os-prober unconditionally.
+printf 'GRUB_DISABLE_OS_PROBER=true\n' >> /mnt/target/etc/default/grub
+
 # are you installing via a serial console _right now_? if so, config grub serialisms.
 if [ -z "${CONFIG_SERIAL_INSTALL}" ] ; then
   CONFIG_SERIAL_INSTALL=$(tty)
