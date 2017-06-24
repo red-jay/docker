@@ -68,7 +68,7 @@ if [ ! -z "${CONFIG_SERIAL_INSTALL}" ] ; then
   cmdline="${cmdline/splash/}"
   # since we know the _last_ three characters of this are quoting, splice like this
   cmdline="${cmdline:0:-3} console=ttyS${CONFIG_SERIAL_INSTALL},115200n8${cmdline: -3}"
-  augtool -r /mnt/target set /files/etc/default/grub/GRUB_CMDLINE_LINUX_DEFAULT "${cmdline}"
+  augtool -r /mnt/target -s set /files/etc/default/grub/GRUB_CMDLINE_LINUX_DEFAULT "${cmdline}"
 fi
 
 # if we have a fio here, put a fio there
@@ -101,7 +101,7 @@ if [ ! -z "${fio_array}" ] ; then
   # since we know the _last_ three characters of this are quoting, splice like this
   # while we're here, do not print the last character of fio_devs (a comma)
   cmdline="${cmdline:0:-3} iomemory_md=${fio_arrayname}:${fio_devs:0:-1}${cmdline: -3}"
-  augtool -r /mnt/target set /files/etc/default/grub/GRUB_CMDLINE_LINUX_DEFAULT "${cmdline}"
+  augtool -r /mnt/target -s set /files/etc/default/grub/GRUB_CMDLINE_LINUX_DEFAULT "${cmdline}"
 fi
 
 # rebuild the initrd now, install grub, generate config
@@ -126,3 +126,9 @@ for disk in ${bootdisk} ; do
 done
 
 chroot /mnt/target grub-mkconfig -o /boot/grub/grub.cfg
+
+# set the root password
+rpw_hash='$6$C8gWRNlF$TVgBTa9Pu8CRIkDoWS2lK2gHaV9egxVmh2HOWExRvxQeN30O/D7vqtPu89lJDVTVY6ImGwiVQLJ2hZyWPLFdZ.' # changeit
+rpw_date=$(($(date +%s) / 86400))
+augtool -r /mnt/target -s set /files/etc/shadow/root/password "${rpw_hash}"
+augtool -r /mnt/target -s set /files/etc/shadow/root/lastchange_date "${rpw_date}"
