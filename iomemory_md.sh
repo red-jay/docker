@@ -13,7 +13,7 @@ for x in $(cat /proc/cmdline) ; do
       md_args=${x#iomemory_md=}
       md_name=${md_args#:*}
       md_dev=${md_args%${md_name}:}
-      md_dev=${md_dev//,/ }
+      md_dev=$(echo "${md_dev}" | sed 's/,/ /g' )
       # shellcheck disable=SC2086
       mdadm --assemble "/dev/md/${md_name}" ${md_dev}
     ;;
