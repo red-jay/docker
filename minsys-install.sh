@@ -28,6 +28,7 @@ chroot_ag() {
 
 chroot_ag update
 chroot_ag install -y debsums
+chroot_ag install -y openssh-server
 chroot_ag install -y linux-generic
 chroot_ag install -y lvm2 thin-provisioning-tools cryptsetup mdadm xfsprogs bcache-tools
 
