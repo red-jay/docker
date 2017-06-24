@@ -39,9 +39,12 @@ target_kver=${target_kver#/mnt/target/boot/vmlinuz-}
 printf 'GRUB_DISABLE_OS_PROBER=true\n' >> /mnt/target/etc/default/grub
 
 # are you installing via a serial console _right now_? if so, config grub serialisms.
+set +u
 if [ -z "${CONFIG_SERIAL_INSTALL}" ] ; then
+  set -u
   CONFIG_SERIAL_INSTALL=$(tty)
 fi
+set -u
 
 # serial install flag can be.../dev/ttyS (serial) | /dev/? (not serial) | a number (forcedserial) | not a number (garbage)
 case "${CONFIG_SERIAL_INSTALL}" in
