@@ -37,8 +37,10 @@ sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get -y u
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y ubuntu-standard casper lupin-casper
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y discover laptop-detect os-prober
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y linux-generic
+printf 'GRUB_DISABLE_OS_PROBER=true\n' sudo tee -a "${IMGDIR}/etc/default/grub"
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y lvm2 thin-provisioning-tools cryptsetup mdadm debootstrap xfsprogs bcache-tools dkms syslinux extlinux
-sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-server augeas-tools
+sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y smartmontools lm-sensors
+sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-server augeas-tools smartmontools
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y dbus
 
 # patch live system login capability
@@ -52,6 +54,10 @@ if [ -d "fio-files" ] ; then
     fio_list="$(basename "${f}") ${fio_list}"
   done
   sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive sh -c "cd /var/cache/apt/archives && dpkg -i ${fio_list}"
+  sudo chroot "${IMGDIR}" env LC_ALL=C sh -c 'chmod +x /var/lib/dkms/iomemory-vsl/*/*/*.sh'
+  target_kver=("${IMGDIR}"/boot/vmlinuz-*-generic)
+  target_kver=${target_kver#${IMGDIR}/boot/vmlinuz-}
+  sudo chroot "${IMGDIR}" env LC_ALL=C dkms autoinstall "${target_kver}"
 fi
 
 # get packages to install next phase
@@ -84,6 +90,7 @@ sudo cp blockdev-init.sh "${IMGDIR}/root/blockdev-init.sh"
 
 # and the install-to-target scripts
 sudo cp minsys-install.sh "${IMGDIR}/root/minsys-install.sh"
+sudo cp luksdev-reformat.sh "${IMGDIR}/root/luksdev-reformat.sh"
 sudo cp iomemory_md.sh "${IMGDIR}/root/iomemory_md.sh"
 
 # if we have a ssh pubkey to induct, add it now.
