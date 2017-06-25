@@ -78,7 +78,7 @@ fio=(/dev/fio[a-z])
 if [ ! -z "${fio}" ] ; then
   chroot_ag install -y dkms fio-* iomemory-vsl-dkms
   chroot /mnt/target chmod +x /var/lib/dkms/iomemory-vsl/*/*/*.sh
-  chroot /mnt/target env LC_ALL=C dkms autoinstall "${target_kver}"
+  chroot /mnt/target env LC_ALL=C dkms autoinstall -k "${target_kver}"
   printf 'iomemory-vsl\n' >> /mnt/target/etc/initramfs-tools/modules
 fi
 

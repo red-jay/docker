@@ -57,7 +57,7 @@ if [ -d "fio-files" ] ; then
   sudo chroot "${IMGDIR}" env LC_ALL=C sh -c 'chmod +x /var/lib/dkms/iomemory-vsl/*/*/*.sh'
   target_kver=("${IMGDIR}"/boot/vmlinuz-*-generic)
   target_kver=${target_kver#${IMGDIR}/boot/vmlinuz-}
-  sudo chroot "${IMGDIR}" env LC_ALL=C dkms autoinstall "${target_kver}"
+  sudo chroot "${IMGDIR}" env LC_ALL=C dkms autoinstall -k "${target_kver}"
 fi
 
 # get packages to install next phase
