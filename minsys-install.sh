@@ -129,6 +129,7 @@ done
 chroot /mnt/target grub-mkconfig -o /boot/grub/grub.cfg
 
 # set the root password
+# shellcheck disable=SC2016
 rpw_hash='$6$C8gWRNlF$TVgBTa9Pu8CRIkDoWS2lK2gHaV9egxVmh2HOWExRvxQeN30O/D7vqtPu89lJDVTVY6ImGwiVQLJ2hZyWPLFdZ.' # changeit
 rpw_date=$(($(date +%s) / 86400))
 augtool -r /mnt/target -s set /files/etc/shadow/root/password "${rpw_hash}"

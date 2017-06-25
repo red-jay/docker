@@ -61,7 +61,6 @@ boot_dev=''
 sys_dev=''
 data_dev=''
 cache_dev=''
-disks=''
 
 # wipe and label disks
 for diskdev in /dev/sd*[^0-9] ; do

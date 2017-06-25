@@ -54,13 +54,15 @@ if [ -b /dev/fioa1 ] && [ -b /dev/fiob1 ] ; then
     datadev=(/dev/md/*:data)
 
     # unwind symlink, register in bcache
-    datapath="/dev/$(basename $(readlink "${datadev}"))"
-    cachepath="/dev/$(basename $(readlink /dev/md/cache))"
-    set +e # in case bcache already picked it up
-    echo "${datapath}" > /sys/fs/bcache/register
-    echo "${cachepath}" > /sys/fs/bcache/register
-    set -e
-
+    # shellcheck disable=SC2128
+    {
+      datapath="/dev/$(basename "$(readlink "${datadev}")")"
+      cachepath="/dev/$(basename "$(readlink /dev/md/cache)")"
+      set +e # in case bcache already picked it up
+      echo "${datapath}" > /sys/fs/bcache/register
+      echo "${cachepath}" > /sys/fs/bcache/register
+      set -e
+    }
     # HEADSUP: override the data vol for LUKS
     data_luks_dev=/dev/bcache0
   fi
@@ -68,9 +70,11 @@ fi
 
 
 # unwind any symlinks
+# shellcheck disable=SC2128
 if [ -L "${sys_luks_dev}" ] ; then
   sys_luks_dev="$(dirname "${sys_luks_dev}")/$(readlink "${sys_luks_dev}")"
 fi
+# shellcheck disable=SC2128
 if [ -L "${data_luks_dev}" ] ; then
   sys_luks_dev="$(dirname "${data_luks_dev}")/$(readlink "${data_luks_dev}")"
 fi
@@ -103,15 +107,19 @@ lvcreate -nswap -L4G      sysvg
 # create filesystems
 mkfs.xfs  /dev/sysvg/root
 mkfs.xfs  /dev/sysvg/var
-mkfs.ext2 "${boot_md_dev}"
-mkfs.vfat "${efi_md_dev}"
-
+# shellcheck disable=SC2128
+{
+  mkfs.ext2 "${boot_md_dev}"
+  mkfs.vfat "${efi_md_dev}"
+}
 # mounts
 mkdir -p /mnt/target
 mount /dev/sysvg/root  /mnt/target
 mkdir /mnt/target/{boot,var}
+# shellcheck disable=SC2128
 mount "${boot_md_dev}" /mnt/target/boot
 mkdir /mnt/target/boot/efi
+# shellcheck disable=SC2128
 mount "${efi_md_dev}"  /mnt/target/boot/efi
 mount /dev/sysvg/var   /mnt/target/var
 
