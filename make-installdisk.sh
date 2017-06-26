@@ -93,6 +93,8 @@ sudo cp minsys-install.sh "${IMGDIR}/root/minsys-install.sh"
 sudo cp luksdev-reformat.sh "${IMGDIR}/root/luksdev-reformat.sh"
 sudo cp iomemory_md.sh "${IMGDIR}/root/iomemory_md.sh"
 sudo cp xen-install.sh "${IMGDIR}/root/xen-install.sh"
+sudo cp boot_pci_assign.sh "${IMGDIR}/root/boot_pci_assign.sh"
+sudo cp pci-assign.sh "${IMGDIR}/root/pci-assign.sh"
 
 # if we have a ssh pubkey to induct, add it now.
 if [ -f ssh.pub ] ; then
