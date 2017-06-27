@@ -163,9 +163,9 @@ if [ ! -z "${cache_dev}" ] ; then
 mdadm --create /dev/md/cache  -Ncache  -l1  -n2 --metadata=1.1 ${cache_dev}
 wipefs -a      /dev/md/cache
 
-# create bcache volume
-make-bcache -w 4096 -B "${data_luks_dev}"
-make-bcache -w 4096 -C /dev/md/cache
+# create bcache volume - the data offset here is for RAID5/6
+make-bcache --data-offset 161280k --block 4k --bucket 4M -B "${data_luks_dev}"
+make-bcache --block 4k --bucket 4M -C /dev/md/cache
 cacheuuid=$(bcache-super-show /dev/md/cache |awk '$1 ~ "cset.uuid" { print $2 }')
 # sleep for bcache :x
 while [ ! -f /sys/block/bcache0/bcache/attach ] ; do sleep 1 ; done
@@ -185,7 +185,7 @@ if [ -L "${data_luks_dev}" ] ; then
 fi
 
 # create luks volumes
-luksopts="-c aes-xts-plain64 -s 512 -h sha256 -i 5000"
+luksopts="-c aes-xts-plain64 -s 512 -h sha256 -i 5000 --align-payload=8192"
 # shellcheck disable=SC2086
 printf 'changeit' | cryptsetup luksFormat ${luksopts} "${sys_luks_dev}" -
 luks_sys_uuid=$(file -s "${sys_luks_dev}" | awk -F'UUID: ' '{print $2}')
@@ -199,11 +199,15 @@ luks_data_map="luks-${luks_data_uuid}"
 printf 'changeit' | cryptsetup luksOpen "${data_luks_dev}" "${luks_data_map}" -
 
 # create LVM structures
-pvcreate "/dev/mapper/${luks_sys_map}"
-pvcreate "/dev/mapper/${luks_data_map}"
+# shellcheck disable=SC2086
+{
+  lvopts="--dataalignment 8192s"
+  pvcreate "/dev/mapper/${luks_sys_map}"  ${lvopts}
+  pvcreate "/dev/mapper/${luks_data_map}" ${lvopts}
 
-vgcreate sysvg  "/dev/mapper/${luks_sys_map}"
-vgcreate datavg "/dev/mapper/${luks_data_map}"
+  vgcreate sysvg  "/dev/mapper/${luks_sys_map}"  ${lvopts}
+  vgcreate datavg "/dev/mapper/${luks_data_map}" ${lvopts}
+}
 
 lvcreate -nvar  -L8G      sysvg
 lvcreate -nroot -l70%free sysvg

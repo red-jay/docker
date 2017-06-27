@@ -80,7 +80,7 @@ if [ -L "${data_luks_dev}" ] ; then
 fi
 
 # reformat luks volumes at this point
-luksopts="-c aes-xts-plain64 -s 512 -h sha256 -i 5000"
+luksopts="-c aes-xts-plain64 -s 512 -h sha256 -i 5000 --align-payload=8192"
 # shellcheck disable=SC2086
 printf 'changeit' | cryptsetup luksFormat ${luksopts} "${sys_luks_dev}" -
 luks_sys_uuid=$(file -s "${sys_luks_dev}" | awk -F'UUID: ' '{print $2}')
@@ -94,11 +94,16 @@ luks_data_map="luks-${luks_data_uuid}"
 printf 'changeit' | cryptsetup luksOpen "${data_luks_dev}" "${luks_data_map}" -
 
 # create LVM structures
-pvcreate "/dev/mapper/${luks_sys_map}"
-pvcreate "/dev/mapper/${luks_data_map}"
+# shellcheck disable=SC2086
+{
+  lvopts="--dataalignment 8192s"
 
-vgcreate sysvg  "/dev/mapper/${luks_sys_map}"
-vgcreate datavg "/dev/mapper/${luks_data_map}"
+  pvcreate "/dev/mapper/${luks_sys_map}"  ${lvopts}
+  pvcreate "/dev/mapper/${luks_data_map}" ${lvopts}
+
+  vgcreate sysvg  "/dev/mapper/${luks_sys_map}"  ${lvopts}
+  vgcreate datavg "/dev/mapper/${luks_data_map}" ${lvopts}
+}
 
 lvcreate -nvar  -L8G      sysvg
 lvcreate -nroot -l70%free sysvg
