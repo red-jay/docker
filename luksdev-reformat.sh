@@ -22,8 +22,8 @@ for raiddev in /dev/md[0-9]* ; do
   if [ $sta != 0 ] ; then continue ; fi
 
   # see if array is readwrite
-  read ro < "/sys/block/${shortdev}/ro"
-  if [ "${ro}" == 1 ] ; then
+  read ro < "/sys/block/${shortdev}/md/array_state"
+  if [ "${ro}" == "read-auto" ] ; then
     # readwrite the array
     mdadm -w "${raiddev}"
   fi
