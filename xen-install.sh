@@ -12,7 +12,7 @@ chroot_ag() {
 chroot_ag install -y xen-system-amd64
 
 # base xen boot arguments
-xen_cmdline="dom0_max_vcups=2 dom0_mem=8G"
+xen_cmdline="dom0_max_vcpus=2 dom0_mem=8G"
 
 # figure out serial console by asking grub what _it_ does
 grub_term=$(augtool -r /mnt/target print /files/etc/default/grub/GRUB_TERMINAL)
