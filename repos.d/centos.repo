@@ -1,9 +1,9 @@
 [base]
-baseurl=http://wcs.bbxn.us/centos/$releasever/os/$basearch/
+baseurl=http://wcs.bbxn.us/centos/7/os/$basearch/
 gpgcheck=1
 [updates]
-baseurl=http://wcs.bbxn.us/centos/$releasever/updates/$basearch/
+baseurl=http://wcs.bbxn.us/centos/7/updates/$basearch/
 gpgcheck=1
 [extras]
-baseurl=http://wcs.bbxn.us/centos/$releasever/extras/$basearch/
+baseurl=http://wcs.bbxn.us/centos/7/extras/$basearch/
 gpgcheck=1
