@@ -86,6 +86,9 @@ usb.img: Packages/.downloaded repodata/repomd.xml LiveOS/squashfs.img EFI/BOOT/f
 	env MTOOLS_SKIP_CHECK=1 mlabel -i usb.img@@1M ::HVINABOX
 	syslinux -t 1048576 usb.img
 	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s syslinux.cfg ::
+	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s /usr/share/syslinux/chain.c32 ::
+	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s /usr/share/syslinux/libcom32.c32 ::
+	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s /usr/share/syslinux/libutil.c32 ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s discinfo ::.discinfo
 	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s ks.cfg ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s Packages ::
