@@ -58,8 +58,10 @@ case "${CONFIG_SERIAL_INSTALL}" in
     ;;
 esac
 
+set +u
 # now check if CONFIG_SERIAL_INSTALL is still set
 if [ ! -z "${CONFIG_SERIAL_INSTALL}" ] ; then
+  set -u
   {
     printf 'GRUB_SERIAL_COMMAND="serial --speed=115200 --unit=%s --word=8 --parity=no --stop=1"\n' "${CONFIG_SERIAL_INSTALL}"
     printf 'GRUB_TERMINAL="serial"\n'
@@ -71,8 +73,11 @@ if [ ! -z "${CONFIG_SERIAL_INSTALL}" ] ; then
   cmdline="${cmdline:0:-3} console=ttyS${CONFIG_SERIAL_INSTALL},115200n8${cmdline: -3}"
   augtool -r /mnt/target -s set /files/etc/default/grub/GRUB_CMDLINE_LINUX_DEFAULT "${cmdline}"
 fi
+set -u
 
 # if we have a fio here, put a fio there
+shopt -s nullglob
+set +u
 fio=(/dev/fio[a-z])
 # shellcheck disable=SC2128
 if [ ! -z "${fio}" ] ; then
@@ -104,6 +109,8 @@ if [ ! -z "${fio_array}" ] ; then
   cmdline="${cmdline:0:-3} iomemory_md=${fio_arrayname}:${fio_devs:0:-1}${cmdline: -3}"
   augtool -r /mnt/target -s set /files/etc/default/grub/GRUB_CMDLINE_LINUX_DEFAULT "${cmdline}"
 fi
+set -u
+shopt -u nullglob
 
 # rebuild the initrd now, install grub, generate config
 chroot /mnt/target env LC_ALL=C mkinitramfs -o "/boot/initrd.img-${target_kver}" "${target_kver}"
