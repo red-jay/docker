@@ -10,7 +10,7 @@ set -o pipefail
 IMGDIR=$(mktemp -d /var/tmp/hvdisk-XXXXXX)
 
 # create a chroot
-sudo debootstrap --verbose --arch=amd64 --keyring=./ubuntu-archive-keyring.gpg xenial "${IMGDIR}"
+sudo debootstrap --verbose --arch=amd64 --keyring=./ubuntu-archive-keyring.gpg xenial "${IMGDIR}" http://wcs.bbxn.us/ubuntu
 
 # mount filesystems
 sudo mount --bind /dev  "${IMGDIR}/dev"
@@ -19,9 +19,9 @@ sudo mount --bind /sys  "${IMGDIR}/sys"
 
 # update sources.list
 {
-  printf 'deb http://archive.ubuntu.com/ubuntu xenial main universe\n'
-  printf 'deb http://us.archive.ubuntu.com/ubuntu/ xenial-security main universe\n'
-  printf 'deb http://us.archive.ubuntu.com/ubuntu/ xenial-updates main universe\n'
+  printf 'deb http://wcs.bbxn.us/ubuntu xenial main universe\n'
+  printf 'deb http://wcs.bbxn.us/ubuntu/ xenial-security main universe\n'
+  printf 'deb http://wcs.bbxn.us/ubuntu/ xenial-updates main universe\n'
 } | sudo tee "${IMGDIR}/etc/apt/sources.list" > /dev/null
 
 # fetch packagelists
