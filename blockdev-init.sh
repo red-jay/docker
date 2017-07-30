@@ -181,7 +181,7 @@ if [ -L "${sys_luks_dev}" ] ; then
   sys_luks_dev="$(dirname "${sys_luks_dev}")/$(readlink "${sys_luks_dev}")"
 fi
 if [ -L "${data_luks_dev}" ] ; then
-  sys_luks_dev="$(dirname "${data_luks_dev}")/$(readlink "${data_luks_dev}")"
+  data_luks_dev="$(dirname "${data_luks_dev}")/$(readlink "${data_luks_dev}")"
 fi
 
 # create luks volumes
