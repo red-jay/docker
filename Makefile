@@ -73,26 +73,19 @@ images/initrd.img: images
 discinfo:
 	curl -L -o discinfo http://wcs.bbxn.us/centos/7/os/x86_64/.discinfo
 
-overhead.img:
-	dd if=/dev/zero of=overhead.img bs=2M count=1
-
-usb.img: Packages/.downloaded repodata/repomd.xml LiveOS/squashfs.img EFI/BOOT/fonts/unicode.pf2 EFI/BOOT/grubx64.efi EFI/BOOT/MokManager.efi EFI/BOOT/BOOTX64.EFI EFI/BOOT/grub.cfg overhead.img syslinux.cfg discinfo images/pxeboot/vmlinuz images/pxeboot/initrd.img
-	truncate -s $$(du -ks --total Packages/ LiveOS/ EFI/ images/ repodata/ overhead.img|tail -n1|cut - -f1)k usb.img
-	parted -s usb.img mklabel msdos
-	parted -s usb.img mkpart primary fat32 1M 100%
-	parted -s usb.img set 1 boot on
+usb.img: Packages/.downloaded repodata/repomd.xml LiveOS/squashfs.img EFI/BOOT/fonts/unicode.pf2 EFI/BOOT/grubx64.efi EFI/BOOT/MokManager.efi EFI/BOOT/BOOTX64.EFI EFI/BOOT/grub.cfg syslinux.cfg discinfo images/pxeboot/vmlinuz images/pxeboot/initrd.img
+	mkdiskimage -FM4o usb.img 1024 256 63 > usb.offset
 	dd conv=notrunc bs=440 count=1 if=/usr/share/syslinux/mbr.bin of=usb.img
-	guestfish -a usb.img run : mkfs vfat /dev/sda1
-	env MTOOLS_SKIP_CHECK=1 mlabel -i usb.img@@1M ::HVINABOX
-	syslinux -t 1048576 usb.img
-	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s syslinux.cfg ::
-	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s /usr/share/syslinux/chain.c32 ::
-	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s /usr/share/syslinux/libcom32.c32 ::
-	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s /usr/share/syslinux/libutil.c32 ::
-	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s discinfo ::.discinfo
-	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s ks.cfg ::
-	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s Packages ::
-	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s repodata ::
-	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s EFI ::
-	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s LiveOS ::
-	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@1M -s images ::
+	env MTOOLS_SKIP_CHECK=1 mlabel -i usb.img@@$$(cat usb.offset) ::HVINABOX
+	syslinux -t $$(cat usb.offset) usb.img
+	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@$$(cat usb.offset) -s syslinux.cfg ::
+	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@$$(cat usb.offset) -s /usr/share/syslinux/chain.c32 ::
+	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@$$(cat usb.offset) -s /usr/share/syslinux/libcom32.c32 ::
+	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@$$(cat usb.offset) -s /usr/share/syslinux/libutil.c32 ::
+	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@$$(cat usb.offset) -s discinfo ::.discinfo
+	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@$$(cat usb.offset) -s ks.cfg ::
+	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@$$(cat usb.offset) -s Packages ::
+	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@$$(cat usb.offset) -s repodata ::
+	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@$$(cat usb.offset) -s EFI ::
+	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@$$(cat usb.offset) -s LiveOS ::
+	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@$$(cat usb.offset) -s images ::
