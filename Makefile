@@ -22,7 +22,7 @@ repodata/.unwound-groups: repodata/installed-groups.txt repodata/repomd.xml unwi
 	touch repodata/.unwound-groups
 
 Packages/.downloaded: repodata/.unwound-groups ks.cfg repodata/installed-packages.txt
-	repotrack -c ./yum.conf -a x86_64 -p ./Packages systemd-networkd $$(cat ./repodata/group-*.txt) $$(cat ./repodata/installed-packages.txt)
+	repotrack -c ./yum.conf -a x86_64 -p ./Packages $$(cat ./repodata/group-*.txt) $$(cat ./repodata/installed-packages.txt)
 	$(MAKE) -B repodata/repomd.xml
 	touch Packages/.downloaded
 
