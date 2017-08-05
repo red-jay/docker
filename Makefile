@@ -74,7 +74,7 @@ discinfo:
 	curl -L -o discinfo http://wcs.bbxn.us/centos/7/os/x86_64/.discinfo
 
 usb.img: Packages/.downloaded repodata/repomd.xml LiveOS/squashfs.img EFI/BOOT/fonts/unicode.pf2 EFI/BOOT/grubx64.efi EFI/BOOT/MokManager.efi EFI/BOOT/BOOTX64.EFI EFI/BOOT/grub.cfg syslinux.cfg discinfo images/pxeboot/vmlinuz images/pxeboot/initrd.img
-	mkdiskimage -FM4o usb.img 1024 256 63 > usb.offset
+	mkdiskimage -FM4os usb.img 1024 256 63 > usb.offset
 	dd conv=notrunc bs=440 count=1 if=/usr/share/syslinux/mbr.bin of=usb.img
 	env MTOOLS_SKIP_CHECK=1 mlabel -i usb.img@@$$(cat usb.offset) ::HVINABOX
 	syslinux -t $$(cat usb.offset) usb.img
