@@ -38,7 +38,7 @@ for raiddev in /dev/md[0-9]* ; do
   if [ $sta != 0 ] ; then continue ; fi
 
   # see if array is readwrite
-  read ro < "/sys/block/${shortdev}/ro"
+  read -r ro < "/sys/block/${shortdev}/ro"
   if [ "${ro}" == 1 ] ; then
     # readwrite the array
     mdadm -w "${raiddev}"
@@ -144,16 +144,40 @@ fi
 sys_luks_dev=/dev/md/system
 data_luks_dev=/dev/md/data
 
+# counts of devices by array fun
+efi_sp_a=( ${efi_sp_dev} )
+boot_a=( ${boot_dev} )
+sys_a=( ${sys_dev} )
+data_a=( ${data_dev} )
+
+# RAID level configuration - efi, boot are _always_ 1
+sys_raid_lev=1
+data_raid_lev=1
+
+# if we have 4 or more system disks, flip raid mode to 10
+if [[ "${#sys_a[@]}" -ge 4 ]] ; then
+  sys_raid_lev=10
+fi
+# if we have 4 data disks, flip data raid mode to 10
+if [[ "${#data_a[@]}" -eq 4 ]] ; then
+  data_raid_lev=10
+fi
+# if we have more than 4 data disks, flip data raid mode to 6
+if [[ "${#data_a[@]}" -gt 4 ]] ; then
+  data_raid_lev=6
+fi
+
 # create raid volumes - we want word splitting on the _dev variables
 # shellcheck disable=SC2086
 {
-  mdadm --create /dev/md/efi        -Nefi    -l1  -n5 --metadata=1.0 ${efi_sp_dev}
+  mdadm --create /dev/md/efi        -Nefi    -l1                  -n"${#efi_sp_a[@]}" --metadata=1.0 ${efi_sp_dev}
   wipefs -a      /dev/md/efi
-  mdadm --create /dev/md/boot       -Nboot   -l1  -n5 --metadata=1.0 ${boot_dev}
+  mdadm --create /dev/md/boot       -Nboot   -l1                  -n"${#boot_a[@]}"   --metadata=1.0 ${boot_dev}
   wipefs -a      /dev/md/boot
-  mdadm --create "${sys_luks_dev}"  -Nsystem -l10 -n5 --metadata=1.1 ${sys_dev}	# linux lets you do this. don't think about how _too_ hard.
+  # linux lets you do this. don't think about how _too_ hard.
+  mdadm --create "${sys_luks_dev}"  -Nsystem -l"${sys_raid_lev}"  -n"${#sys_a[@]}"    --metadata=1.1 ${sys_dev}
   wipefs -a      "${sys_luks_dev}"
-  mdadm --create "${data_luks_dev}" -Ndata   -l6  -n5 --metadata=1.1 ${data_dev}
+  mdadm --create "${data_luks_dev}" -Ndata   -l"${data_raid_lev}" -n"${#data_a[@]}"   --metadata=1.1 ${data_dev}
   wipefs -a      "${data_luks_dev}"
 }
 
@@ -235,8 +259,8 @@ mdadm --examine --scan > /mnt/target/etc/mdadm/mdadm.conf
 # re-key data partition
 mkdir -p /mnt/target/etc/keys
 dd if=/dev/random of=/mnt/target/etc/keys/datavol.luks bs=1 count=32
-printf 'changeit' | cryptsetup luksAddKey   ${data_luks_dev} /mnt/target/etc/keys/datavol.luks -
-printf 'changeit' | cryptsetup luksRemoveKey ${data_luks_dev} -
+printf 'changeit' | cryptsetup luksAddKey    "${data_luks_dev}" /mnt/target/etc/keys/datavol.luks -
+printf 'changeit' | cryptsetup luksRemoveKey "${data_luks_dev}" -
 
 # save crypttab
 {
