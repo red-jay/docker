@@ -141,3 +141,6 @@ rpw_hash='$6$C8gWRNlF$TVgBTa9Pu8CRIkDoWS2lK2gHaV9egxVmh2HOWExRvxQeN30O/D7vqtPu89
 rpw_date=$(($(date +%s) / 86400))
 augtool -r /mnt/target -s set /files/etc/shadow/root/password "${rpw_hash}"
 augtool -r /mnt/target -s set /files/etc/shadow/root/lastchange_date "${rpw_date}"
+
+# additional software
+chroot_ag install -y lsb-base
