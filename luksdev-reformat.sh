@@ -42,7 +42,7 @@ if [ -b /dev/fioa1 ] && [ -b /dev/fiob1 ] ; then
   fio_uniqs=$(fio-status | awk '$3 == "Product" {print $1,$2}' | uniq | wc -l)
   if [ "${fio_uniqs}" == "1" ] ; then
     # assemble/start raid
-    cachedev=/dev/md/cache
+    cachedev=(/dev/md/*:cache)
     set +e
     if [ ! -e ${cachedev} ] ; then
       set -e
@@ -57,7 +57,7 @@ if [ -b /dev/fioa1 ] && [ -b /dev/fiob1 ] ; then
     # shellcheck disable=SC2128
     {
       datapath="/dev/$(basename "$(readlink "${datadev}")")"
-      cachepath="/dev/$(basename "$(readlink /dev/md/cache)")"
+      cachepath="/dev/$(basename "$(readlink "${cachedev}")")"
       set +e # in case bcache already picked it up
       echo "${datapath}" > /sys/fs/bcache/register
       echo "${cachepath}" > /sys/fs/bcache/register
