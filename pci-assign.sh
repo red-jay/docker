@@ -63,8 +63,26 @@ for d in /sys/bus/pci/devices/* ; do
 
   # output - hide bridges, pci-peripherals
   case $class in
-   #bridg|perif|store|netct|smbus
-    0x06*|0x08*|0x01*|0x02*|0x0c05*) : ;; # nop
+   #bridg|perif|store|smbus
+    0x06*|0x08*|0x01*|0x0c05*) : ;; # nop
+    0x02*)
+      # if we have a netdriver, get the mac if this _should_ be passthrough'd
+      if [ -f ${d}/net/*/address ] ; then
+        read net_mac < ${d}/net/*/address
+        case "${net_mac}" in
+          "00:25:64:a7:7b:63")
+            pciback_arg="(${slot})${pciback_arg}"
+            force_arg="${slot},${force_arg}"
+            # uniq driver_list upon insertion
+            case "${driver_list}" in
+              *${driver}*) : ;;
+              *) driver_list="${driver} ${driver_list}" ;;
+            esac
+            ;;
+          *) : ;; # nop
+        esac
+      fi
+      ;;
     *)
       # if we are behind a bridge, get the _bridge_ information here.
       if [ "${#pathct}" -gt 1 ] ; then
