@@ -16,9 +16,10 @@ printf 'deb [trusted=yes] file:///mnt/repository/ archive main\n' > /mnt/target/
 mkdir -p /mnt/target/mnt/repository
 
 # bind live fs to target
-mount --bind /dev /mnt/target/dev
-mount --bind /sys /mnt/target/sys
-mount --bind /proc /mnt/target/proc
+mount --bind /dev        /mnt/target/dev
+mount --bind /sys        /mnt/target/sys
+mount --bind /proc       /mnt/target/proc
+mount -t tmpfs tmpfs     /mnt/target/run
 mount --bind /repository /mnt/target/mnt/repository
 
 # install more stuff
