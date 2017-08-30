@@ -6,7 +6,7 @@ set -o pipefail
 
 cd /var/cache/apt/archives
 
-for pkg in xen-system-amd64 libvirt-bin debootstrap virtinst libguestfs-tools systemd-sysv pinentry-tty rrdtool nut lm-sensors tmux vlan dnsmasq firewalld dhcpcd5 ; do
+for pkg in xen-system-amd64 libvirt-bin debootstrap virtinst libguestfs-tools systemd-sysv pinentry-tty rrdtool nut lm-sensors tmux vlan dnsmasq firewalld dhcpcd5 virtinst ; do
   # the very ugly grep filter removes virtual packages
   # we want word splitting in the below line
   # shellcheck disable=SC2046
