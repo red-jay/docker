@@ -70,7 +70,7 @@ for d in /sys/bus/pci/devices/* ; do
       if [ -f ${d}/net/*/address ] ; then
         read net_mac < ${d}/net/*/address
         case "${net_mac}" in
-          "00:25:64:a7:7b:63")
+          "00:25:64:a7:7b:63"|"b8:ac:6f:3f:0c:b3")
             pciback_arg="(${slot})${pciback_arg}"
             force_arg="${slot},${force_arg}"
             # uniq driver_list upon insertion
