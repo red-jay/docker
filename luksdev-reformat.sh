@@ -30,10 +30,12 @@ for raiddev in /dev/md[0-9]* ; do
 
 done
 
+shopt -s nullglob
+
 sys_luks_dev=(/dev/md/*system*)
-data_luks_dev=(/dev/md/*:data)
-boot_md_dev=(/dev/md/*:boot)
-efi_md_dev=(/dev/md/*:efi)
+data_luks_dev=(/dev/md/*data)
+boot_md_dev=(/dev/md/*boot)
+efi_md_dev=(/dev/md/*efi)
 
 # see if we have two fios - if we do, try to set up the cache volume
 if [ -b /dev/fioa1 ] && [ -b /dev/fiob1 ] ; then
@@ -42,7 +44,7 @@ if [ -b /dev/fioa1 ] && [ -b /dev/fiob1 ] ; then
   fio_uniqs=$(fio-status | awk '$3 == "Product" {print $1,$2}' | uniq | wc -l)
   if [ "${fio_uniqs}" == "1" ] ; then
     # assemble/start raid
-    cachedev=(/dev/md/*:cache)
+    cachedev=(/dev/md/*cache)
     set +e
     if [ ! -e ${cachedev} ] ; then
       set -e
@@ -51,7 +53,7 @@ if [ -b /dev/fioa1 ] && [ -b /dev/fiob1 ] ; then
     set -e
 
     # register bcache volume
-    datadev=(/dev/md/*:data)
+    datadev=(/dev/md/*data)
 
     # unwind symlink, register in bcache
     # shellcheck disable=SC2128
@@ -68,6 +70,7 @@ if [ -b /dev/fioa1 ] && [ -b /dev/fiob1 ] ; then
   fi
 fi
 
+shopt -u nullglob
 
 # unwind any symlinks
 # shellcheck disable=SC2128
