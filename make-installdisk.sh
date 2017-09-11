@@ -97,6 +97,11 @@ sudo cp boot_pci_assign.sh "${IMGDIR}/root/boot_pci_assign.sh"
 sudo cp pci-assign.sh "${IMGDIR}/root/pci-assign.sh"
 sudo cp install-stack.sh "${IMGDIR}/root/install-stack.sh"
 
+# if we have the netmgmt iso, bring it along now.
+if [ -f netmgmt.iso ] ; then
+  sudo cp netmgmt.iso "${IMGDIR}/root/netmgmt-inst.iso"
+fi
+
 # if we have a ssh pubkey to induct, add it now.
 if [ -f ssh.pub ] ; then
   sudo mkdir -p "${IMGDIR}/root/.ssh"
