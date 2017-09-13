@@ -108,13 +108,15 @@ printf 'changeit' | cryptsetup luksOpen "${data_luks_dev}" "${luks_data_map}" -
   vgcreate datavg "/dev/mapper/${luks_data_map}" ${lvopts}
 }
 
-lvcreate -nvar  -L8G      sysvg
-lvcreate -nroot -l70%free sysvg
-lvcreate -nswap -L4G      sysvg
+lvcreate -nvar     -L8G      sysvg
+lvcreate -nroot    -l70%free sysvg
+lvcreate -nswap    -L4G      sysvg
+lvcreate -nlibvirt -L72G     datavg
 
 # create filesystems
 mkfs.xfs  /dev/sysvg/root
 mkfs.xfs  /dev/sysvg/var
+mkfs.xfs  /dev/datavg/libvirt
 # shellcheck disable=SC2128
 {
   mkfs.ext2 "${boot_md_dev}"
@@ -122,14 +124,16 @@ mkfs.xfs  /dev/sysvg/var
 }
 # mounts
 mkdir -p /mnt/target
-mount /dev/sysvg/root  /mnt/target
+mount /dev/sysvg/root     /mnt/target
 mkdir /mnt/target/{boot,var}
 # shellcheck disable=SC2128
-mount "${boot_md_dev}" /mnt/target/boot
+mount "${boot_md_dev}"    /mnt/target/boot
 mkdir /mnt/target/boot/efi
 # shellcheck disable=SC2128
-mount "${efi_md_dev}"  /mnt/target/boot/efi
-mount /dev/sysvg/var   /mnt/target/var
+mount "${efi_md_dev}"     /mnt/target/boot/efi
+mount /dev/sysvg/var      /mnt/target/var
+mkdir -p /mnt/target/var/lib/libvirt
+mount /dev/datavg/libvirt /mnt/target/var/lib/libvirt
 
 # save md config
 mkdir -p /mnt/target/etc/mdadm
@@ -149,8 +153,9 @@ printf 'changeit' | cryptsetup luksRemoveKey ${data_luks_dev} -
 
 # save fstab
 {
-  printf '/dev/sysvg/root /         xfs  defaults                   1 1\n'
-  printf '/dev/sysvg/var  /var      xfs  defaults                   1 2\n'
-  printf '/dev/md/boot    /boot     ext2 defaults                   1 2\n'
-  printf '/dev/md/efi     /boot/efi vfat umask=0077,shortname=winnt 0 2\n'
+  printf '/dev/sysvg/root     /                xfs  defaults                   1 1\n'
+  printf '/dev/sysvg/var      /var             xfs  defaults                   1 2\n'
+  printf '/dev/md/boot        /boot            ext2 defaults                   1 2\n'
+  printf '/dev/md/efi         /boot/efi        vfat umask=0077,shortname=winnt 0 2\n'
+  printf '/dev/datavg/libvirt /var/lib/libvirt xfs  defaults                   1 2\n'
 } > /mnt/target/etc/fstab
