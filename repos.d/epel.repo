@@ -1,3 +1,3 @@
 [epel]
-baseurl=http://wcs.bbxn.us/epel/7/$basearch/
+baseurl=$YUM2/$basearch/
 gpgcheck=1
