@@ -8,9 +8,16 @@ set -o pipefail
 
 # https://help.ubuntu.com/community/LiveCDCustomizationFromScratch
 IMGDIR=$(mktemp -d /var/tmp/hvdisk-XXXXXX)
+UBU_ARCHIVE=http://wcs.bbxn.us/ubuntu
+
+set +u
+if [ ! -z "${1}" ] ; then
+  UBU_ARCHIVE="${1}"
+fi
+set -u
 
 # create a chroot
-sudo debootstrap --verbose --arch=amd64 --keyring=./ubuntu-archive-keyring.gpg xenial "${IMGDIR}" http://wcs.bbxn.us/ubuntu
+sudo debootstrap --verbose --arch=amd64 --keyring=./ubuntu-archive-keyring.gpg xenial "${IMGDIR}" "${UBU_ARCHIVE}"
 
 # mount filesystems
 sudo mount --bind /dev  "${IMGDIR}/dev"
@@ -19,9 +26,9 @@ sudo mount --bind /sys  "${IMGDIR}/sys"
 
 # update sources.list
 {
-  printf 'deb http://wcs.bbxn.us/ubuntu xenial main universe\n'
-  printf 'deb http://wcs.bbxn.us/ubuntu/ xenial-security main universe\n'
-  printf 'deb http://wcs.bbxn.us/ubuntu/ xenial-updates main universe\n'
+  printf 'deb %s xenial main universe\n' "${UBU_ARCHIVE}"
+  printf 'deb %s/ xenial-security main universe\n' "${UBU_ARCHIVE}"
+  printf 'deb %s/ xenial-updates main universe\n' "${UBU_ARCHIVE}"
 } | sudo tee "${IMGDIR}/etc/apt/sources.list" > /dev/null
 
 # fetch packagelists
@@ -38,7 +45,7 @@ sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get inst
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y discover laptop-detect os-prober
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y linux-generic
 printf 'GRUB_DISABLE_OS_PROBER=true\n' sudo tee -a "${IMGDIR}/etc/default/grub"
-sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y lvm2 thin-provisioning-tools cryptsetup mdadm debootstrap xfsprogs bcache-tools dkms syslinux extlinux
+sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y lvm2 thin-provisioning-tools cryptsetup mdadm debootstrap xfsprogs bcache-tools dkms syslinux extlinux memtest86+
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y smartmontools lm-sensors
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-server augeas-tools smartmontools fio
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -y dbus
@@ -133,6 +140,11 @@ for initrd in ${IMGDIR}/boot/initrd.img* ; do
     printf ' APPEND console=ttyS0,115200 root=LABEL=%s rw\n' "HVINABOX"
   } | sudo tee -a "${IMGDIR}/syslinux.cfg" > /dev/null
 done
+
+{
+  printf 'LABEL memtest\n'
+  printf ' KERNEL /boot/memtest86+.bin\n'
+} | sudo tee -a "${IMGDIR}/syslinux.cfg" > /dev/null
 
 # create tarball - sudo needs to create it, but we want the user to _own_ it ;)
 # shellcheck disable=SC2024
