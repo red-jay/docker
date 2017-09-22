@@ -1,5 +1,16 @@
+ifeq ($(tmpdir),)
+
+location = $(CURDIR)/$(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST))
+self := $(location)
+
+%:
+	@tmpdir=`mktemp -d`; \
+	trap 'rm -rf "$$tmpdir"' EXIT; \
+	$(MAKE) -f $(self) --no-print-directory tmpdir=$$tmpdir $@
+else
 C7_URI = http://wcs.bbxn.us/centos/7
 EPEL7_URI = http://wcs.bbxn.us/epel/7
+
 
 kscheck: ks.cfg
 	ksvalidator ks.cfg -v RHEL7
@@ -92,3 +103,5 @@ usb.img: Packages/.downloaded repodata/repomd.xml LiveOS/squashfs.img EFI/BOOT/f
 	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@$$(cat usb.offset) -s EFI ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@$$(cat usb.offset) -s LiveOS ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@$$(cat usb.offset) -s images ::
+
+endif
