@@ -87,7 +87,12 @@ images/initrd.img: images
 discinfo:
 	curl -L -o discinfo $(C7_URI)/os/x86_64/.discinfo
 
-usb.img: Packages/.downloaded repodata/repomd.xml LiveOS/squashfs.img EFI/BOOT/fonts/unicode.pf2 EFI/BOOT/grubx64.efi EFI/BOOT/MokManager.efi EFI/BOOT/BOOTX64.EFI EFI/BOOT/grub.cfg syslinux.cfg discinfo images/pxeboot/vmlinuz images/pxeboot/initrd.img
+EFIFILES = EFI/BOOT/fonts/unicode.pf2 EFI/BOOT/grubx64.efi EFI/BOOT/MokManager.efi EFI/BOOT/BOOTX64.EFI EFI/BOOT/grub.cfg
+REPOFILES = Packages/.downloaded repodata/repomd.xml discinfo
+LIVEFILES = LiveOS/squashfs.img syslinux.cfg images/pxeboot/vmlinuz images/pxeboot/initrd.img
+IMAGEFILES = $(REPOFILES) $(LIVEFILES) $(EFIFILES)
+
+usb.img: $(IMAGEFILES)
 	mkdiskimage -FM4os usb.img 2048 256 63 > usb.offset
 	dd conv=notrunc bs=440 count=1 if=/usr/share/syslinux/mbr.bin of=usb.img
 	env MTOOLS_SKIP_CHECK=1 mlabel -i usb.img@@$$(cat usb.offset) ::HVINABOX
