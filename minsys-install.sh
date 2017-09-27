@@ -144,3 +144,4 @@ augtool -r /mnt/target -s set /files/etc/shadow/root/password "${rpw_hash}"
 augtool -r /mnt/target -s set /files/etc/shadow/root/lastchange_date "${rpw_date}"
 
 # additional software
+chroot_ag install -y ethtool apparmor irqbalance
