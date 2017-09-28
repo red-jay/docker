@@ -143,5 +143,9 @@ rpw_date=$(($(date +%s) / 86400))
 augtool -r /mnt/target -s set /files/etc/shadow/root/password "${rpw_hash}"
 augtool -r /mnt/target -s set /files/etc/shadow/root/lastchange_date "${rpw_date}"
 
+# explicitly install resolvconf so we can configure it
+chroot_ag install -y resolvconf
+set -i -e '/lo.*/d' /mnt/target/etc/resolvconf/interface-order
+
 # additional software
 chroot_ag install -y ethtool apparmor irqbalance
