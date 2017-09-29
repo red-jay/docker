@@ -45,7 +45,7 @@ sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get inst
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y discover laptop-detect os-prober
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y linux-generic
 printf 'GRUB_DISABLE_OS_PROBER=true\n' sudo tee -a "${IMGDIR}/etc/default/grub"
-sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y lvm2 thin-provisioning-tools cryptsetup mdadm debootstrap xfsprogs bcache-tools dkms syslinux extlinux memtest86+
+sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y lvm2 thin-provisioning-tools cryptsetup mdadm debootstrap xfsprogs bcache-tools dkms syslinux extlinux isolinux memtest86+
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y smartmontools lm-sensors ethtool
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y openssh-server augeas-tools smartmontools fio
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y dbus
@@ -123,7 +123,12 @@ sudo umount "${IMGDIR}/dev"
 sudo umount "${IMGDIR}/proc"
 sudo umount "${IMGDIR}/sys"
 
-# create syslinux cfg
+# move about isolinux files
+sudo cp "${IMGDIR}/usr/lib/ISOLINUX/isolinux.bin" "${IMGDIR}/boot/isolinux.bin"
+sudo mkdir -p "${IMGDIR}/boot/syslinux"
+sudo cp "${IMGDIR}/usr/lib/syslinux/modules/bios/ldlinux.c32" "${IMGDIR}/boot/syslinux/ldlinux.c32"
+
+# create syslinux/isolinux cfg
 printf 'serial 0 115200\n\n' | sudo tee "${IMGDIR}/syslinux.cfg" > /dev/null
 default=""
 for initrd in ${IMGDIR}/boot/initrd.img* ; do
@@ -146,9 +151,17 @@ done
   printf ' KERNEL /boot/memtest86+.bin\n'
 } | sudo tee -a "${IMGDIR}/syslinux.cfg" > /dev/null
 
+# fstab entries for live env
+{
+  printf 'tmpfs\t/tmp\ttmpfs\tdefaults\t0 0\n'
+  printf 'tmpfs\t/run\ttmpfs\tdefaults\t0 0\n'
+} | sudo tee "${IMGDIR}/etc/fstab" > /dev/null
+
 # create tarball - sudo needs to create it, but we want the user to _own_ it ;)
 # shellcheck disable=SC2024
 sudo tar cp -C "${IMGDIR}" . > image.tar
+# create iso
+sudo mkisofs -b boot/isolinux.bin -c boot/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -R -J -v -T -V HVINABOX "${IMGDIR}" > image.iso
 
 # clean out IMGDIR
 sudo rm -rf "${IMGDIR}"
