@@ -93,7 +93,8 @@ sudo cp debootstrap-archive "${IMGDIR}/usr/share/debootstrap/scripts/archive"
 } | sudo tee "${IMGDIR}/etc/motd"
 
 # copy over the fancy blockdev initscript
-sudo cp blockdev-init.sh "${IMGDIR}/root/blockdev-init.sh"
+sudo cp blockdev-init.sh  "${IMGDIR}/root/blockdev-init.sh"
+sudo cp simpledev-init.sh "${IMGDIR}/root/simpledev-init.sh"
 
 # and the install-to-target scripts
 sudo cp minsys-install.sh "${IMGDIR}/root/minsys-install.sh"
@@ -156,6 +157,8 @@ done
   printf 'tmpfs\t/tmp\ttmpfs\tdefaults\t0 0\n'
   printf 'tmpfs\t/run\ttmpfs\tdefaults\t0 0\n'
 } | sudo tee "${IMGDIR}/etc/fstab" > /dev/null
+
+sudo mkdir -p "${IMGDIR}/mnt/target"
 
 # create tarball - sudo needs to create it, but we want the user to _own_ it ;)
 # shellcheck disable=SC2024

@@ -246,7 +246,6 @@ mkfs.vfat /dev/md/efi
 mkfs.xfs  /dev/datavg/libvirt
 
 # mounts
-mkdir -p /mnt/target
 mount /dev/sysvg/root     /mnt/target
 mkdir /mnt/target/{boot,var}
 mount /dev/md/boot        /mnt/target/boot

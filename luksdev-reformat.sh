@@ -123,7 +123,6 @@ mkfs.xfs  /dev/datavg/libvirt
   mkfs.vfat "${efi_md_dev}"
 }
 # mounts
-mkdir -p /mnt/target
 mount /dev/sysvg/root     /mnt/target
 mkdir /mnt/target/{boot,var}
 # shellcheck disable=SC2128
