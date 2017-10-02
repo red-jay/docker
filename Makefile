@@ -25,11 +25,15 @@ repodata:
 repodata/repomd.xml: centos-comps/c7-x86_64-comps.xml
 	createrepo_c -g ./centos-comps/c7-x86_64-comps.xml .
 
-repodata/installed-groups.txt: ks.cfg ks-dumpgroups.py repodata
-	./ks-dumpgroups.py > repodata/installed-groups.txt
+repodata/installed-groups.txt: ks.cfg netmgmt.ks ks-dumpgroups.py repodata
+	./ks-dumpgroups.py ks.cfg > repodata/installed-groups.in
+	./ks-dumpgroups.py netmgmt.ks >> repodata/installed-groups.in
+	sort -u repodata/installed-groups.in > repodata/installed-groups.txt
 
 repodata/installed-packages.txt: ks.cfg ks-dumppkgs.py repodata
-	./ks-dumppkgs.py > repodata/installed-packages.txt
+	./ks-dumppkgs.py ks.cfg > repodata/installed-packages.in
+	./ks-dumppkgs.py netmgmt.ks >> repodata/installed-packages.in
+	sort -u repodata/installed-packages.in > repodata/installed-packages.txt
 
 repodata/.unwound-groups: repodata/installed-groups.txt repodata/repomd.xml unwind-groups.sh
 	env YUM1=$(C7_URI) YUM2=$(EPEL7_URI) ./unwind-groups.sh repodata/installed-groups.txt
@@ -119,6 +123,8 @@ endif
 	cp /usr/share/syslinux/isolinux.bin $(tmpdir)/isolinux/
 	cp discinfo $(tmpdir)/.discinfo
 	cp ks.cfg $(tmpdir)/
+	cp netmgmt.ks $(tmpdir)/
+	cp ipxe-images.tgz $(tmpdir)/
 	cp -r Packages $(tmpdir)/
 	cp -r repodata $(tmpdir)/
 	cp -r EFI $(tmpdir)/
