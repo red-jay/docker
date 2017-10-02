@@ -25,14 +25,14 @@ repodata:
 repodata/repomd.xml: centos-comps/c7-x86_64-comps.xml
 	createrepo_c -g ./centos-comps/c7-x86_64-comps.xml .
 
-repodata/installed-groups.txt: ks.cfg netmgmt.ks ks-dumpgroups.py repodata
+repodata/installed-groups.txt: ks.cfg ks/netmgmt.ks ks-dumpgroups.py repodata
 	./ks-dumpgroups.py ks.cfg > repodata/installed-groups.in
-	./ks-dumpgroups.py netmgmt.ks >> repodata/installed-groups.in
+	./ks-dumpgroups.py ks/netmgmt.ks >> repodata/installed-groups.in
 	sort -u repodata/installed-groups.in > repodata/installed-groups.txt
 
-repodata/installed-packages.txt: ks.cfg ks-dumppkgs.py repodata
+repodata/installed-packages.txt: ks.cfg ks/netmgmt.ks ks-dumppkgs.py repodata
 	./ks-dumppkgs.py ks.cfg > repodata/installed-packages.in
-	./ks-dumppkgs.py netmgmt.ks >> repodata/installed-packages.in
+	./ks-dumppkgs.py ks/netmgmt.ks >> repodata/installed-packages.in
 	sort -u repodata/installed-packages.in > repodata/installed-packages.txt
 
 repodata/.unwound-groups: repodata/installed-groups.txt repodata/repomd.xml unwind-groups.sh
@@ -123,8 +123,8 @@ endif
 	cp /usr/share/syslinux/isolinux.bin $(tmpdir)/isolinux/
 	cp discinfo $(tmpdir)/.discinfo
 	cp ks.cfg $(tmpdir)/
-	cp netmgmt.ks $(tmpdir)/
-	cp install-netmgmt.sh $(tmpdir)/
+	cp -r ks/ $(tmpdir)/
+	cp -r bootstrap-scripts/ $(tmpdir)/
 	cp ipxe-images.tgz $(tmpdir)/
 	cp -r Packages $(tmpdir)/
 	cp -r repodata $(tmpdir)/
