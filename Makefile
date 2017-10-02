@@ -124,6 +124,7 @@ endif
 	cp discinfo $(tmpdir)/.discinfo
 	cp ks.cfg $(tmpdir)/
 	cp netmgmt.ks $(tmpdir)/
+	cp install-netmgmt.sh $(tmpdir)/
 	cp ipxe-images.tgz $(tmpdir)/
 	cp -r Packages $(tmpdir)/
 	cp -r repodata $(tmpdir)/
