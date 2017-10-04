@@ -175,6 +175,9 @@ for ent in $cmdline ; do
     syscfg=*)
       syscfg=${ent#syscfg=}
       ;;
+    site=*)
+      site=${ent#site=}
+      ;;
   esac
 done
 
@@ -254,6 +257,10 @@ if [ ! -z "${syscfg}" ] ; then
   printf 'syscfg="%s"\n' "${syscfg}" >> /tmp/post-vars
 fi
 
+if [ ! -z "${site}" ] ; then
+  printf 'site="%s"\n' "${site}" >> /tmp/post-vars
+fi
+
 %end
 
 %post --nochroot --log=/mnt/sysimage/root/post.log
@@ -290,12 +297,73 @@ for f in /mnt/sysimage/etc/pki/rpm-gpg/* ; do
   chroot /mnt/sysimage rpm --import "/etc/pki/rpm-gpg/${k}"
 done
 
+case "${site}" in
+  sv1)
+    netm_range="192.168.192.8/29"
+    netm_suffx="26"
+    ;;
+  sv2)
+    netm_range="192.168.192.136/29"
+    netm_suffx="26"
+    ;;
+  sv1a)
+    netm_range="192.168.192.68/31"
+    netm_suffx="28"
+    ;;
+  pa)
+    netm_range="192.168.2.8/30"
+    netm_suffx="27"
+    ;;
+esac
+
+# NOTE: all this code assumes smaller-than-C (/24) allocations
+#       to be specific, that we can get away with just +1 on
+#       the last octet.
+suffix=${netm_range#*/}
+prefix=${netm_range%.*}
+
+first_loctet=${netm_range%/$suffix}
+first_loctet=${first_loctet##*.}
+
+# this however, works around a bug in centos ipcalc.
+case ${suffix} in
+  31)
+    last_loctet=${first_loctet}
+    scratch=$((last_loctet++))
+    ;;
+  32)
+    last_loctet=${first_loctet}
+    ;;
+  *)
+    last_loctet=$(ipcalc -b ${netm_range})
+    last_loctet=${last_loctet##*.}
+    ;;
+esac
+
+gw_loctet=$(ipcalc -n "${prefix}.${first_loctet}/${netm_suffx}")
+gw_loctet=${gw_loctet##*.}
+scratch=$((gw_loctet++))
+gateway="${prefix}.${gw_loctet}"
+
+declare -a nm_addr
+i=0
+for octet in $(seq ${first_loctet} ${last_loctet}) ; do
+  nm_addr[i]="${prefix}.${octet}/${netm_suffx}"
+  scratch=$((i++))
+done
+
 # configure the network using systemd-networkd here.
 mkdir -p /mnt/sysimage/etc/systemd/network/
 
-printf '[Match]\nName=eth0\n[Network]\nDHCP=no\nLinkLocalAddressing=no\nLLMNR=no\nMulticastDNS=no\nAddress=192.168.192.136/26\n' > /mnt/sysimage/etc/systemd/network/eth0.network
-printf 'Address=192.168.192.137/26\nAddress=192.168.192.138/26\n' >> /mnt/sysimage/etc/systemd/network/eth0.network
-printf 'Gateway=192.168.192.129\n' >> /mnt/sysimage/etc/systemd/network/eth0.network
+{
+  printf '[Match]\nName=eth0\n[Network]\nDHCP=no\nLinkLocalAddressing=no\nLLMNR=no\nMulticastDNS=no\n'
+  printf 'Address=%s\n' "${nm_addr[0]}"
+  printf 'Address=%s\n' "${nm_addr[1]}"
+  if [ ! -z "${nm_addr[2]}" ] ; then
+    printf 'Address=%s\n' "${nm_addr[2]}"
+  fi
+  printf 'Gateway=%s\n' "${gateway}"
+} > /mnt/sysimage/etc/systemd/network/eth0.network
 
 # shoot NetworkManager in the face
 ln -s /dev/null /mnt/sysimage/etc/systemd/system/NetworkManager.service
