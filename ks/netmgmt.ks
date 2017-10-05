@@ -590,10 +590,17 @@ chmod +x /mnt/sysimage/usr/local/sbin/addhost
   printf '[Unit]\nDescription=tftpd vhost on %%I\nWants=network-online.target\nAfter=network-online.target\n'
   printf '[Service]\nExecStart=/sbin/in.tftpd -L --address %%i -s -P /run/tftpd-%%i.pid /var/lib/tftpboot/vh-%%i\n'
 } > /mnt/sysimage/etc/systemd/system/tftpd@.service
+
+tftp_std=${nm_addr[0]%/*}	# standard tftp service
+tftp_com1=${nm_addr[1]%/*}	# for obsd/com1/x86
+tftp_com2=${nm_addr[2]%/*}	# for obsd/com2/x86
+
 ln -s /usr/lib/systemd/system/dhcpd.service /mnt/sysimage/etc/systemd/system/multi-user.target.wants/dhcpd.service
-ln -s /etc/systemd/system/tftpd@.service /mnt/sysimage/etc/systemd/system/multi-user.target.wants/tftpd@192.168.192.136.service
-ln -s /etc/systemd/system/tftpd@.service /mnt/sysimage/etc/systemd/system/multi-user.target.wants/tftpd@192.168.192.137.service
-ln -s /etc/systemd/system/tftpd@.service /mnt/sysimage/etc/systemd/system/multi-user.target.wants/tftpd@192.168.192.138.service
+ln -s /etc/systemd/system/tftpd@.service /mnt/sysimage/etc/systemd/system/multi-user.target.wants/tftpd@${tftp_std}.service
+ln -s /etc/systemd/system/tftpd@.service /mnt/sysimage/etc/systemd/system/multi-user.target.wants/tftpd@${tftp_com1}.service
+if [ ! -z "${tftp_com2}" ] ; then
+  ln -s /etc/systemd/system/tftpd@.service /mnt/sysimage/etc/systemd/system/multi-user.target.wants/tftpd@${tftp_com2}.service
+fi
 
 # enable nginx
 ln -s /usr/lib/systemd/system/nginx.service /mnt/sysimage/etc/systemd/system/multi-user.target.wants/nginx.service
@@ -605,14 +612,11 @@ chroot /mnt/sysimage /bin/firewall-offline-cmd --zone internal --add-service tft
 chroot /mnt/sysimage /bin/firewall-offline-cmd --zone internal --add-service http
 
 # copy ipxe binaries about
-mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/ipxe
-tar xf /mnt/install/repo/ipxe-images.tgz -C /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/ipxe
+mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe
+tar xf /mnt/install/repo/ipxe-images.tgz -C /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe
 
 # create ipxe configs
-mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/ipxe.d/plat	# initial handoff
-mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/ipxe.d/mfr	# load manufacturer specific configs
-mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/ipxe.d/sys	# load system specific configs
-mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/ipxe.d/com	# serial configs
+mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe.d/{plat,mfr,sys,com}
 
 {
   printf '#!ipxe\necho iPXE loaded\n'
@@ -622,65 +626,52 @@ mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/ipxe.d/com	# serial c
   printf 'chain mfr/${manufacturer}.ipxe ||\n'
   printf 'chain mac/${netX/mac:hexhyp}.ipxe ||\n'
   printf 'shell\n'
-} > /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/ipxe.d/init.ipxe
+} > /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe.d/init.ipxe
 
 {
   printf '#!ipxe\n'
   printf 'chain mac/${netX/mac:hexhyp}.ipxe ||\n'
   printf 'shell\n'
-} > /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/ipxe.d/com.ipxe
+} > /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe.d/com.ipxe
 
 # QEMU BIOS - use first serial port
-mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/ipxe.d/mfr/QEMU
-pushd /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/ipxe.d/mfr
+mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe.d/mfr/QEMU
+pushd /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe.d/mfr
 ln -s QEMU Xen
 ln -s QEMU Red\ Hat
 popd
 {
   printf '#!ipxe\nchain tftp://${next-server}/ipxe/com1/ipxe-${platform}.pxe ||\n'
-} > /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/ipxe.d/mfr/QEMU/i386-pcbios.ipxe
+} > /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe.d/mfr/QEMU/i386-pcbios.ipxe
 
 # grub
-chroot /mnt/sysimage grub2-mknetdir --net-directory=/var/lib/tftpboot/vh-192.168.192.136/ --subdir _grub
-chroot /mnt/sysimage grub2-mkimage -O i386-pc-pxe --output=/var/lib/tftpboot/vh-192.168.192.136/_grub/i386-pc/com1.0 --prefix="(pxe)/grub.d/com1" pxe tftp
-chroot /mnt/sysimage grub2-mkimage -O i386-pc-pxe --output=/var/lib/tftpboot/vh-192.168.192.136/_grub/i386-pc/com2.0 --prefix="(pxe)/grub.d/com2" pxe tftp
-mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/grub.d/com1/i386-pc/
-pushd /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/grub.d/com1/i386-pc/
-ln -s ../../../_grub/i386-pc/* .
-popd
-mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/grub.d/com2/i386-pc/
-pushd /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/grub.d/com2/i386-pc/
-ln -s ../../../_grub/i386-pc/* .
-popd
-pushd /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/_grub/
-ln -s i386-pc i386-pcbios
-popd
+chroot /mnt/sysimage grub2-mknetdir --net-directory=/var/lib/tftpboot/vh-${tftp_std}/ --subdir _grub
+for sc in com1 com2 ; do
+  cp=${sc#com}
+  gs=$cp
+  scratch=$((gs--))
+  chroot /mnt/sysimage grub2-mkimage -O i386-pc-pxe --output=/var/lib/tftpboot/vh-${tftp_std}/_grub/i386-pc/${sc}.0 --prefix="(pxe)/grub.d/${sc}" pxe tftp
+  mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/grub.d/${sc}/i386-pc/
+  pushd /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/grub.d/${sc}/i386-pc/
+   ln -s ../../../_grub/i386-pc/
+  popd
+  {
+    printf 'serial --unit=%s --speed=115200\n' "${gs}"
+    printf 'terminal_input serial console\n'
+    printf 'terminal_output serial console\n'
+    printf 'load_env\n'
+    printf 'if cpuid -l ; then arch=x86_64 ; else arch=$buildarch ; fi\n'
+  } > /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/grub.d/${sc}/grub.cfg
+  chroot /mnt/sysimage grub2-editenv /var/lib/tftpboot/vh-${tftp_std}/grub.d/${sc}/grubenv create
+  chroot /mnt/sysimage grub2-editenv /var/lib/tftpboot/vh-${tftp_std}/grub.d/${sc}/grubenv set r=/grub.d
+  chroot /mnt/sysimage grub2-editenv /var/lib/tftpboot/vh-${tftp_std}/grub.d/${sc}/grubenv set comport=${cp}
+  chroot /mnt/sysimage grub2-editenv /var/lib/tftpboot/vh-${tftp_std}/grub.d/${sc}/grubenv set buildarch=i386
+  chroot /mnt/sysimage grub2-editenv /var/lib/tftpboot/vh-${tftp_std}/grub.d/${sc}/grubenv set platform=pcbios
+done
 
-{
-  printf 'serial --unit=0 --speed=115200\n'
-  printf 'terminal_input serial console\n'
-  printf 'terminal_output serial console\n'
-  printf 'load_env\n'
-  printf 'if cpuid -l ; then arch=x86_64 ; else arch=$buildarch ; fi\n'
-} > /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/grub.d/com1/grub.cfg
-chroot /mnt/sysimage grub2-editenv /var/lib/tftpboot/vh-192.168.192.136/grub.d/com1/grubenv create
-chroot /mnt/sysimage grub2-editenv /var/lib/tftpboot/vh-192.168.192.136/grub.d/com1/grubenv set r=/grub.d
-chroot /mnt/sysimage grub2-editenv /var/lib/tftpboot/vh-192.168.192.136/grub.d/com1/grubenv set comport=1
-chroot /mnt/sysimage grub2-editenv /var/lib/tftpboot/vh-192.168.192.136/grub.d/com1/grubenv set buildarch=i386
-chroot /mnt/sysimage grub2-editenv /var/lib/tftpboot/vh-192.168.192.136/grub.d/com1/grubenv set platform=pcbios
-
-{
-  printf 'serial --unit=1 --speed=115200\n'
-  printf 'terminal_input serial console\n'
-  printf 'terminal_output serial console\n'
-  printf 'load_env\n'
-  printf 'if cpuid -l ; then arch=x86_64 ; else arch=$buildarch ; fi\n'
-} > /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/grub.d/com2/grub.cfg
-chroot /mnt/sysimage grub2-editenv /var/lib/tftpboot/vh-192.168.192.136/grub.d/com2/grubenv create
-chroot /mnt/sysimage grub2-editenv /var/lib/tftpboot/vh-192.168.192.136/grub.d/com2/grubenv set r=/grub.d
-chroot /mnt/sysimage grub2-editenv /var/lib/tftpboot/vh-192.168.192.136/grub.d/com2/grubenv set comport=2
-chroot /mnt/sysimage grub2-editenv /var/lib/tftpboot/vh-192.168.192.136/grub.d/com2/grubenv set buildarch=i386
-chroot /mnt/sysimage grub2-editenv /var/lib/tftpboot/vh-192.168.192.136/grub.d/com2/grubenv set platform=pcbios
+pushd /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/_grub/
+ ln -s i386-pc i386-pcbios
+popd
 
 tar xf /mnt/install/repo/ipxe-images.tgz -C /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/ipxe
 cp -R /mnt/install/repo/openbsd /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/_openbsd
