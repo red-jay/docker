@@ -299,20 +299,43 @@ done
 
 case "${site}" in
   sv1)
-    netm_range="192.168.192.8/29"
+    # used for ip address assignment
+    netm_range="172.16.16.72/29"
     netm_suffx="26"
+
+    # used for dhcp
+    dhcp_peer1="172.16.32.72"
+    dhcp_netm="172.16.16.64/26 172.16.32.64/26"
+    dhcp_trns="172.16.16.0/26 172.16.32.0/26"
+    dhcp_virt="172.16.16.128/26 172.16.32.128/26"
+
+    dhcp_peer2="172.16.48.40"
     ;;
   sv2)
-    netm_range="192.168.192.136/29"
+    netm_range="172.16.32.72/29"
     netm_suffx="26"
+
+    dhcp_peer1="172.16.16.72"
+    dhcp_netm="172.16.32.64/26 172.16.16.64/26"
+    dhcp_trns="172.16.32.0/26 172.16.16.0/26"
+    dhcp_virt="172.16.32.128/26 172.16.16.128/26"
     ;;
   sv1a)
-    netm_range="192.168.192.68/31"
-    netm_suffx="28"
+    netm_range="172.16.48.40/30"
+    netm_suffx="27"
+
+    dhcp_peer1="172.16.16.72"
+    dhcp_netm="172.16.48.32/27"
+    dhcp_trns="172.16.48.0/27"
+    dhcp_virt="172.16.48.128/27"
     ;;
   pa)
-    netm_range="192.168.2.8/30"
-    netm_suffx="27"
+    netm_range="192.168.16.8/30"
+    netm_suffx="26"
+
+    dhcp_netm="192.168.16.64/26"
+    dhcp_trns="192.168.16.0/26"
+    dhcp_virt="192.168.16.128/26"
     ;;
 esac
 
@@ -442,29 +465,99 @@ printf 'nameserver 8.8.8.8\n' > /mnt/sysimage/etc/resolv.conf
   printf 'class "netmgmt" { match hardware; }\n'
   printf 'class "transit" { match hardware; }\n'
   printf 'class "virthost" { match hardware; }\n'
-  printf 'subnet 192.168.192.128 netmask 255.255.255.192{ pool{\n'
-  printf ' allow members of "netmgmt";\n'
-  printf ' option subnet-mask 255.255.255.192;\n'
-  printf ' option routers 192.168.192.129;\n'
-  printf ' range dynamic-bootp 192.168.192.150 192.168.192.190;\n'
-  printf ' next-server 192.168.192.136;\n'
-  printf '} }\n'
 
-  printf 'subnet 192.168.130.0 netmask 255.255.255.128{ pool{\n'
-  printf ' allow members of "transit";\n'
-  printf ' option subnet-mask 255.255.255.128;\n'
-  printf ' option routers 192.168.130.11;\n'
-  printf ' range dynamic-bootp 192.168.130.110 192.168.130.120;\n'
-  printf ' next-server 192.168.192.136;\n'
-  printf '} }\n'
+  # you're only allowed one-next server, may as well leave it as whoever answers.
+  nextserver="${netm_range%/*}"
 
-  printf 'subnet 172.16.159.128 netmask 255.255.255.128{ pool{\n'
-  printf ' allow members of "virthost";\n'
-  printf ' option subnet-mask 255.255.255.128;\n'
-  printf ' option routers 172.16.159.129;\n'
-  printf ' range dynamic-bootp 172.16.159.160 172.16.159.220;\n'
-  printf ' next-server 192.168.192.136;\n'
-  printf '} }\n'
+  # netmgmt
+  for subnet in ${dhcp_netm} ; do
+    sub_addr=${subnet%/*}
+    sub_mask=$(ipcalc -m "${subnet}")
+    sub_mask=${sub_mask##*=}
+    prefix=${subnet%.*}
+    net_loctet=${subnet#${prefix}.}
+    net_loctet=${net_loctet%/*}
+    gw_loctet=${net_loctet}
+    scratch=$((gw_loctet++))
+    bcast=$(ipcalc -b "${subnet}")
+    bcast=${bcast##*=}
+    bw_loctet=${bcast#${prefix}.}
+    lh_loctet=${bw_loctet}
+    scratch=$((bw_loctet--))
+    hostct=$(($lh_loctet-$gw_loctet))
+    # below range works as long as you are working with a /29 in a /26...
+    # ...and you start counting from the router ;)
+    hostoffset=$(($hostct / 4))
+    hoststart=$(($gw_loctet + $hostoffset))
+    printf 'subnet %s netmask %s { pool {\n' "${sub_addr}" "${sub_mask}"
+    printf ' allow members of "netmgmt";\n'
+    printf ' option subnet-mask %s;\n' "${sub_mask}"
+    printf ' option routers %s;\n' "${prefix}.${gw_loctet}"
+    printf ' option broadcast-address %s;\n' "${bcast}"
+    printf ' range dynamic-bootp %s %s;\n' "${prefix}.${hoststart}" "${prefix}.${lh_loctet}"
+    printf ' next-server %s;\n' "${nextserver}"
+    printf '} }\n'
+  done
+
+  # transit
+  for subnet in ${dhcp_trns} ; do
+    sub_addr=${subnet%/*}
+    sub_mask=$(ipcalc -m "${subnet}")
+    sub_mask=${sub_mask##*=}
+    prefix=${subnet%.*}
+    net_loctet=${subnet#${prefix}.}
+    net_loctet=${net_loctet%/*}
+    gw_loctet=${net_loctet}
+    scratch=$((gw_loctet++))
+    bcast=$(ipcalc -b "${subnet}")
+    bcast=${bcast##*=}
+    bw_loctet=${bcast#${prefix}.}
+    lh_loctet=${bw_loctet}
+    scratch=$((bw_loctet--))
+    hostct=$(($lh_loctet-$gw_loctet))
+    # below range works as long as you are working with a /29 in a /26...
+    # ...and you start counting from the router ;)
+    hostoffset=$(($hostct / 2))
+    hoststart=$(($gw_loctet + $hostoffset))
+    printf 'subnet %s netmask %s { pool {\n' "${sub_addr}" "${sub_mask}"
+    printf ' allow members of "transit";\n'
+    printf ' option subnet-mask %s;\n' "${sub_mask}"
+    printf ' option routers %s;\n' "${prefix}.${gw_loctet}"
+    printf ' option broadcast-address %s;\n' "${bcast}"
+    printf ' range dynamic-bootp %s %s;\n' "${prefix}.${hoststart}" "${prefix}.${lh_loctet}"
+    printf ' next-server %s;\n' "${nextserver}"
+    printf '} }\n'
+  done
+
+  # virthost
+  for subnet in ${dhcp_virt} ; do
+    sub_addr=${subnet%/*}
+    sub_mask=$(ipcalc -m "${subnet}")
+    sub_mask=${sub_mask##*=}
+    prefix=${subnet%.*}
+    net_loctet=${subnet#${prefix}.}
+    net_loctet=${net_loctet%/*}
+    gw_loctet=${net_loctet}
+    scratch=$((gw_loctet++))
+    bcast=$(ipcalc -b "${subnet}")
+    bcast=${bcast##*=}
+    bw_loctet=${bcast#${prefix}.}
+    lh_loctet=${bw_loctet}
+    scratch=$((bw_loctet--))
+    hostct=$(($lh_loctet-$gw_loctet))
+    # below range works as long as you are working with a /29 in a /26...
+    # ...and you start counting from the router ;)
+    hostoffset=$(($hostct / 4))
+    hoststart=$(($gw_loctet + $hostoffset))
+    printf 'subnet %s netmask %s { pool {\n' "${sub_addr}" "${sub_mask}"
+    printf ' allow members of "virthost";\n'
+    printf ' option subnet-mask %s;\n' "${sub_mask}"
+    printf ' option routers %s;\n' "${prefix}.${gw_loctet}"
+    printf ' option broadcast-address %s;\n' "${bcast}"
+    printf ' range dynamic-bootp %s %s;\n' "${prefix}.${hoststart}" "${prefix}.${lh_loctet}"
+    printf ' next-server %s;\n' "${nextserver}"
+    printf '} }\n'
+  done
 
   printf 'if    exists ipxe.http\n'
   printf '  and exists ipxe.menu\n'
