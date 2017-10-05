@@ -456,6 +456,47 @@ printf 'nameserver 8.8.8.8\n' > /mnt/sysimage/etc/resolv.conf
 		# http://www.ietf.org/assignments/dhcpv6-parameters/dhcpv6-parameters.txt
 		option arch code 93 = unsigned integer 16;
 	EOF
+
+dhcp_subnet() {
+  local subnet tag next
+  subnet="${1}"
+  tag="${2}"
+  next="${3}"
+
+  local scratch
+  local sub_addr sub_mask prefix bcast
+  local net_loctet gw_loctet bw_loctet lh_loctet
+  local hostct hostoffset hoststart
+
+  sub_addr=${subnet%/*}
+  sub_mask=$(ipcalc -m "${subnet}")
+  sub_mask=${sub_mask##*=}
+  prefix=${subnet%.*}
+  net_loctet=${subnet#${prefix}.}
+  net_loctet=${net_loctet%/*}
+  gw_loctet=${net_loctet}
+  scratch=$((gw_loctet++))
+  bcast=$(ipcalc -b "${subnet}")
+  bcast=${bcast##*=}
+  bw_loctet=${bcast#${prefix}.}
+  lh_loctet=${bw_loctet}
+  scratch=$((bw_loctet--))
+  hostct=$(($lh_loctet-$gw_loctet))
+  # below range works as long as you are working with a /29 in a /26...
+  # ...and you start counting from the router ;)
+  hostoffset=$(($hostct / 4))
+  hoststart=$(($gw_loctet + $hostoffset))
+
+  printf 'subnet %s netmask %s { pool {\n' "${sub_addr}" "${sub_mask}"
+  printf ' allow members of "%s";\n' "${tag}"
+  printf ' option subnet-mask %s;\n' "${sub_mask}"
+  printf ' option routers %s;\n' "${prefix}.${gw_loctet}"
+  printf ' option broadcast-address %s;\n' "${bcast}"
+  printf ' range dynamic-bootp %s %s;\n' "${prefix}.${hoststart}" "${prefix}.${lh_loctet}"
+  printf ' next-server %s;\n' "${next}"
+  printf '} }\n'
+}
+
 {
   printf 'authoritative;\n'
   printf 'ddns-update-style none;\n'
@@ -471,92 +512,17 @@ printf 'nameserver 8.8.8.8\n' > /mnt/sysimage/etc/resolv.conf
 
   # netmgmt
   for subnet in ${dhcp_netm} ; do
-    sub_addr=${subnet%/*}
-    sub_mask=$(ipcalc -m "${subnet}")
-    sub_mask=${sub_mask##*=}
-    prefix=${subnet%.*}
-    net_loctet=${subnet#${prefix}.}
-    net_loctet=${net_loctet%/*}
-    gw_loctet=${net_loctet}
-    scratch=$((gw_loctet++))
-    bcast=$(ipcalc -b "${subnet}")
-    bcast=${bcast##*=}
-    bw_loctet=${bcast#${prefix}.}
-    lh_loctet=${bw_loctet}
-    scratch=$((bw_loctet--))
-    hostct=$(($lh_loctet-$gw_loctet))
-    # below range works as long as you are working with a /29 in a /26...
-    # ...and you start counting from the router ;)
-    hostoffset=$(($hostct / 4))
-    hoststart=$(($gw_loctet + $hostoffset))
-    printf 'subnet %s netmask %s { pool {\n' "${sub_addr}" "${sub_mask}"
-    printf ' allow members of "netmgmt";\n'
-    printf ' option subnet-mask %s;\n' "${sub_mask}"
-    printf ' option routers %s;\n' "${prefix}.${gw_loctet}"
-    printf ' option broadcast-address %s;\n' "${bcast}"
-    printf ' range dynamic-bootp %s %s;\n' "${prefix}.${hoststart}" "${prefix}.${lh_loctet}"
-    printf ' next-server %s;\n' "${nextserver}"
-    printf '} }\n'
+    dhcp_subnet "${subnet}" "netmgmt" "${nextserver}"
   done
 
   # transit
   for subnet in ${dhcp_trns} ; do
-    sub_addr=${subnet%/*}
-    sub_mask=$(ipcalc -m "${subnet}")
-    sub_mask=${sub_mask##*=}
-    prefix=${subnet%.*}
-    net_loctet=${subnet#${prefix}.}
-    net_loctet=${net_loctet%/*}
-    gw_loctet=${net_loctet}
-    scratch=$((gw_loctet++))
-    bcast=$(ipcalc -b "${subnet}")
-    bcast=${bcast##*=}
-    bw_loctet=${bcast#${prefix}.}
-    lh_loctet=${bw_loctet}
-    scratch=$((bw_loctet--))
-    hostct=$(($lh_loctet-$gw_loctet))
-    # below range works as long as you are working with a /29 in a /26...
-    # ...and you start counting from the router ;)
-    hostoffset=$(($hostct / 2))
-    hoststart=$(($gw_loctet + $hostoffset))
-    printf 'subnet %s netmask %s { pool {\n' "${sub_addr}" "${sub_mask}"
-    printf ' allow members of "transit";\n'
-    printf ' option subnet-mask %s;\n' "${sub_mask}"
-    printf ' option routers %s;\n' "${prefix}.${gw_loctet}"
-    printf ' option broadcast-address %s;\n' "${bcast}"
-    printf ' range dynamic-bootp %s %s;\n' "${prefix}.${hoststart}" "${prefix}.${lh_loctet}"
-    printf ' next-server %s;\n' "${nextserver}"
-    printf '} }\n'
+    dhcp_subnet "${subnet}" "transit" "${nextserver}"
   done
 
   # virthost
   for subnet in ${dhcp_virt} ; do
-    sub_addr=${subnet%/*}
-    sub_mask=$(ipcalc -m "${subnet}")
-    sub_mask=${sub_mask##*=}
-    prefix=${subnet%.*}
-    net_loctet=${subnet#${prefix}.}
-    net_loctet=${net_loctet%/*}
-    gw_loctet=${net_loctet}
-    scratch=$((gw_loctet++))
-    bcast=$(ipcalc -b "${subnet}")
-    bcast=${bcast##*=}
-    bw_loctet=${bcast#${prefix}.}
-    lh_loctet=${bw_loctet}
-    scratch=$((bw_loctet--))
-    hostct=$(($lh_loctet-$gw_loctet))
-    # below range works as long as you are working with a /29 in a /26...
-    # ...and you start counting from the router ;)
-    hostoffset=$(($hostct / 4))
-    hoststart=$(($gw_loctet + $hostoffset))
-    printf 'subnet %s netmask %s { pool {\n' "${sub_addr}" "${sub_mask}"
-    printf ' allow members of "virthost";\n'
-    printf ' option subnet-mask %s;\n' "${sub_mask}"
-    printf ' option routers %s;\n' "${prefix}.${gw_loctet}"
-    printf ' option broadcast-address %s;\n' "${bcast}"
-    printf ' range dynamic-bootp %s %s;\n' "${prefix}.${hoststart}" "${prefix}.${lh_loctet}"
-    printf ' next-server %s;\n' "${nextserver}"
-    printf '} }\n'
+    dhcp_subnet "${subnet}" "virthost" "${nextserver}"
   done
 
   printf 'if    exists ipxe.http\n'
