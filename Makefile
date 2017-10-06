@@ -131,6 +131,7 @@ endif
 	cp -r EFI $(tmpdir)/
 	cp -r LiveOS $(tmpdir)/
 	cp -r images $(tmpdir)/
+	cp -r openbsd-dist $(tmpdir)/
 	mkdir -p $(tmpdir)/isolinux/images/pxeboot
 	ln $(tmpdir)/images/pxeboot/vmlinuz $(tmpdir)/isolinux/images/pxeboot/vmlinuz
 	ln $(tmpdir)/images/pxeboot/initrd.img $(tmpdir)/isolinux/images/pxeboot/initrd.img

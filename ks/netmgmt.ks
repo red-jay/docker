@@ -688,12 +688,33 @@ pushd /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/_grub/
  ln -s i386-pc i386-pcbios
 popd
 
-cp -R /mnt/install/repo/openbsd /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/_openbsd
-pushd /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/_openbsd/6.1/
-ln -s amd64 x86_64
-pushd amd64
-ln -s pxeboot pxeboot.0
+
+# FIXME: template this out of here
+ob_ver=6.1
+if [ ! -z "${ks_method}" ] ; then
+  obsd_uri="${ks_method}../openbsd/${ob_ver}/amd64"
+elif [ -f /mnt/install/repo/openbsd-dist/${ob_ver}/index.txt ] ; then
+  obsd_uri="file:///mnt/install/repo/openbsd-dist/${ob_ver}/amd64"
+fi
+
+obsd_idx="${obsd_uri}/index.txt"
+
+mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/${ob_ver}/amd64
+pushd /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/${ob_ver}/amd64
+  curl -LO "${obsd_idx}"
+  for f in $(awk '($9 && $9 != "index.txt") {print $9}' < index.txt) ; do
+    curl -LO "${obsd_uri}/${f}"
+  done
 popd
+
+mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/_openbsd/${ob_ver}/amd64
+pushd /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/_openbsd/${ob_ver}/
+  ln -s amd64 x86_64
+  pushd amd64
+    tar xf /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/${ob_ver}/amd64/base*.tgz --strip-components=3 ./usr/mdec/pxeboot
+    cp /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/${ob_ver}/amd64/bsd.rd .
+    ln -s pxeboot pxeboot.0
+  popd
 popd
 
 mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.137
@@ -738,9 +759,6 @@ popd
 # fix tftpboot perms
 find /mnt/sysimage/var/lib/tftpboot -type d -exec chmod a+x {} \;
 find /mnt/sysimage/var/lib/tftpboot -exec chmod a+r {} \;
-
-mkdir /mnt/sysimage/usr/share/nginx/html/pub
-cp -R /mnt/install/repo/openbsd-dist /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD
 
 # create openbsd site tree
 mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc
