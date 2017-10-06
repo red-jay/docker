@@ -178,6 +178,9 @@ for ent in $cmdline ; do
     site=*)
       site=${ent#site=}
       ;;
+    method=*)
+      ks_method=${ent#method=}
+      ;;
   esac
 done
 
@@ -259,6 +262,10 @@ fi
 
 if [ ! -z "${site}" ] ; then
   printf 'site="%s"\n' "${site}" >> /tmp/post-vars
+fi
+
+if [ ! -z "${ks_method}" ] ; then
+  printf 'ks_method="%s"\n' "${ks_method}" >> /tmp/post-vars
 fi
 
 %end
@@ -613,7 +620,15 @@ chroot /mnt/sysimage /bin/firewall-offline-cmd --zone internal --add-service htt
 
 # copy ipxe binaries about
 mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe
-tar xf /mnt/install/repo/ipxe-images.tgz -C /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe
+if [ ! -z "${ks_method}" ] ; then
+  ipxe_tgz="${ks_method}/../ipxe-images.tgz"
+elif [ -f /mnt/install/repo/ipxe-images.tgz ] ; then
+  ipxe_tgz=file:///mnt/install/repo/ipxe-images.tgz
+fi
+
+if [ ! -z "${ipxe_tgz}" ] ; then
+  curl "${ipxe_tgz}" | tar xz -C /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe
+fi
 
 # create ipxe configs
 mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe.d/{plat,mfr,sys,com}
@@ -673,14 +688,14 @@ pushd /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/_grub/
  ln -s i386-pc i386-pcbios
 popd
 
-tar xf /mnt/install/repo/ipxe-images.tgz -C /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/ipxe
-cp -R /mnt/install/repo/openbsd /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/_openbsd
-pushd /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/_openbsd/6.1/
+cp -R /mnt/install/repo/openbsd /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/_openbsd
+pushd /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/_openbsd/6.1/
 ln -s amd64 x86_64
 pushd amd64
 ln -s pxeboot pxeboot.0
 popd
 popd
+
 mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.137
 mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.138
 pushd /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.138
