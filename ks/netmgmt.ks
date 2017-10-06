@@ -699,8 +699,8 @@ popd
 mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.137
 mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.138
 pushd /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.138
-ln ../vh-192.168.192.136/_openbsd/6.1/amd64/pxeboot
-ln ../vh-192.168.192.136/_openbsd/6.1/amd64/bsd.rd bsd
+ln ../vh-${tftp_std}/_openbsd/6.1/amd64/pxeboot
+ln ../vh-${tftp_std}/_openbsd/6.1/amd64/bsd.rd bsd
 ln -s pxeboot pxeboot.0
 mkdir etc
 printf 'stty 115200\nset tty com0\n' > etc/boot.conf
@@ -723,14 +723,14 @@ popd
   printf '\necho server:${next-server} file:${filename} set in PXE env pre-handoff\nsleep 1\n\n'
   printf 'chain tftp://${next-server}/pxeboot.0 ||\n'
   printf ':shell\nshell\n'
-} > /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/openbsd
+} > /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/openbsd
 
 {
   printf '#!ipxe\n'
   printf 'chain tftp://${next-server}/_grub/${buildarch}-${platform}/com${comport}.0 ||\n'
   printf 'chain tftp://${next-server}/_grub/${buildarch}-${platform}/core.0 ||\n'
-} > /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/grub
-pushd /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/ipxe.d
+} > /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/grub
+pushd /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe.d
 ln -s ../grub
 ln -s ../openbsd
 popd
@@ -842,11 +842,11 @@ chmod a+rx /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/rc.firstt
 tar cpzf /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/6.1/amd64/site61-tgw.tgz -C /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw .
 
 # wire a pxe autochain
-mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/ipxe.d/mac
-printf '#!ipxe\nchain tftp://${next-server}/ipxe.d/openbsd\n' > /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/ipxe.d/mac/52-54-00-44-c9-2e.ipxe
-printf '#!ipxe\nchain tftp://${next-server}/ipxe.d/openbsd\n' > /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/ipxe.d/mac/52-54-00-4e-cc-0f.ipxe
-printf '#!ipxe\nchain tftp://${next-server}/ipxe.d/openbsd\n' > /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/ipxe.d/mac/52-54-00-cc-ef-04.ipxe
-printf '#!ipxe\nchain tftp://${next-server}/ipxe.d/openbsd\n' > /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.136/ipxe.d/mac/52-54-00-44-c7-2e.ipxe
+mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe.d/mac
+printf '#!ipxe\nchain tftp://${next-server}/ipxe.d/openbsd\n' > /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe.d/mac/52-54-00-44-c9-2e.ipxe
+printf '#!ipxe\nchain tftp://${next-server}/ipxe.d/openbsd\n' > /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe.d/mac/52-54-00-4e-cc-0f.ipxe
+printf '#!ipxe\nchain tftp://${next-server}/ipxe.d/openbsd\n' > /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe.d/mac/52-54-00-cc-ef-04.ipxe
+printf '#!ipxe\nchain tftp://${next-server}/ipxe.d/openbsd\n' > /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe.d/mac/52-54-00-44-c7-2e.ipxe
 
 # regenerate OpenBSD index
 pushd /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/6.1/amd64
