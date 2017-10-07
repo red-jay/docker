@@ -919,7 +919,7 @@ popd
   printf 'Which disk do you wish to initialize = done\n'
   printf 'Location of sets = http\n'
   printf 'HTTP proxy URL = none\n'
-  printf 'HTTP Server = 192.168.192.136\n'
+  printf 'HTTP Server = %s\n' "${tftp_std}"
   printf 'Unable to connect using https. Use http instead = yes\n'
   printf 'Set name(s) = -comp* -man* -game* -x* done\n'
   printf 'Checksum test for site61.tgz = yes\n'
