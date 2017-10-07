@@ -717,32 +717,41 @@ pushd /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/_openbsd/${ob_ver}/
   popd
 popd
 
-mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.137
-mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.138
-pushd /mnt/sysimage/var/lib/tftpboot/vh-192.168.192.138
-ln ../vh-${tftp_std}/_openbsd/6.1/amd64/pxeboot
-ln ../vh-${tftp_std}/_openbsd/6.1/amd64/bsd.rd bsd
-ln -s pxeboot pxeboot.0
-mkdir etc
-printf 'stty 115200\nset tty com0\n' > etc/boot.conf
+pushd /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}
+  ln -s ./_openbsd/${ob_ver}/amd64/bsd.rd bsd
+popd
+
+mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-${tftp_com1}/_openbsd/${ob_ver}/amd64
+pushd /mnt/sysimage/var/lib/tftpboot/vh-${tftp_com1}
+  pushd _openbsd/${ob_ver}/
+    ln -s amd64 x86_64
+    pushd amd64
+      ln ../../../../vh-${tftp_std}/_openbsd/${ob_ver}/amd64/pxeboot
+      ln ../../../../vh-${tftp_std}/_openbsd/${ob_ver}/amd64/bsd.rd
+      ln -s pxeboot pxeboot.0
+    popd
+  popd
+  mkdir etc
+  printf 'stty 115200\nset tty com0\n' > etc/boot.conf
+  ln ./_openbsd/${ob_ver}/amd64/bsd.rd bsd
 popd
 
 {
   printf '#!ipxe\n'
-  printf 'set pserver ${next-server}\n'
   printf 'iseq ${platform} pcbios && goto pcbios\n'
   printf 'echo could not handle platform\ngoto shell\n\n'
   printf ':pcbios\niseq ${arch} x86_64 && goto pcbios_x86_64 ||\n'
   printf 'echo could not handle processor architecture\ngoto shell\n\n'
   printf ':pcbios_x86_64\n'
-  printf 'isset ${comport} || set netX/next-server 192.168.192.137 ||\n'
-  printf 'iseq ${comport} 1 && set netX/next-server 192.168.192.138 ||\n'
-  printf 'iseq ${next-server} ${pserver} || goto load\n'
+  printf 'isset ${comport} || set pserver %s ||\n' "${tftp_std}"
+  printf 'iseq ${comport} 1 && set pserver %s ||\n' "${tftp_com1}"
+  printf 'isset ${pserver} && goto load ||\n'
   printf 'echo could not handle console\ngoto shell\n\n'
   printf ':load\n'
+  printf 'set netX/next-server ${pserver}\n'
   printf 'set netX/filename auto_install\n'
   printf '\necho server:${next-server} file:${filename} set in PXE env pre-handoff\nsleep 1\n\n'
-  printf 'chain tftp://${next-server}/pxeboot.0 ||\n'
+  printf 'chain tftp://${next-server}/_openbsd/%s/${arch}/pxeboot.0 ||\n' "${ob_ver}"
   printf ':shell\nshell\n'
 } > /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/openbsd
 
