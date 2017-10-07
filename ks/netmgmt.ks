@@ -317,6 +317,9 @@ case "${site}" in
     dhcp_virt="172.16.16.128/26 172.16.32.128/26"
 
     dhcp_peer2="172.16.48.40"
+
+    # firewalld
+    internal_sources="${dhcp_netm} ${dhcp_trns} ${dhcp_virt}"
     ;;
   sv2)
     netm_range="172.16.32.72/29"
@@ -326,6 +329,9 @@ case "${site}" in
     dhcp_netm="172.16.32.64/26 172.16.16.64/26"
     dhcp_trns="172.16.32.0/26 172.16.16.0/26"
     dhcp_virt="172.16.32.128/26 172.16.16.128/26"
+
+    # firewalld
+    internal_sources="${dhcp_netm} ${dhcp_trns} ${dhcp_virt}"
     ;;
   sv1a)
     netm_range="172.16.48.40/30"
@@ -335,6 +341,9 @@ case "${site}" in
     dhcp_netm="172.16.48.32/27"
     dhcp_trns="172.16.48.0/27"
     dhcp_virt="172.16.48.128/27"
+
+    # firewalld
+    internal_sources="${dhcp_netm} ${dhcp_trns} ${dhcp_virt}"
     ;;
   pa)
     netm_range="192.168.16.8/30"
@@ -343,6 +352,9 @@ case "${site}" in
     dhcp_netm="192.168.16.64/26"
     dhcp_trns="192.168.16.0/26"
     dhcp_virt="192.168.16.128/26"
+
+    # firewalld
+    internal_sources="${dhcp_netm} ${dhcp_trns} ${dhcp_virt}"
     ;;
 esac
 
@@ -613,8 +625,9 @@ fi
 ln -s /usr/lib/systemd/system/nginx.service /mnt/sysimage/etc/systemd/system/multi-user.target.wants/nginx.service
 
 # configure firewalld as needed
-chroot /mnt/sysimage /bin/firewall-offline-cmd --zone internal --add-source 192.168.192.128/26
-chroot /mnt/sysimage /bin/firewall-offline-cmd --zone internal --add-source 192.168.130.0/25
+for srcset in ${internal_sources} ; do
+  chroot /mnt/sysimage /bin/firewall-offline-cmd --zone internal --add-source "${srcset}"
+done
 chroot /mnt/sysimage /bin/firewall-offline-cmd --zone internal --add-service tftp
 chroot /mnt/sysimage /bin/firewall-offline-cmd --zone internal --add-service http
 
