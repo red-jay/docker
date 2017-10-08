@@ -785,17 +785,28 @@ find /mnt/sysimage/var/lib/tftpboot -exec chmod a+r {} \;
 # create openbsd site tree
 mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc
 # vio0 - netmgmt
-printf 'inet 192.168.192.129 255.255.255.192\n-inet6\ngroup netmgmt\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio0
-cp /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio0 /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio0.ft
+printf 'inet 172.16.16.65 255.255.255.192\n-inet6\ngroup netmgmt\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio0.sv1
+printf 'inet 172.16.32.65 255.255.255.192\n-inet6\ngroup netmgmt\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio0.sv2
 # vio1 - vmm
 printf 'dhcp\n-inet6\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio1
 # vio2 - virthost
-printf 'inet 172.16.159.129 255.255.255.128\n-inet6\ngroup virthost\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio2
+printf 'inet 172.16.16.129 255.255.255.192\n-inet6\ngroup virthost\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio2.sv1
+printf 'inet 172.16.32.129 255.255.255.192\n-inet6\ngroup virthost\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio2.sv1
 # vio3 - transit
-printf 'inet 192.168.130.11 255.255.255.128\n-inet6\ngroup transit\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio3
+printf 'inet 172.16.16.0 255.255.255.192\n-inet6\ngroup transit\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio3.sv1
+printf 'inet 172.16.32.0 255.255.255.192\n-inet6\ngroup transit\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio3.sv2
 
 {
   printf '#!/bin/sh\n'
+  printf 'site=$(hostname | sed '"-e 's/[^\.]*\.//' | sed -e 's/\..*//'"')\n'
+
+  printf 'for f in /etc/hostname.*.$site ; do\n'
+  printf ' basefile=$(echo $f | sed -e "s/\.$site//")'\n
+  printf ' mv $f $basefile\n'
+  printf 'done\n'
+
+  printf 'rm /etc/hostname.*.*'
+  printf 'cp /etc/hostname.vio0 /etc/hostname.vio0.ft\n'
 
   printf 'cp /etc/rc.d/dhcrelay /etc/rc.d/dhcrelay_virthosts\n'
   printf 'rcctl enable dhcrelay_virthosts\nrcctl set dhcrelay_virthosts flags "-i vio2 192.168.192.136"\n'
@@ -921,13 +932,11 @@ popd
   printf 'HTTP proxy URL = none\n'
   printf 'HTTP Server = %s\n' "${tftp_std}"
   printf 'Unable to connect using https. Use http instead = yes\n'
-  printf 'Set name(s) = -comp* -man* -game* -x* +site61-FQDN* done\n'
+  printf 'Set name(s) = -comp* -man* -game* -x* done\n'
   printf 'Checksum test for site61.tgz = yes\n'
   printf 'Checksum test for site61-HOSTNAME.tgz = yes\n'
-  printf 'Checksum test for site61-FQDN.tgz = yes\n'
   printf 'Unverified sets: site61.tgz. Continue without verification = yes\n'
   printf 'Unverified sets: site61-HOSTNAME.tgz. Continue without verification = yes\n'
-  printf 'Unverified sets: site61-FQDN.tgz. Continue without verification = yes\n'
 } > /mnt/sysimage/usr/share/nginx/html/install.conf
 sed -e 's/openbsd-ai/ifw/' -e 's/HOSTNAME/ifw/g' < /mnt/sysimage/usr/share/nginx/html/install.conf > /mnt/sysimage/usr/share/nginx/html/ifw.sv2.bbxn.us-install.conf
 sed -e 's/openbsd-ai/efw/' -e 's/HOSTNAME/efw/g' < /mnt/sysimage/usr/share/nginx/html/install.conf > /mnt/sysimage/usr/share/nginx/html/efw.bbxn.us-install.conf
