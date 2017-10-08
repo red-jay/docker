@@ -809,10 +809,10 @@ printf 'inet 172.16.32.0 255.255.255.192\n-inet6\ngroup transit\n' > /mnt/sysima
   printf 'cp /etc/hostname.vio0 /etc/hostname.vio0.ft\n'
 
   printf 'cp /etc/rc.d/dhcrelay /etc/rc.d/dhcrelay_virthosts\n'
-  printf 'rcctl enable dhcrelay_virthosts\nrcctl set dhcrelay_virthosts flags "-i vio2 192.168.192.136"\n'
+  printf 'rcctl enable dhcrelay_virthosts\nrcctl set dhcrelay_virthosts flags "-i vio2 172.16.16.72 172.16.32.72"\n'
 
   printf 'cp /etc/rc.d/dhcrelay /etc/rc.d/dhcrelay_transit\n'
-  printf 'rcctl enable dhcrelay_transit\nrcctl set dhcrelay_transit flags "-i vio3 192.168.192.136"\n'
+  printf 'rcctl enable dhcrelay_transit\nrcctl set dhcrelay_transit flags "-i vio3 172.16.16.72 172.16.32.72"\n'
 
   printf 'rcctl enable tftpproxy\nrcctl set tftpproxy flags -v\n'
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/install.site
@@ -939,6 +939,7 @@ popd
   printf 'Unverified sets: site61-HOSTNAME.tgz. Continue without verification = yes\n'
 } > /mnt/sysimage/usr/share/nginx/html/install.conf
 sed -e 's/openbsd-ai/ifw/' -e 's/HOSTNAME/ifw/g' < /mnt/sysimage/usr/share/nginx/html/install.conf > /mnt/sysimage/usr/share/nginx/html/ifw.sv2.bbxn.us-install.conf
+sed -e 's/openbsd-ai/ifw/' -e 's/HOSTNAME/ifw/g' < /mnt/sysimage/usr/share/nginx/html/install.conf > /mnt/sysimage/usr/share/nginx/html/ifw.sv1.bbxn.us-install.conf
 sed -e 's/openbsd-ai/efw/' -e 's/HOSTNAME/efw/g' < /mnt/sysimage/usr/share/nginx/html/install.conf > /mnt/sysimage/usr/share/nginx/html/efw.bbxn.us-install.conf
 sed -e 's/openbsd-ai/tgw/' -e 's/HOSTNAME/tgw/g' < /mnt/sysimage/usr/share/nginx/html/install.conf > /mnt/sysimage/usr/share/nginx/html/tgw.bbxn.us-install.conf
 
