@@ -896,7 +896,7 @@ popd
 
 # hack around pkg_add weirdness
 pushd /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/6.1
-ln -s 6.1 .
+ln -s . 6.1
 popd
 
 # create openbsd install.conf
@@ -921,11 +921,13 @@ popd
   printf 'HTTP proxy URL = none\n'
   printf 'HTTP Server = %s\n' "${tftp_std}"
   printf 'Unable to connect using https. Use http instead = yes\n'
-  printf 'Set name(s) = -comp* -man* -game* -x* done\n'
+  printf 'Set name(s) = -comp* -man* -game* -x* +site61-FQDN* done\n'
   printf 'Checksum test for site61.tgz = yes\n'
   printf 'Checksum test for site61-HOSTNAME.tgz = yes\n'
+  printf 'Checksum test for site61-FQDN.tgz = yes\n'
   printf 'Unverified sets: site61.tgz. Continue without verification = yes\n'
   printf 'Unverified sets: site61-HOSTNAME.tgz. Continue without verification = yes\n'
+  printf 'Unverified sets: site61-FQDN.tgz. Continue without verification = yes\n'
 } > /mnt/sysimage/usr/share/nginx/html/install.conf
 sed -e 's/openbsd-ai/ifw/' -e 's/HOSTNAME/ifw/g' < /mnt/sysimage/usr/share/nginx/html/install.conf > /mnt/sysimage/usr/share/nginx/html/ifw.sv2.bbxn.us-install.conf
 sed -e 's/openbsd-ai/efw/' -e 's/HOSTNAME/efw/g' < /mnt/sysimage/usr/share/nginx/html/install.conf > /mnt/sysimage/usr/share/nginx/html/efw.bbxn.us-install.conf
