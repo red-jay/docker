@@ -15,3 +15,6 @@ virt-install --location http://192.168.128.129/bootstrap/centos7/ --name netmgmt
 
 virsh setmem netmgmt.${1} 393216 --config
 virsh setmaxmem netmgmt.${1} 786432 --config
+virsh autostart netmgmt.${1}
+
+virsh start netmgmt.${1}

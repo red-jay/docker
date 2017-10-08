@@ -19,3 +19,4 @@ case "${1}" in
 esac
 
 virt-install --pxe --name ifw.${1} --memory 384 --os-variant openbsd4 --disk size=12 --graphics none --network bridge=netmgmt,mac=${bootmac} --network bridge=vmm --network bridge=virthost --network bridge=transit --noautoconsole --wait -1
+virsh autostart ifw.${1}
