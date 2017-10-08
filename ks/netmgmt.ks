@@ -706,7 +706,7 @@ popd
 ob_ver=6.1
 if [ ! -z "${ks_method}" ] ; then
   obsd_uri="${ks_method}../openbsd/${ob_ver}/amd64"
-elif [ -f /mnt/install/repo/openbsd-dist/${ob_ver}/index.txt ] ; then
+elif [ -f /mnt/install/repo/openbsd-dist/${ob_ver}/amd64/index.txt ] ; then
   obsd_uri="file:///mnt/install/repo/openbsd-dist/${ob_ver}/amd64"
 fi
 

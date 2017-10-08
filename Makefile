@@ -143,4 +143,29 @@ endif
 	find $(tmpdir) -type d -exec chmod a+rx {} \;
 	mkisofs -quiet -o cdrom.iso -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -rational-rock -J -V HVINABOX -hide-joliet-trans-tbl -hide-rr-moved $(tmpdir)
 
+netmgmt.iso: $(IMAGEFILES)
+	mkdir -p $(tmpdir)/isolinux
+	cp syslinux-siteprompt.cfg $(tmpdir)/isolinux/syslinux.cfg
+	cp /usr/share/syslinux/chain.c32 $(tmpdir)/isolinux/
+ifneq ("$(wildcard /usr/share/syslinux/ldlinux.c32)","")
+	cp /usr/share/syslinux/ldlinux.c32 $(tmpdir)/isolinux/
+endif
+	cp /usr/share/syslinux/isolinux.bin $(tmpdir)/isolinux/
+	cp discinfo $(tmpdir)/.discinfo
+	cp ks/netmgmt.ks $(tmpdir)/ks.cfg
+	cp -r bootstrap-scripts/ $(tmpdir)/
+	cp ipxe-images.tgz $(tmpdir)/
+	cp -r Packages $(tmpdir)/
+	cp -r repodata $(tmpdir)/
+	cp -r EFI $(tmpdir)/
+	cp -r LiveOS $(tmpdir)/
+	cp -r images $(tmpdir)/
+	cp -r openbsd-dist $(tmpdir)/
+	mkdir -p $(tmpdir)/isolinux/images/pxeboot
+	ln $(tmpdir)/images/pxeboot/vmlinuz $(tmpdir)/isolinux/images/pxeboot/vmlinuz
+	ln $(tmpdir)/images/pxeboot/initrd.img $(tmpdir)/isolinux/images/pxeboot/initrd.img
+	find $(tmpdir) -exec chmod a+r {} \;
+	find $(tmpdir) -type d -exec chmod a+rx {} \;
+	mkisofs -quiet -o netmgmt.iso -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -rational-rock -J -V NETMGMT -hide-joliet-trans-tbl -hide-rr-moved $(tmpdir)
+
 endif
