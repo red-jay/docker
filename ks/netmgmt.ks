@@ -573,7 +573,7 @@ dhcp_subnet() {
   printf '}\n'
 
   printf 'subclass "netmgmt" 1:52:54:00:44:C9:2E; subclass "netmgmt" 52:54:00:44:C9:2E;\n'
-  printf 'host ifw { hardware ethernet 52:54:00:44:C9:2E; option host-name "ifw.bbxn.us"; }\n'
+  printf 'host ifw { hardware ethernet 52:54:00:44:C9:2E; option host-name "ifw.sv1.bbxn.us"; }\n'
 
   printf 'subclass "netmgmt" 1:52:54:00:44:C7:2E; subclass "netmgmt" 52:54:00:44:C7:2E;\n'
   printf 'host ifw.sv2 { hardware ethernet 52:54:00:44:C7:2E; option host-name "ifw.sv2.bbxn.us"; }\n'
