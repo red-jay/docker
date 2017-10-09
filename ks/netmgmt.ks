@@ -791,7 +791,7 @@ printf 'inet 172.16.32.65 255.255.255.192\n-inet6\ngroup netmgmt\n' > /mnt/sysim
 printf 'dhcp\n-inet6\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio1
 # vio2 - virthost
 printf 'inet 172.16.16.129 255.255.255.192\n-inet6\ngroup virthost\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio2.sv1
-printf 'inet 172.16.32.129 255.255.255.192\n-inet6\ngroup virthost\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio2.sv1
+printf 'inet 172.16.32.129 255.255.255.192\n-inet6\ngroup virthost\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio2.sv2
 # vio3 - transit
 printf 'inet 172.16.16.0 255.255.255.192\n-inet6\ngroup transit\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio3.sv1
 printf 'inet 172.16.32.0 255.255.255.192\n-inet6\ngroup transit\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio3.sv2
@@ -801,11 +801,11 @@ printf 'inet 172.16.32.0 255.255.255.192\n-inet6\ngroup transit\n' > /mnt/sysima
   printf 'site=$(hostname | sed '"-e 's/[^\.]*\.//' | sed -e 's/\..*//'"')\n'
 
   printf 'for f in /etc/hostname.*.$site ; do\n'
-  printf ' basefile=$(echo $f | sed -e "s/\.$site//")'\n
+  printf ' basefile=$(echo $f | sed -e "s/\.$site//")\n'
   printf ' mv $f $basefile\n'
   printf 'done\n'
 
-  printf 'rm /etc/hostname.*.*'
+  printf 'rm /etc/hostname.*.*\n'
   printf 'cp /etc/hostname.vio0 /etc/hostname.vio0.ft\n'
 
   printf 'cp /etc/rc.d/dhcrelay /etc/rc.d/dhcrelay_virthosts\n'
@@ -834,14 +834,14 @@ chmod a+rx /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/rc.firstt
   printf 'block drop quick inet6 proto icmp6 all icmp6-type { routeradv, routersol }\n'
   printf 'block return log\n\n'
 
-  printf 'pass out quick on netmgmt proto udp from port { 67, 68 } to %s port 67\n' "192.168.192.136"
+  printf 'pass out quick on netmgmt proto udp from port { 67, 68 } to %s port 67\n' "{172.16.16.72, 172.16.32.72}"
   printf 'antispoof quick for { virthosts netmgmt vmm }\n\n'
 
   printf 'pass in on { virthosts transit } proto udp from port 68 to port 67\n'
-  printf 'pass in quick on transit proto udp from (transit:network) to %s port 69 divert-to 127.0.0.1 port 6969\n' "192.168.192.136/29"
-  printf 'pass out quick on netmgmt proto udp to %s port 69 group _tftp_proxy divert-reply\n' "192.168.192.136/29"
+  printf 'pass in quick on transit proto udp from (transit:network) to %s port 69 divert-to 127.0.0.1 port 6969\n' "{172.16.16.72/29, 172.16.32.72/29}"
+  printf 'pass out quick on netmgmt proto udp to %s port 69 group _tftp_proxy divert-reply\n' "{172.16.16.72/29, 172.16.32.72/29}"
 
-  printf 'pass proto tcp from (transit:network) to %s port 80\n' "192.168.192.136"
+  printf 'pass proto tcp from (transit:network) to %s port 80\n' "{172.16.16.72, 172.16.32.72}"
 
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/pf.conf
 
