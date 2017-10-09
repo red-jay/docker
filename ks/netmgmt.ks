@@ -315,6 +315,8 @@ case "${site}" in
     dhcp_netm="172.16.16.64/26 172.16.32.64/26"
     dhcp_trns="172.16.16.0/26 172.16.32.0/26"
     dhcp_virt="172.16.16.128/26 172.16.32.128/26"
+    dhcp_pwln="172.16.52.0/27"
+    dhcp_wext="172.16.52.32/27"
 
     dhcp_peer2="172.16.48.40"
 
@@ -329,6 +331,8 @@ case "${site}" in
     dhcp_netm="172.16.32.64/26 172.16.16.64/26"
     dhcp_trns="172.16.32.0/26 172.16.16.0/26"
     dhcp_virt="172.16.32.128/26 172.16.16.128/26"
+    dhcp_pwln="172.16.52.0/27"
+    dhcp_wext="172.16.52.32/27"
 
     # firewalld
     internal_sources="${dhcp_netm} ${dhcp_trns} ${dhcp_virt}"
@@ -531,6 +535,8 @@ dhcp_subnet() {
   printf 'class "netmgmt" { match hardware; }\n'
   printf 'class "transit" { match hardware; }\n'
   printf 'class "virthost" { match hardware; }\n'
+  printf 'class "powerline" { match hardware; }\n'
+  printf 'class "wifiext" { match hardware; }\n'
 
   # you're only allowed one-next server, may as well leave it as whoever answers.
   nextserver="${netm_range%/*}"
@@ -548,6 +554,16 @@ dhcp_subnet() {
   # virthost
   for subnet in ${dhcp_virt} ; do
     dhcp_subnet "${subnet}" "virthost" "${nextserver}"
+  done
+
+  # pwln
+  for subnet in ${dhcp_pwln} ; do
+    dhcp_subnet "${subnet}" "powerline" "${nextserver}"
+  done
+
+  # wext
+  for subnet in ${dhcp_wext} ; do
+    dhcp_subnet "${subnet}" "wifiext" "${nextserver}"
   done
 
   printf 'if    exists ipxe.http\n'
@@ -592,8 +608,10 @@ dhcp_subnet() {
   printf 'subclass "transit" 1:52:54:00:CC:EF:04; subclass "transit" 52:54:00:CC:EF:04;\n'
   printf 'host tgw.sv1 { hardware ethernet 54:54:00:CC:EF:04; option host-name "tgw.sv1.bbxn.us"; }\n'
 
-  printf 'subclass "transit" 1:52:54:00:3E:EE:84; subclass "transit" 52:54:00:CC:EF:04;\n'
+  printf 'subclass "transit" 1:52:54:00:3E:EE:84; subclass "transit" 52:54:00:3E:EE:84;\n'
   printf 'host tgw.sv2 { hardware ethernet 54:54:00:3E:EE:84; option host-name "tgw.sv2.bbxn.us"; }\n'
+
+  printf 'subclass "powerline" 1:52:54:00:22:CA:BE; subclass "powerline" 52:54:00:22:CA:BE;\n'
 
   # ufw
   # dfw
@@ -861,30 +879,41 @@ tar cpzf /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/6.1/amd64/site61-ifw.tgz
 # tgw site
 mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc
 # vio0 - transit
-printf 'inet 192.168.129.15 255.255.255.128\n-inet6\ngroup transit\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio0
-cp /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio0 /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio0.ft
+printf 'inet 172.16.16.11 255.255.255.192\n-inet6\ngroup transit\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio0.sv1
+printf 'inet 172.16.32.11 255.255.255.192\n-inet6\ngroup transit\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio0.sv2
 # vio1 - vmm
 printf 'dhcp\n-inet6\ngroup vmm\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio1
 # vio2 - pln
-printf 'inet 192.168.129.161 255.255.255.224\n-inet6\ngroup pln\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio2
+printf 'inet 172.16.52.1 255.255.255.224\n-inet6\ngroup pln\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio2.sv1
+printf 'dhcp\n-inet6\ngroup pln\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio2.sv2
 # vio3 - wext
-printf 'inet 192.168.129.129 255.255.255.224\n-inet6\ngroup wext\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio3
+printf 'inet 172.16.52.32 255.255.255.224\n-inet6\ngroup wext\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio3.sv1
 
 {
   printf '#!/bin/sh\n'
+  printf 'site=$(hostname | sed '"-e 's/[^\.]*\.//' | sed -e 's/\..*//'"')\n'
+
+  printf 'for f in /etc/hostname.*.$site ; do\n'
+  printf ' basefile=$(echo $f | sed -e "s/\.$site//")\n'
+  printf ' mv $f $basefile\n'
+  printf 'done\n'
+
+  printf 'rm /etc/hostname.*.*\n'
+
+  printf 'if [ $site == "sv1" ] ; then\n'
   printf 'cp /etc/rc.d/dhcrelay /etc/rc.d/dhcrelay_pln\n'
-  printf 'rcctl enable dhcrelay_pln\nrcctl set dhcrelay_pln flags "-i vio2 192.168.192.11"\n'
+  printf 'rcctl enable dhcrelay_pln\nrcctl set dhcrelay_pln flags "-i vio2 172.16.16.72 172.16.32.72"\n'
 
   printf 'cp /etc/rc.d/dhcrelay /etc/rc.d/dhcrelay_wext\n'
-  printf 'rcctl enable dhcrelay_wext\nrcctl set dhcrelay_wext flags "-i vio3 192.168.192.11"\n'
+  printf 'rcctl enable dhcrelay_wext\nrcctl set dhcrelay_wext flags "-i vio3 172.16.16.72 172.16.32.72"\n'
+  printf 'fi\n'
 
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/install.site
 chmod a+rx /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/install.site
 
 {
   printf '#!/bin/sh\n'
-  printf 'mv /etc/hostname.vio0.ft /etc/hostname.vio0\n'
-  printf 'sh /etc/netstart\n'
+  printf ':\n'
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/rc.firsttime
 chmod a+rx /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/rc.firsttime
 
@@ -952,10 +981,10 @@ sed -e 's/openbsd-ai/ifw/' -e 's/HOSTNAME/ifw/g' < /mnt/sysimage/usr/share/nginx
 
 sed -e 's/openbsd-ai/tgw/' -e 's/HOSTNAME/tgw/g' < /mnt/sysimage/usr/share/nginx/html/install.conf > /mnt/sysimage/usr/share/nginx/html/tgw.sv1.bbxn.us-install.conf
 sed -e 's/openbsd-ai/tgw/' -e 's/HOSTNAME/tgw/g' < /mnt/sysimage/usr/share/nginx/html/install.conf > "/mnt/sysimage/usr/share/nginx/html/52:54:00:44:C9:2E-install.conf"
-printf 'DNS domain = sv1.bbxn.us\n' >> "/mnt/sysimage/usr/share/nginx/html/52:54:00:44:C9:2E-install.conf"
+printf 'DNS domain = sv1.bbxn.us\n' >> "/mnt/sysimage/usr/share/nginx/html/52:54:00:cc:ef:04-install.conf"
 sed -e 's/openbsd-ai/tgw/' -e 's/HOSTNAME/tgw/g' < /mnt/sysimage/usr/share/nginx/html/install.conf > /mnt/sysimage/usr/share/nginx/html/tgw.sv2.bbxn.us-install.conf
 sed -e 's/openbsd-ai/tgw/' -e 's/HOSTNAME/tgw/g' < /mnt/sysimage/usr/share/nginx/html/install.conf > "/mnt/sysimage/usr/share/nginx/html/52:54:00:44:C7:2E-install.conf"
-printf 'DNS domain = sv2.bbxn.us\n' >> "/mnt/sysimage/usr/share/nginx/html/52:54:00:44:C7:2E-install.conf"
+printf 'DNS domain = sv2.bbxn.us\n' >> "/mnt/sysimage/usr/share/nginx/html/52:54:00:3e:ee:84-install.conf"
 
 sed -e 's/openbsd-ai/efw/' -e 's/HOSTNAME/efw/g' < /mnt/sysimage/usr/share/nginx/html/install.conf > /mnt/sysimage/usr/share/nginx/html/efw.bbxn.us-install.conf
 
