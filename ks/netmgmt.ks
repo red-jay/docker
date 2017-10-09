@@ -949,7 +949,14 @@ popd
 } > /mnt/sysimage/usr/share/nginx/html/install.conf
 sed -e 's/openbsd-ai/ifw/' -e 's/HOSTNAME/ifw/g' < /mnt/sysimage/usr/share/nginx/html/install.conf > /mnt/sysimage/usr/share/nginx/html/ifw.sv2.bbxn.us-install.conf
 sed -e 's/openbsd-ai/ifw/' -e 's/HOSTNAME/ifw/g' < /mnt/sysimage/usr/share/nginx/html/install.conf > /mnt/sysimage/usr/share/nginx/html/ifw.sv1.bbxn.us-install.conf
+
+sed -e 's/openbsd-ai/tgw/' -e 's/HOSTNAME/tgw/g' < /mnt/sysimage/usr/share/nginx/html/install.conf > /mnt/sysimage/usr/share/nginx/html/tgw.sv1.bbxn.us-install.conf
+sed -e 's/openbsd-ai/tgw/' -e 's/HOSTNAME/tgw/g' < /mnt/sysimage/usr/share/nginx/html/install.conf > "/mnt/sysimage/usr/share/nginx/html/52:54:00:44:C9:2E-install.conf"
+printf 'DNS domain = sv1.bbxn.us\n' >> "/mnt/sysimage/usr/share/nginx/html/52:54:00:44:C9:2E-install.conf"
+sed -e 's/openbsd-ai/tgw/' -e 's/HOSTNAME/tgw/g' < /mnt/sysimage/usr/share/nginx/html/install.conf > /mnt/sysimage/usr/share/nginx/html/tgw.sv2.bbxn.us-install.conf
+sed -e 's/openbsd-ai/tgw/' -e 's/HOSTNAME/tgw/g' < /mnt/sysimage/usr/share/nginx/html/install.conf > "/mnt/sysimage/usr/share/nginx/html/52:54:00:44:C7:2E-install.conf"
+printf 'DNS domain = sv2.bbxn.us\n' >> "/mnt/sysimage/usr/share/nginx/html/52:54:00:44:C7:2E-install.conf"
+
 sed -e 's/openbsd-ai/efw/' -e 's/HOSTNAME/efw/g' < /mnt/sysimage/usr/share/nginx/html/install.conf > /mnt/sysimage/usr/share/nginx/html/efw.bbxn.us-install.conf
-sed -e 's/openbsd-ai/tgw/' -e 's/HOSTNAME/tgw/g' < /mnt/sysimage/usr/share/nginx/html/install.conf > /mnt/sysimage/usr/share/nginx/html/tgw.bbxn.us-install.conf
 
 %end
