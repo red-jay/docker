@@ -572,8 +572,9 @@ dhcp_subnet() {
   printf ' filename "auto_install";\n'
   printf '}\n'
 
+  # ifw
   printf 'subclass "netmgmt" 1:52:54:00:44:C9:2E; subclass "netmgmt" 52:54:00:44:C9:2E;\n'
-  printf 'host ifw { hardware ethernet 52:54:00:44:C9:2E; option host-name "ifw.sv1.bbxn.us"; }\n'
+  printf 'host ifw.sv1 { hardware ethernet 52:54:00:44:C9:2E; option host-name "ifw.sv1.bbxn.us"; }\n'
 
   printf 'subclass "netmgmt" 1:52:54:00:44:C7:2E; subclass "netmgmt" 52:54:00:44:C7:2E;\n'
   printf 'host ifw.sv2 { hardware ethernet 52:54:00:44:C7:2E; option host-name "ifw.sv2.bbxn.us"; }\n'
@@ -581,14 +582,18 @@ dhcp_subnet() {
   printf 'subclass "transit" 1:52:54:00:4E:CC:0F; subclass "netmgmt" 52:54:00:4E:CC:0F;\n'
   printf 'host efw { hardware ethernet 52:54:00:4E:CC:0F; option host-name "efw.bbxn.us"; }\n'
 
-  printf 'subclass "netmgmt" 1:88:75:56:6a:d6:c1; subclass "netmgmt" 88:75:56:6a:d6:c1;\n'
-
   # tgw
   printf 'subclass "transit" 1:52:54:00:CC:EF:04; subclass "transit" 52:54:00:CC:EF:04;\n'
-  printf 'host tgw { hardware ethernet 54:54:00:CC:EF:04; option host-name "tgw.bbxn.us"; }\n'
+  printf 'host tgw.sv1 { hardware ethernet 54:54:00:CC:EF:04; option host-name "tgw.sv1.bbxn.us"; }\n'
+
+  printf 'subclass "transit" 1:52:54:00:3E:EE:84; subclass "transit" 52:54:00:CC:EF:04;\n'
+  printf 'host tgw.sv2 { hardware ethernet 54:54:00:3E:EE:84; option host-name "tgw.sv2.bbxn.us"; }\n'
 
   # ufw
   # dfw
+
+  # switches!
+  printf 'subclass "netmgmt" 1:88:75:56:6a:d6:c1; subclass "netmgmt" 88:75:56:6a:d6:c1;\n'
 } > /mnt/sysimage/etc/dhcp/dhcpd.conf
 
 # dhcp managing script
@@ -806,7 +811,6 @@ printf 'inet 172.16.32.0 255.255.255.192\n-inet6\ngroup transit\n' > /mnt/sysima
   printf 'done\n'
 
   printf 'rm /etc/hostname.*.*\n'
-  printf 'cp /etc/hostname.vio0 /etc/hostname.vio0.ft\n'
 
   printf 'cp /etc/rc.d/dhcrelay /etc/rc.d/dhcrelay_virthosts\n'
   printf 'rcctl enable dhcrelay_virthosts\nrcctl set dhcrelay_virthosts flags "-i vio2 172.16.16.72 172.16.32.72"\n'
@@ -820,8 +824,7 @@ chmod a+rx /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/install.site
 
 {
   printf '#!/bin/sh\n'
-  printf 'mv /etc/hostname.vio0.ft /etc/hostname.vio0\n'
-  printf 'sh /etc/netstart\n'
+  printf ':\n'
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/rc.firsttime
 chmod a+rx /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/rc.firsttime
 
