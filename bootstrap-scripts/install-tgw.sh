@@ -5,7 +5,7 @@ set -e
 case "${1}" in
   sv1)
     bootmac="52:54:00:CC:EF:04"
-    vi_opts="--network bridge=pln,model=virtio --network bridge=west,model=virtio"
+    vi_opts="--network bridge=pln,model=virtio --network bridge=wext,model=virtio"
     ;;
   sv2)
     bootmac="52:54:00:3E:EE:84"

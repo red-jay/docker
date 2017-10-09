@@ -482,10 +482,16 @@ dhcp_subnet() {
   tag="${2}"
   next="${3}"
 
-  local scratch
+  local scratch staticslice
   local sub_addr sub_mask prefix bcast
   local net_loctet gw_loctet bw_loctet lh_loctet
   local hostct hostoffset hoststart
+
+  if [ -z "${4}" ] ; then
+    staticslice=4
+  else
+    staticslice="${4}"
+  fi
 
   sub_addr=${subnet%/*}
   sub_mask=$(ipcalc -m "${subnet}")
@@ -503,7 +509,7 @@ dhcp_subnet() {
   hostct=$(($lh_loctet-$gw_loctet))
   # below range works as long as you are working with a /29 in a /26...
   # ...and you start counting from the router ;)
-  hostoffset=$(($hostct / 4))
+  hostoffset=$(($hostct / $staticslice))
   hoststart=$(($gw_loctet + $hostoffset))
 
   printf 'subnet %s netmask %s { pool {\n' "${sub_addr}" "${sub_mask}"
@@ -536,7 +542,7 @@ dhcp_subnet() {
 
   # transit
   for subnet in ${dhcp_trns} ; do
-    dhcp_subnet "${subnet}" "transit" "${nextserver}"
+    dhcp_subnet "${subnet}" "transit" "${nextserver}" 2
   done
 
   # virthost
@@ -793,7 +799,7 @@ mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc
 printf 'inet 172.16.16.65 255.255.255.192\n-inet6\ngroup netmgmt\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio0.sv1
 printf 'inet 172.16.32.65 255.255.255.192\n-inet6\ngroup netmgmt\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio0.sv2
 # vio1 - vmm
-printf 'dhcp\n-inet6\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio1
+printf 'dhcp\n-inet6\ngroup vmm\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio1
 # vio2 - virthost
 printf 'inet 172.16.16.129 255.255.255.192\n-inet6\ngroup virthost\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio2.sv1
 printf 'inet 172.16.32.129 255.255.255.192\n-inet6\ngroup virthost\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio2.sv2
@@ -858,7 +864,7 @@ mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc
 printf 'inet 192.168.129.15 255.255.255.128\n-inet6\ngroup transit\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio0
 cp /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio0 /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio0.ft
 # vio1 - vmm
-printf 'dhcp\n-inet6\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio1
+printf 'dhcp\n-inet6\ngroup vmm\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio1
 # vio2 - pln
 printf 'inet 192.168.129.161 255.255.255.224\n-inet6\ngroup pln\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio2
 # vio3 - wext
