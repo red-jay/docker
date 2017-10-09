@@ -9,7 +9,7 @@ case "${1}" in
     ;;
   sv2)
     bootmac="52:54:00:3E:EE:84"
-    vi_opts="--network bridge=br-enp0s20u3,model=virtio"
+    vi_opts="--network bridge=br-enp0s20u3,model=virtio,mac=52:54:00:22:CA:BE"
     ;;
   *)
     echo "supply a site to bootstrap tgw in (sv1|sv2)"
