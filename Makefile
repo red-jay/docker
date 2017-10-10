@@ -10,7 +10,39 @@ self := $(location)
 else
 C7_URI = http://wcs.bbxn.us/centos/7
 EPEL7_URI = http://wcs.bbxn.us/epel/7
+OBSD_URI = http://wcs.bbxn.us/OpenBSD
+OBSD_VER = 6.2
+OB_ND_VER = $(subst .,,$(OBSD_VER))
 
+openbsd-dist:
+	mkdir openbsd-dist
+
+openbsd-dist/$(OBSD_VER): openbsd-dist
+	mkdir openbsd-dist/$(OBSD_VER)
+
+openbsd-dist/$(OBSD_VER)/amd64: openbsd-dist/$(OBSD_VER)
+	mkdir openbsd-dist/$(OBSD_VER)/amd64
+
+openbsd-dist/$(OBSD_VER)/amd64/base$(OB_ND_VER).tgz: openbsd-dist/$(OBSD_VER)/amd64
+	curl -L -o openbsd-dist/$(OBSD_VER)/amd64/base$(OB_ND_VER).tgz $(OBSD_URI)/$(OBSD_VER)/amd64/base$(OB_ND_VER).tgz
+
+openbsd-dist/$(OBSD_VER)/amd64/bsd.rd: openbsd-dist/$(OBSD_VER)/amd64
+	curl -L -o openbsd-dist/$(OBSD_VER)/amd64/bsd.rd $(OBSD_URI)/$(OBSD_VER)/amd64/bsd.rd
+
+openbsd-dist/$(OBSD_VER)/amd64/bsd.mp: openbsd-dist/$(OBSD_VER)/amd64
+	curl -L -o openbsd-dist/$(OBSD_VER)/amd64/bsd.rd $(OBSD_URI)/$(OBSD_VER)/amd64/bsd.mp
+
+openbsd-dist/$(OBSD_VER)/amd64/bsd: openbsd-dist/$(OBSD_VER)/amd64
+	curl -L -o openbsd-dist/$(OBSD_VER)/amd64/bsd $(OBSD_URI)/$(OBSD_VER)/amd64/bsd
+
+openbsd-dist/$(OBSD_VER)/amd64/SHA256: openbsd-dist/$(OBSD_VER)/amd64
+	curl -L -o openbsd-dist/$(OBSD_VER)/amd64/SHA256 $(OBSD_URI)/$(OBSD_VER)/amd64/SHA256
+
+openbsd-dist/$(OBSD_VER)/amd64/SHA256.sig: openbsd-dist/$(OBSD_VER)/amd64
+	curl -L -o openbsd-dist/$(OBSD_VER)/amd64/SHA256.sig $(OBSD_URI)/$(OBSD_VER)/amd64/SHA256.sig
+
+openbsd-dist/$(OBSD_VER)/amd64/index.txt: openbsd-dist/$(OBSD_VER)/amd64/base$(OB_ND_VER).tgz openbsd-dist/$(OBSD_VER)/amd64/bsd.rd openbsd-dist/$(OBSD_VER)/amd64/bsd.mp openbsd-dist/$(OBSD_VER)/amd64/bsd openbsd-dist/$(OBSD_VER)/amd64/SHA256.sig
+	ls -ln openbsd-dist/$(OBSD_VER)/amd64 > openbsd-dist/$(OBSD_VER)/amd64/index.txt
 
 kscheck: ks.cfg
 	ksvalidator ks.cfg -v RHEL7
