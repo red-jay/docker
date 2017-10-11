@@ -731,15 +731,39 @@ pushd /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/_grub/
 popd
 
 
-# FIXME: template this out of here
-ob_ver=6.1
 if [ ! -z "${ks_method}" ] ; then
+  obsd_toplev="${ks_method}../openbsd"
   obsd_uri="${ks_method}../openbsd/${ob_ver}/amd64"
-elif [ -f /mnt/install/repo/openbsd-dist/${ob_ver}/amd64/index.txt ] ; then
-  obsd_uri="file:///mnt/install/repo/openbsd-dist/${ob_ver}/amd64"
+elif [ -f /mnt/install/repo/openbsd-dist/ ] ; then
+  obsd_toplev="/mnt/install/repo/openbsd-dist"
 fi
 
+case $obsd_toplev in
+  /*)
+    for d in ${obsd_toplev}/* ; do
+      if [ ! -d "${d}" ] ; then continue ; fi
+      # LC_COLLATE is my friend!
+      if [ -f "${d}/amd64/bsd" ] ; then
+        obsd_uri="file://${d}/amd64"
+        ob_ver="${d}"
+      fi
+    done
+    ;;
+  http*)
+    subs=$(curl "${obsd_toplev}/" 2>/dev/null|awk '$0 ~ "<a href=" { if ($1 == "<a") { split($2,j,"[<>]");print j[2] } }')
+    for d in ${subs} ; do
+      curl --head --fail "${obsd_toplev}/${d}/amd64/bsd" 2>/dev/null 1>&2; echo $?
+      rc=$?
+      if [ $? -eq 0 ] ; then
+        obsd_uri="${obsd_toplev}/${d}/amd64"
+        ob_ver="${d///}"
+      fi
+    done
+    ;;
+esac
+
 obsd_idx="${obsd_uri}/index.txt"
+ob_ver_nd=${ob_ver//.}
 
 mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/${ob_ver}/amd64
 pushd /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/${ob_ver}/amd64
@@ -874,7 +898,7 @@ chmod a+rx /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/rc.firstt
 
 printf 'net.inet.ip.forwarding=1\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/sysctl.conf
 
-tar cpzf /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/6.1/amd64/site61-ifw.tgz -C /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw .
+tar cpzf /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/${ob_ver}/amd64/site${ob_ver_nd}-ifw.tgz -C /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw .
 
 # tgw site
 mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc
@@ -928,7 +952,7 @@ chmod a+rx /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/rc.firstt
   printf 'pass in on { pln wext } proto udp from port 68 to port 67\n'
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/pf.conf
 
-tar cpzf /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/6.1/amd64/site61-tgw.tgz -C /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw .
+tar cpzf /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/${ob_ver}/amd64/site${ob_ver_nd}-tgw.tgz -C /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw .
 
 # wire a pxe autochain
 mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe.d/mac
@@ -939,14 +963,14 @@ printf '#!ipxe\nchain tftp://${next-server}/ipxe.d/openbsd\n' > /mnt/sysimage/va
 printf '#!ipxe\nchain tftp://${next-server}/ipxe.d/openbsd\n' > /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe.d/mac/52-54-00-3e-ee-84.ipxe
 
 # regenerate OpenBSD index
-pushd /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/6.1/amd64
+pushd /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/${ob_ver}/amd64
 rm index.txt
 ls -ln > index.txt
 popd
 
 # hack around pkg_add weirdness
-pushd /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/6.1
-ln -s . 6.1
+pushd /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/${ob_ver}
+ln -s . ${ob_ver}
 popd
 
 # create openbsd install.conf
@@ -972,10 +996,10 @@ popd
   printf 'HTTP Server = %s\n' "${tftp_std}"
   printf 'Unable to connect using https. Use http instead = yes\n'
   printf 'Set name(s) = -comp* -man* -game* -x* done\n'
-  printf 'Checksum test for site61.tgz = yes\n'
-  printf 'Checksum test for site61-HOSTNAME.tgz = yes\n'
-  printf 'Unverified sets: site61.tgz. Continue without verification = yes\n'
-  printf 'Unverified sets: site61-HOSTNAME.tgz. Continue without verification = yes\n'
+  printf 'Checksum test for site%s.tgz = yes\n' "${ob_ver_nd}"
+  printf 'Checksum test for site%s-HOSTNAME.tgz = yes\n' "${ob_ver_nd}"
+  printf 'Unverified sets: site%s.tgz. Continue without verification = yes\n' "${ob_ver_nd}"
+  printf 'Unverified sets: site%s-HOSTNAME.tgz. Continue without verification = yes\n' "${ob_ver_nd}"
 } > /mnt/sysimage/usr/share/nginx/html/install.conf
 sed -e 's/openbsd-ai/ifw/' -e 's/HOSTNAME/ifw/g' < /mnt/sysimage/usr/share/nginx/html/install.conf > /mnt/sysimage/usr/share/nginx/html/ifw.sv2.bbxn.us-install.conf
 sed -e 's/openbsd-ai/ifw/' -e 's/HOSTNAME/ifw/g' < /mnt/sysimage/usr/share/nginx/html/install.conf > /mnt/sysimage/usr/share/nginx/html/ifw.sv1.bbxn.us-install.conf
