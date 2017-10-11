@@ -30,7 +30,7 @@ openbsd-dist/$(OBSD_VER)/amd64/bsd.rd: openbsd-dist/$(OBSD_VER)/amd64
 	curl -L -o openbsd-dist/$(OBSD_VER)/amd64/bsd.rd $(OBSD_URI)/$(OBSD_VER)/amd64/bsd.rd
 
 openbsd-dist/$(OBSD_VER)/amd64/bsd.mp: openbsd-dist/$(OBSD_VER)/amd64
-	curl -L -o openbsd-dist/$(OBSD_VER)/amd64/bsd.rd $(OBSD_URI)/$(OBSD_VER)/amd64/bsd.mp
+	curl -L -o openbsd-dist/$(OBSD_VER)/amd64/bsd.mp $(OBSD_URI)/$(OBSD_VER)/amd64/bsd.mp
 
 openbsd-dist/$(OBSD_VER)/amd64/bsd: openbsd-dist/$(OBSD_VER)/amd64
 	curl -L -o openbsd-dist/$(OBSD_VER)/amd64/bsd $(OBSD_URI)/$(OBSD_VER)/amd64/bsd
@@ -125,7 +125,7 @@ discinfo:
 
 EFIFILES = EFI/BOOT/fonts/unicode.pf2 EFI/BOOT/grubx64.efi EFI/BOOT/MokManager.efi EFI/BOOT/BOOTX64.EFI EFI/BOOT/grub.cfg
 REPOFILES = Packages/.downloaded repodata/repomd.xml discinfo
-LIVEFILES = LiveOS/squashfs.img syslinux.cfg images/pxeboot/vmlinuz images/pxeboot/initrd.img
+LIVEFILES = LiveOS/squashfs.img syslinux.cfg images/pxeboot/vmlinuz images/pxeboot/initrd.img openbsd-dist/$(OBSD_VER)/amd64/index.txt
 IMAGEFILES = $(REPOFILES) $(LIVEFILES) $(EFIFILES)
 
 usb.img: $(IMAGEFILES)
