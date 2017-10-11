@@ -734,7 +734,7 @@ popd
 if [ ! -z "${ks_method}" ] ; then
   obsd_toplev="${ks_method}../openbsd"
   obsd_uri="${ks_method}../openbsd/${ob_ver}/amd64"
-elif [ -f /mnt/install/repo/openbsd-dist/ ] ; then
+elif [ -d /mnt/install/repo/openbsd-dist/ ] ; then
   obsd_toplev="/mnt/install/repo/openbsd-dist"
 fi
 
@@ -745,7 +745,7 @@ case $obsd_toplev in
       # LC_COLLATE is my friend!
       if [ -f "${d}/amd64/bsd" ] ; then
         obsd_uri="file://${d}/amd64"
-        ob_ver="${d}"
+        ob_ver="${d##*/}"
       fi
     done
     ;;
