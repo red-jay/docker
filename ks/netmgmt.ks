@@ -846,7 +846,7 @@ printf 'dhcp\n-inet6\ngroup vmm\n' > /mnt/sysimage/usr/share/nginx/html/pub/Open
 printf 'inet 172.16.16.129 255.255.255.192\n-inet6\ngroup virthost\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio2.sv1
 printf 'inet 172.16.32.129 255.255.255.192\n-inet6\ngroup virthost\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio2.sv2
 # vio3 - transit
-printf 'inet 172.16.16.1 255.255.255.192\n-inet6\ngroup transit\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio3.sv1
+printf 'inet 172.16.16.1 255.255.255.192\n-inet6\ngroup transit\n!route add -net 172.16.52.0/26 172.16.16.11\nup\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio3.sv1
 printf 'inet 172.16.32.1 255.255.255.192\n-inet6\ngroup transit\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio3.sv2
 
 {
@@ -886,9 +886,11 @@ chmod a+rx /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/rc.firstt
   printf 'block return log\n\n'
 
   printf 'pass out quick on netmgmt proto udp from port { 67, 68 } to %s port 67\n' "{172.16.16.72, 172.16.32.72}"
+  printf 'pass out on vmm proto udp from port 68 to port 67\n'
   printf 'antispoof quick for { virthosts netmgmt vmm }\n\n'
 
   printf 'pass in on { virthosts transit } proto udp from port 68 to port 67\n'
+  printf 'pass in proto udp from port 67 to {172.16.16.72, 172.16.32.72} port 67\n'
   printf 'pass in quick on transit proto udp from (transit:network) to %s port 69 divert-to 127.0.0.1 port 6969\n' "{172.16.16.72/29, 172.16.32.72/29}"
   printf 'pass out quick on netmgmt proto udp to %s port 69 group _tftp_proxy divert-reply\n' "{172.16.16.72/29, 172.16.32.72/29}"
 
@@ -903,7 +905,7 @@ tar cpzf /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/${ob_ver}/amd64/site${ob
 # tgw site
 mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc
 # vio0 - transit
-printf 'inet 172.16.16.11 255.255.255.192\n-inet6\ngroup transit\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio0.sv1
+printf 'inet 172.16.16.11 255.255.255.192\n-inet6\ngroup transit\n!route add -net 172.16.16.64/26 172.16.16.1\nup\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio0.sv1
 printf 'inet 172.16.32.11 255.255.255.192\n-inet6\ngroup transit\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio0.sv2
 # vio1 - vmm
 printf 'dhcp\n-inet6\ngroup vmm\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio1
@@ -947,9 +949,11 @@ chmod a+rx /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/rc.firstt
   printf 'block drop quick inet6 proto icmp6 all icmp6-type { routeradv, routersol }\n'
   printf 'block return log\n\n'
 
+  printf 'pass out on vmm proto udp from port 68 to port 67\n\n'
   printf 'antispoof quick for { pln wext vmm }\n\n'
 
   printf 'pass in on { pln wext } proto udp from port 68 to port 67\n'
+  printf 'pass out proto udp from port 67 to {172.16.16.72, 172.16.32.72} port 67\n'
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/pf.conf
 
 tar cpzf /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/${ob_ver}/amd64/site${ob_ver_nd}-tgw.tgz -C /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw .
