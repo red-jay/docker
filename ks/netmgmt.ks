@@ -411,6 +411,10 @@ mkdir -p /mnt/sysimage/etc/systemd/network/
   printf 'Gateway=%s\n' "${gateway}"
 } > /mnt/sysimage/etc/systemd/network/eth0.network
 
+{
+  printf '[Match]\nName=eth1\n[Network]\nDHCP=yes\nLinkLocalAddressing=no\LLMNR=no\nMulticastDNS=no\n'
+} > /mnt/sysimage/etc/systemd/network/eth1.network
+
 # shoot NetworkManager in the face
 ln -s /dev/null /mnt/sysimage/etc/systemd/system/NetworkManager.service
 ln -s /dev/null /mnt/sysimage/etc/systemd/system/NetworkManager-wait-online.service
