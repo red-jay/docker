@@ -13,17 +13,32 @@ C7_URI = $(CENTOS_URI)/7
 EPEL7_URI = http://wcs.bbxn.us/epel/7
 OBSD_BASE_URI = http://wcs.bbxn.us/OpenBSD
 
+# keying
 well-known-keys/.git:
 	git submodule update --init
 
 well-known-keys/authorized_keys: well-known-keys/.git
 
+# OpenBSD
 archive/openbsd/%/amd64/index.txt:
 	$(MAKE) -f Mk/Archive.mk OBSD_BASE_URI=$(OBSD_BASE_URI) $@
 
+# Centos 7 Repository
 archive/centos%/repodata/repomd.xml:
 	$(MAKE) -f Mk/Archive.mk $@
 
+archive/centos7/group-packages: archive/centos7/repodata/repomd.xml ks/installed-groups.txt
+	env YUM1=$(C7_URI) YUM2=$(EPEL7_URI) ./build-scripts/unwind-groups.sh ks/installed-groups.txt > archive/centos7/group-packages
+
+archive/centos7/Packages/.downloaded: ks/installed-packages.txt archive/centos7/group-packages archive/centos7/repodata/repomd.xml
+	env YUM1=$(C7_URI) YUM2=$(EPEL7_URI) repotrack -c ./yum.conf -a x86_64 -p archive/centos7/Packages $$(cat archive/centos7/group-packages) $$(cat ks/installed-packages.txt) wireshark
+	touch archive/centos7/Packages/.downloaded
+
+# Kickstart recognition file
+archive/centos7/discinfo:
+	$(MAKE) -f Mk/Archive.mk CENTOS_URI=$(CENTOS_URI) archive/centos7/discinfo
+
+# Centos 7 Kickstarts
 kscheck: ks/Makefile
 	$(MAKE) -C ks ksvalidate
 
@@ -33,49 +48,29 @@ ks/installed-groups.txt: ks/Makefile
 ks/installed-packages.txt: ks/Makefile
 	$(MAKE) -C ks DUMPPKGS=$(CURDIR)/build-scripts/ks-dumppkgs.py installed-packages.txt
 
-archive/centos7/group-packages: archive/centos7/repodata/repomd.xml ks/installed-groups.txt
-	env YUM1=$(C7_URI) YUM2=$(EPEL7_URI) ./build-scripts/unwind-groups.sh ks/installed-groups.txt > archive/centos7/group-packages
+REPOFILES= = archive/centos7/Packages/.downloaded archive/centos7/discinfo
 
-archive/centos7/Packages/.downloaded: ks/installed-packages.txt archive/centos7/group-packages archive/centos7/repodata/repomd.xml
-	env YUM1=$(C7_URI) YUM2=$(EPEL7_URI) repotrack -c ./yum.conf -a x86_64 -p archive/centos7/Packages $$(cat archive/centos7/group-packages) $$(cat ks/installed-packages.txt) wireshark
-	touch archive/centos7/Packages/.downloaded
-
-archive/centos7/discinfo:
-	$(MAKE) -f Mk/Archive.mk CENTOS_URI=$(CENTOS_URI) archive/centos7/discinfo
-
+# Boot files
 archive/centos7/images/pxeboot/%:
 	$(MAKE) -f Mk/Archive.mk CENTOS_URI=$(CENTOS_URI) $@
 
 archive/centos7/LiveOS/squashfs.img:
 	$(MAKE) -f Mk/Archive.mk CENTOS_URI=$(CENTOS_URI) $@
 
-EFI:
-	mkdir EFI
+archive/centos7/EFI/BOOT/%:
+	$(MAKE) -f Mk/Archive.mk CENTOS_URI=$(CENTOS_URI) $@
 
-EFI/BOOT: EFI
-	-mkdir EFI/BOOT
+archive/centos7/EFI/BOOT/fonts/%:
+	$(MAKE) -f Mk/Archive.mk CENTOS_URI=$(CENTOS_URI) $@
 
-EFI/BOOT/fonts: EFI/BOOT
-	-mkdir EFI/BOOT/fonts
+BOOTFILES = archive/centos7/EFI/BOOT/fonts/unicode.pf2
+BOOTFILES += archive/centos7/EFI/BOOT/grubx64.efi archive/centos7/EFI/BOOT/grubia32.efi
+BOOTFILES += archive/centos7/EFI/BOOT/mmx64.efi archive/centos7/EFI/BOOT/mmia32.efi
+BOOTFILES += archive/centos7/EFI/BOOT/BOOTX64.EFI archive/centos7/EFI/BOOT/BOOTIA32.EFI
+BOOTFILES += archive/centos7/images/pxeboot/vmlinuz archive/centos7/images/pxeboot/initrd.img
+BOOTFILES += archive/centos7/LiveOS/squashfs.img
 
-EFI/BOOT/BOOTX64.EFI: EFI/BOOT
-	cd EFI/BOOT && curl -LO $(C7_URI)/os/x86_64/EFI/BOOT/BOOTX64.EFI
-
-EFI/BOOT/MokManager.efi: EFI/BOOT
-	cd EFI/BOOT && curl -LO $(C7_URI)/os/x86_64/EFI/BOOT/MokManager.efi
-
-EFI/BOOT/grub.cfg: EFI/BOOT grub.cfg
-	cp grub.cfg EFI/BOOT
-
-EFI/BOOT/grubx64.efi: EFI/BOOT
-	cd EFI/BOOT && curl -LO $(C7_URI)/os/x86_64/EFI/BOOT/grubx64.efi
-
-EFI/BOOT/fonts/unicode.pf2: EFI/BOOT/fonts
-	cd EFI/BOOT/fonts && curl -LO $(C7_URI)/os/x86_64/EFI/BOOT/fonts/unicode.pf2
-
-EFIFILES = EFI/BOOT/fonts/unicode.pf2 EFI/BOOT/grubx64.efi EFI/BOOT/MokManager.efi EFI/BOOT/BOOTX64.EFI EFI/BOOT/grub.cfg
-REPOFILES = Packages/.downloaded repodata/repomd.xml discinfo
-LIVEFILES = LiveOS/squashfs.img syslinux.cfg images/pxeboot/vmlinuz images/pxeboot/initrd.img openbsd-dist/$(OBSD_VER)/amd64/index.txt
+LIVEFILES = syslinux.cfg openbsd-dist/$(OBSD_VER)/amd64/index.txt
 IMAGEFILES = $(REPOFILES) $(LIVEFILES) $(EFIFILES)
 
 usb.img: $(IMAGEFILES)

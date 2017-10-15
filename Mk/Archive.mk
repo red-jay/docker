@@ -17,16 +17,29 @@ archive/centos%/comps/c7-x86_64-comps.xml: archive/centos%/comps/.git
 
 archive/centos%/repodata/repomd.xml: archive/centos%/comps/c7-x86_64-comps.xml | archive/centos%/repodata/
 	$(MAKE) -f $(self) $(dir $@)
-	cd archive/centos7 ; createrepo_c -g ./comps/c7-x86_64-comps.xml .
+	cd archive/centos7 && createrepo_c -g ./comps/c7-x86_64-comps.xml .
 
 archive/centos%/discinfo: | archive/centos%/
-	cd $(dir $@) ; curl -L -o discinfo $(CENTOS_URI)/$(subst archive/centos,,$(dir $@))os/x86_64/.discinfo
+	$(MAKE) -f $(self) $(dir $@)
+	cd $(dir $@) && curl -L -o discinfo $(CENTOS_URI)/$(subst archive/centos,,$(dir $@))os/x86_64/.discinfo
 
 archive/centos%/images/pxeboot/vmlinuz: | archive/centos%/images/pxeboot/
-	cd $(dir $@) ; curl -LO $(CENTOS_URI)/$(subst images/pxeboot/,,$(subst archive/centos,,$(dir $@)))os/x86_64/images/pxeboot/vmlinuz
+	$(MAKE) -f $(self) $(dir $@)
+	cd $(dir $@) && curl -LO $(CENTOS_URI)/$(subst images/pxeboot/,,$(subst archive/centos,,$(dir $@)))os/x86_64/images/pxeboot/vmlinuz
 
 archive/centos%/images/pxeboot/initrd.img: | archive/centos%/images/pxeboot/
-	cd $(dir $@) ; curl -LO $(CENTOS_URI)/$(subst images/pxeboot/,,$(subst archive/centos,,$(dir $@)))os/x86_64/images/pxeboot/initrd.img
+	$(MAKE) -f $(self) $(dir $@)
+	cd $(dir $@) && curl -LO $(CENTOS_URI)/$(subst images/pxeboot/,,$(subst archive/centos,,$(dir $@)))os/x86_64/images/pxeboot/initrd.img
 
 archive/centos%/LiveOS/squashfs.img: | archive/centos%/LiveOS/
-	cd $(dir $@) ; curl -LO $(CENTOS_URI)/$(subst LiveOS/,,$(subst archive/centos,,$(dir $@)))os/x86_64/LiveOS/squashfs.img
+	$(MAKE) -f $(self) $(dir $@)
+	cd $(dir $@) && curl -LO $(CENTOS_URI)/$(subst LiveOS/,,$(subst archive/centos,,$(dir $@)))os/x86_64/LiveOS/squashfs.img
+
+archive/centos7/EFI/BOOT/%: | archive/centos7/EFI/BOOT/
+	cd $(dir $@) && curl -LO $(CENTOS_URI)/7/os/x86_64/EFI/BOOT/$(notdir $@)
+
+archive/centos7/EFI/BOOT/fonts:
+	mkdir -p $@
+
+archive/centos7/EFI/BOOT/fonts/%: | archive/centos7/EFI/BOOT/fonts
+	cd $(dir $@) && curl -LO $(CENTOS_URI)/7/os/x86_64/EFI/BOOT/fonts/$(notdir $@)
