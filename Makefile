@@ -30,9 +30,8 @@ ks/installed-groups.txt: ks/Makefile
 ks/installed-packages.txt: ks/Makefile
 	$(MAKE) -C ks DUMPPKGS=$(CURDIR)/build-scripts/ks-dumppkgs.py installed-packages.txt
 
-repodata/.unwound-groups: repodata/installed-groups.txt repodata/repomd.xml unwind-groups.sh
-	env YUM1=$(C7_URI) YUM2=$(EPEL7_URI) ./unwind-groups.sh repodata/installed-groups.txt
-	touch repodata/.unwound-groups
+archive/centos7/group-packages: archive/centos7/repodata/repomd.xml ks/installed-groups.txt
+	env YUM1=$(C7_URI) YUM2=$(EPEL7_URI) ./build-scripts/unwind-groups.sh ks/installed-groups.txt > archive/centos7/group-packages
 
 Packages/.downloaded: repodata/.unwound-groups ks.cfg repodata/installed-packages.txt
 	env YUM1=$(C7_URI) YUM2=$(EPEL7_URI) repotrack -c ./yum.conf -a x86_64 -p ./Packages $$(cat ./repodata/group-*.txt) $$(cat ./repodata/installed-packages.txt) wireshark
