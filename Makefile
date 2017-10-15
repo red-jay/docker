@@ -32,6 +32,7 @@ archive/centos7/group-packages: archive/centos7/repodata/repomd.xml ks/installed
 
 archive/centos7/Packages/.downloaded: ks/installed-packages.txt archive/centos7/group-packages archive/centos7/repodata/repomd.xml
 	env YUM1=$(C7_URI) YUM2=$(EPEL7_URI) repotrack -c ./yum.conf -a x86_64 -p archive/centos7/Packages $$(cat archive/centos7/group-packages) $$(cat ks/installed-packages.txt) wireshark
+	cd $(subst Packages/,,$(dir $@)) && createrepo_c -g ./comps/c7-x86_64-comps.xml .
 	touch archive/centos7/Packages/.downloaded
 
 # Kickstart recognition file
@@ -86,18 +87,19 @@ LIVEFILES = syslinux.cfg openbsd-dist/$(OBSD_VER)/amd64/index.txt
 IMAGEFILES = $(REPOFILES) $(LIVEFILES) $(EFIFILES)
 
 distclean:
+	$(MAKE) clean
 	-rm -rf archive/openbsd
 	-rm -rf archive/centos7/discinfo
 	-rm -rf archive/centos7/EFI
-	-rm -rf archive/centos7/group-packages
 	-rm -rf archive/centos7/images
 	-rm -rf archive/centos7/LiveOS
 	-rm -rf archive/centos7/Packages
 	-rm -rf archice/centos7/repodata
-	$(MAKE) -C ks clean
 
 clean:
-	rm -rf archive/centos7/group-packages
+	-rm -rf *.iso
+	-rm -rf archive/centos7/Packages/.downloaded
+	-rm -rf archive/centos7/group-packages
 	$(MAKE) -C ks clean
 
 ISOFILES = $(REPOFILES) $(BOOTFILES)
