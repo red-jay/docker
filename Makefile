@@ -15,7 +15,7 @@ OBSD_BASE_URI = http://wcs.bbxn.us/OpenBSD
 well-known-keys/.git:
 	git submodule update --init
 
-centos-comps/.git:
+archive/centos7/comps/.git:
 	git submodule update --init
 
 archive/openbsd/%/amd64/index.txt:

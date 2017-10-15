@@ -1,5 +1,5 @@
 [submodule "centos-comps"]
-	path = archive/centos-comps
+	path = archive/centos7/comps
 	url = https://git.centos.org/git/sig-core/comps.git
 [submodule "well-known-keys"]
 	path = well-known-keys
