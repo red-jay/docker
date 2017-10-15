@@ -27,3 +27,6 @@ archive/centos%/images/pxeboot/vmlinuz: | archive/centos%/images/pxeboot/
 
 archive/centos%/images/pxeboot/initrd.img: | archive/centos%/images/pxeboot/
 	cd $(dir $@) ; curl -LO $(CENTOS_URI)/$(subst images/pxeboot/,,$(subst archive/centos,,$(dir $@)))os/x86_64/images/pxeboot/initrd.img
+
+archive/centos%/LiveOS/squashfs.img: | archive/centos%/LiveOS/
+	cd $(dir $@) ; curl -LO $(CENTOS_URI)/$(subst LiveOS/,,$(subst archive/centos,,$(dir $@)))os/x86_64/LiveOS/squashfs.img

@@ -46,11 +46,8 @@ archive/centos7/discinfo:
 archive/centos7/images/pxeboot/%:
 	$(MAKE) -f Mk/Archive.mk CENTOS_URI=$(CENTOS_URI) $@
 
-LiveOS:
-	mkdir LiveOS
-
-LiveOS/squashfs.img: LiveOS
-	cd LiveOS && curl -LO $(C7_URI)/os/x86_64/LiveOS/squashfs.img
+archive/centos7/LiveOS/squashfs.img:
+	$(MAKE) -f Mk/Archive.mk CENTOS_URI=$(CENTOS_URI) $@
 
 EFI:
 	mkdir EFI
