@@ -9,8 +9,6 @@ self := $(location)
 	$(MAKE) -f $(self) --no-print-directory tmpdir=$$tmpdir $@
 else
 
-BASE_URI=http://wcs.bbxn.us/OpenBSD
-
 DL_ARCH=$(notdir $(CURDIR))
 DL_VER=$(notdir $(subst /$(DL_ARCH),,$(CURDIR)))
 DL_NDVER=$(subst .,,$(DL_VER))

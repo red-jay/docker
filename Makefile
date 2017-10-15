@@ -10,9 +10,7 @@ self := $(location)
 else
 C7_URI = http://wcs.bbxn.us/centos/7
 EPEL7_URI = http://wcs.bbxn.us/epel/7
-OBSD_URI = http://wcs.bbxn.us/OpenBSD
-OBSD_VER = 6.2
-OB_ND_VER = $(subst .,,$(OBSD_VER))
+OBSD_BASE_URI = http://wcs.bbxn.us/OpenBSD
 
 well-known-keys/.git:
 	git submodule update --init
@@ -21,7 +19,7 @@ centos-comps/.git:
 	git submodule update --init
 
 archive/openbsd/%/amd64/index.txt:
-	$(MAKE) -f Mk/Archive.mk $@
+	$(MAKE) -f Mk/Archive.mk OBSD_BASE_URI=$(OBSD_BASE_URI) $@
 
 kscheck: ks.cfg
 	ksvalidator ks.cfg -v RHEL7

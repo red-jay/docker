@@ -6,7 +6,6 @@ self := $(location)
 
 archive/openbsd/%/amd64/index.txt:
 	$(MAKE) -f $(self) $(dir $@)
-	pwd
 	cp Mk/Archive-openbsd.mk $(dir $@)Makefile
-	$(MAKE) -C $(dir $@) index.txt
+	$(MAKE) -C $(dir $@) BASE_URI=$(OBSD_BASE_URI) index.txt
 	rm $(dir $@)Makefile
