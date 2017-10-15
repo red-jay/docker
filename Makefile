@@ -24,18 +24,11 @@ archive/centos%/repodata/repomd.xml:
 kscheck: ks/Makefile
 	$(MAKE) -C ks ksvalidate
 
-Packages:
-	mkdir Packages
+ks/installed-groups.txt: ks/Makefile
+	$(MAKE) -C ks DUMPGROUP=$(CURDIR)/build-scripts/ks-dumpgroups.py installed-groups.txt
 
-repodata/installed-groups.txt: ks.cfg ks/netmgmt.ks ks-dumpgroups.py repodata
-	./ks-dumpgroups.py ks.cfg > repodata/installed-groups.in
-	./ks-dumpgroups.py ks/netmgmt.ks >> repodata/installed-groups.in
-	sort -u repodata/installed-groups.in > repodata/installed-groups.txt
-
-repodata/installed-packages.txt: ks.cfg ks/netmgmt.ks ks-dumppkgs.py repodata
-	./ks-dumppkgs.py ks.cfg > repodata/installed-packages.in
-	./ks-dumppkgs.py ks/netmgmt.ks >> repodata/installed-packages.in
-	sort -u repodata/installed-packages.in > repodata/installed-packages.txt
+ks/installed-packages.txt: ks/Makefile
+	$(MAKE) -C ks DUMPPKGS=$(CURDIR)/build-scripts/ks-dumppkgs.py installed-packages.txt
 
 repodata/.unwound-groups: repodata/installed-groups.txt repodata/repomd.xml unwind-groups.sh
 	env YUM1=$(C7_URI) YUM2=$(EPEL7_URI) ./unwind-groups.sh repodata/installed-groups.txt
