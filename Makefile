@@ -8,12 +8,15 @@ self := $(location)
 	trap 'rm -rf "$$tmpdir"' EXIT; \
 	$(MAKE) -f $(self) --no-print-directory tmpdir=$$tmpdir $@
 else
-C7_URI = http://wcs.bbxn.us/centos/7
+CENTOS_URI = http://wcs.bbxn.us/centos
+C7_URI = $(CENTOS_URI)/7
 EPEL7_URI = http://wcs.bbxn.us/epel/7
 OBSD_BASE_URI = http://wcs.bbxn.us/OpenBSD
 
 well-known-keys/.git:
 	git submodule update --init
+
+well-known-keys/authorized_keys: well-known-keys/.git
 
 archive/openbsd/%/amd64/index.txt:
 	$(MAKE) -f Mk/Archive.mk OBSD_BASE_URI=$(OBSD_BASE_URI) $@
@@ -33,10 +36,15 @@ ks/installed-packages.txt: ks/Makefile
 archive/centos7/group-packages: archive/centos7/repodata/repomd.xml ks/installed-groups.txt
 	env YUM1=$(C7_URI) YUM2=$(EPEL7_URI) ./build-scripts/unwind-groups.sh ks/installed-groups.txt > archive/centos7/group-packages
 
-Packages/.downloaded: repodata/.unwound-groups ks.cfg repodata/installed-packages.txt
-	env YUM1=$(C7_URI) YUM2=$(EPEL7_URI) repotrack -c ./yum.conf -a x86_64 -p ./Packages $$(cat ./repodata/group-*.txt) $$(cat ./repodata/installed-packages.txt) wireshark
-	$(MAKE) -B repodata/repomd.xml
-	touch Packages/.downloaded
+archive/centos7/Packages/.downloaded: ks/installed-packages.txt archive/centos7/group-packages archive/centos7/repodata/repomd.xml
+	env YUM1=$(C7_URI) YUM2=$(EPEL7_URI) repotrack -c ./yum.conf -a x86_64 -p archive/centos7/Packages $$(cat archive/centos7/group-packages) $$(cat ks/installed-packages.txt) wireshark
+	touch archive/centos7/Packages/.downloaded
+
+archive/centos7/discinfo:
+	$(MAKE) -f Mk/Archive.mk CENTOS_URI=$(CENTOS_URI) archive/centos7/discinfo
+
+archive/centos7/images/pxeboot/%:
+	$(MAKE) -f Mk/Archive.mk CENTOS_URI=$(CENTOS_URI) $@
 
 LiveOS:
 	mkdir LiveOS
@@ -67,23 +75,6 @@ EFI/BOOT/grubx64.efi: EFI/BOOT
 
 EFI/BOOT/fonts/unicode.pf2: EFI/BOOT/fonts
 	cd EFI/BOOT/fonts && curl -LO $(C7_URI)/os/x86_64/EFI/BOOT/fonts/unicode.pf2
-
-images:
-	mkdir images
-
-images/pxeboot: images
-	mkdir images/pxeboot
-
-images/pxeboot/vmlinuz: images/pxeboot
-	cd images/pxeboot && curl -LO $(C7_URI)/os/x86_64/images/pxeboot/vmlinuz
-
-images/pxeboot/initrd.img: images/pxeboot
-	cd images/pxeboot && curl -LO $(C7_URI)/os/x86_64/images/pxeboot/initrd.img
-
-images/initrd.img: images
-
-discinfo:
-	curl -L -o discinfo $(C7_URI)/os/x86_64/.discinfo
 
 EFIFILES = EFI/BOOT/fonts/unicode.pf2 EFI/BOOT/grubx64.efi EFI/BOOT/MokManager.efi EFI/BOOT/BOOTX64.EFI EFI/BOOT/grub.cfg
 REPOFILES = Packages/.downloaded repodata/repomd.xml discinfo
