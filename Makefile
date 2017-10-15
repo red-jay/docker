@@ -15,24 +15,17 @@ OBSD_BASE_URI = http://wcs.bbxn.us/OpenBSD
 well-known-keys/.git:
 	git submodule update --init
 
-archive/centos7/comps/.git:
-	git submodule update --init
-
 archive/openbsd/%/amd64/index.txt:
 	$(MAKE) -f Mk/Archive.mk OBSD_BASE_URI=$(OBSD_BASE_URI) $@
 
-kscheck: ks.cfg
-	ksvalidator ks.cfg -v RHEL7
+archive/centos%/repodata/repomd.xml:
+	$(MAKE) -f Mk/Archive.mk $@
+
+kscheck: ks/Makefile
+	$(MAKE) -C ks ksvalidate
 
 Packages:
 	mkdir Packages
-
-repodata:
-	mkdir repodata
-
-# thie _guarantees_ we can resolve the base group data, even if not mirrored.
-repodata/repomd.xml: centos-comps/c7-x86_64-comps.xml
-	createrepo_c -g ./centos-comps/c7-x86_64-comps.xml .
 
 repodata/installed-groups.txt: ks.cfg ks/netmgmt.ks ks-dumpgroups.py repodata
 	./ks-dumpgroups.py ks.cfg > repodata/installed-groups.in
