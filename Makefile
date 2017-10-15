@@ -40,15 +40,27 @@ archive/centos7/discinfo:
 
 # Centos 7 Kickstarts
 kscheck: ks/Makefile
+ifeq ($(MINIMAL),1)
+	$(MAKE) -C ks KSFILES=$(basename $(MAKECMDGOALS)).ks
+else
 	$(MAKE) -C ks ksvalidate
+endif
 
 ks/installed-groups.txt: ks/Makefile
+ifeq ($(MINIMAL),1)
+	$(MAKE) -C ks DUMPGROUP=$(CURDIR)/build-scripts/ks-dumpgroups.py KSFILES=$(basename $(MAKECMDGOALS)).ks installed-groups.txt
+else
 	$(MAKE) -C ks DUMPGROUP=$(CURDIR)/build-scripts/ks-dumpgroups.py installed-groups.txt
+endif
 
 ks/installed-packages.txt: ks/Makefile
+ifeq ($(MINIMAL),1)
+	$(MAKE) -C ks DUMPPKGS=$(CURDIR)/build-scripts/ks-dumppkgs.py KSFILES=$(basename $(MAKECMDGOALS)).ks installed-packages.txt
+else
 	$(MAKE) -C ks DUMPPKGS=$(CURDIR)/build-scripts/ks-dumppkgs.py installed-packages.txt
+endif
 
-REPOFILES= = archive/centos7/Packages/.downloaded archive/centos7/discinfo
+REPOFILES = archive/centos7/Packages/.downloaded archive/centos7/discinfo
 
 # Boot files
 archive/centos7/images/pxeboot/%:
@@ -73,6 +85,48 @@ BOOTFILES += archive/centos7/LiveOS/squashfs.img
 LIVEFILES = syslinux.cfg openbsd-dist/$(OBSD_VER)/amd64/index.txt
 IMAGEFILES = $(REPOFILES) $(LIVEFILES) $(EFIFILES)
 
+distclean:
+	-rm -rf archive/openbsd
+	-rm -rf archive/centos7/discinfo
+	-rm -rf archive/centos7/EFI
+	-rm -rf archive/centos7/group-packages
+	-rm -rf archive/centos7/images
+	-rm -rf archive/centos7/LiveOS
+	-rm -rf archive/centos7/Packages
+	-rm -rf archice/centos7/repodata
+	$(MAKE) -C ks clean
+
+clean:
+	rm -rf archive/centos7/group-packages
+	$(MAKE) -C ks clean
+
+ISOFILES = $(REPOFILES) $(BOOTFILES)
+ifneq ($(MINIMAL),1)
+ISOFILES += archive/openbsd/6.2/amd64/index.txt
+endif
+
+%.iso: $(ISOFILES) syslinux/%.cfg grub/%.cfg ks/%.ks
+	mkdir -p $(tmpdir)/isolinux
+	cp syslinux/$(basename $(notdir $@)).cfg $(tmpdir)/isolinux/syslinux.cfg
+	cp /usr/share/syslinux/chain.c32 $(tmpdir)/isolinux/
+ifneq ("$(wildcard /usr/share/syslinux/ldlinux.c32)","")
+	cp /usr/share/syslinux/ldlinux.c32 $(tmpdir)/isolinux/
+endif
+	cp /usr/share/syslinux/isolinux.bin $(tmpdir)/isolinux/
+	cp archive/centos7/discinfo $(tmpdir)/.discinfo
+	cp ks/$(basename $(notdir $@)).ks $(tmpdir)/ks.cfg
+	cp -r archive/centos7/Packages $(tmpdir)/
+	cp -r archive/centos7/repodata $(tmpdir)/
+	cp -r archive/centos7/EFI $(tmpdir)/
+	cp -r archive/centos7/LiveOS $(tmpdir)/
+	cp -r archive/centos7/images $(tmpdir)/
+	mkdir -p $(tmpdir)/isolinux/images/pxeboot
+	ln $(tmpdir)/images/pxeboot/vmlinuz $(tmpdir)/isolinux/images/pxeboot/vmlinuz
+	ln $(tmpdir)/images/pxeboot/initrd.img $(tmpdir)/isolinux/images/pxeboot/initrd.img
+	find $(tmpdir) -exec chmod a+r {} \;
+	find $(tmpdir) -type d -exec chmod a+rx {} \;
+	mkisofs -quiet -o $@ -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -rational-rock -J -V HVINABOX -hide-joliet-trans-tbl -hide-rr-moved $(tmpdir)
+
 usb.img: $(IMAGEFILES)
 	mkdiskimage -FM4os usb.img 2048 256 63 > usb.offset
 	dd conv=notrunc bs=440 count=1 if=/usr/share/syslinux/mbr.bin of=usb.img
@@ -93,56 +147,5 @@ usb.img: $(IMAGEFILES)
 	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@$$(cat usb.offset) -s LiveOS ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@$$(cat usb.offset) -s images ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i usb.img@@$$(cat usb.offset) -s openbsd-dist ::
-
-cdrom.iso: $(IMAGEFILES)
-	mkdir -p $(tmpdir)/isolinux
-	cp syslinux.cfg $(tmpdir)/isolinux/
-	cp /usr/share/syslinux/chain.c32 $(tmpdir)/isolinux/
-ifneq ("$(wildcard /usr/share/syslinux/ldlinux.c32)","")
-	cp /usr/share/syslinux/ldlinux.c32 $(tmpdir)/isolinux/
-endif
-	cp /usr/share/syslinux/isolinux.bin $(tmpdir)/isolinux/
-	cp discinfo $(tmpdir)/.discinfo
-	cp ks.cfg $(tmpdir)/
-	cp -r ks/ $(tmpdir)/
-	cp -r bootstrap-scripts/ $(tmpdir)/
-	cp ipxe-images.tgz $(tmpdir)/
-	cp -r Packages $(tmpdir)/
-	cp -r repodata $(tmpdir)/
-	cp -r EFI $(tmpdir)/
-	cp -r LiveOS $(tmpdir)/
-	cp -r images $(tmpdir)/
-	cp -r openbsd-dist $(tmpdir)/
-	mkdir -p $(tmpdir)/isolinux/images/pxeboot
-	ln $(tmpdir)/images/pxeboot/vmlinuz $(tmpdir)/isolinux/images/pxeboot/vmlinuz
-	ln $(tmpdir)/images/pxeboot/initrd.img $(tmpdir)/isolinux/images/pxeboot/initrd.img
-	find $(tmpdir) -exec chmod a+r {} \;
-	find $(tmpdir) -type d -exec chmod a+rx {} \;
-	mkisofs -quiet -o cdrom.iso -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -rational-rock -J -V HVINABOX -hide-joliet-trans-tbl -hide-rr-moved $(tmpdir)
-
-netmgmt.iso: $(IMAGEFILES)
-	mkdir -p $(tmpdir)/isolinux
-	cp syslinux-siteprompt.cfg $(tmpdir)/isolinux/syslinux.cfg
-	cp /usr/share/syslinux/chain.c32 $(tmpdir)/isolinux/
-ifneq ("$(wildcard /usr/share/syslinux/ldlinux.c32)","")
-	cp /usr/share/syslinux/ldlinux.c32 $(tmpdir)/isolinux/
-endif
-	cp /usr/share/syslinux/isolinux.bin $(tmpdir)/isolinux/
-	cp discinfo $(tmpdir)/.discinfo
-	cp ks/netmgmt.ks $(tmpdir)/ks.cfg
-	cp -r bootstrap-scripts/ $(tmpdir)/
-	cp ipxe-images.tgz $(tmpdir)/
-	cp -r Packages $(tmpdir)/
-	cp -r repodata $(tmpdir)/
-	cp -r EFI $(tmpdir)/
-	cp -r LiveOS $(tmpdir)/
-	cp -r images $(tmpdir)/
-	cp -r openbsd-dist $(tmpdir)/
-	mkdir -p $(tmpdir)/isolinux/images/pxeboot
-	ln $(tmpdir)/images/pxeboot/vmlinuz $(tmpdir)/isolinux/images/pxeboot/vmlinuz
-	ln $(tmpdir)/images/pxeboot/initrd.img $(tmpdir)/isolinux/images/pxeboot/initrd.img
-	find $(tmpdir) -exec chmod a+r {} \;
-	find $(tmpdir) -type d -exec chmod a+rx {} \;
-	mkisofs -quiet -o netmgmt.iso -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -rational-rock -J -V NETMGMT -hide-joliet-trans-tbl -hide-rr-moved $(tmpdir)
 
 endif
