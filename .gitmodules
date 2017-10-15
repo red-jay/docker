@@ -1,3 +1,6 @@
 [submodule "centos-comps"]
 	path = centos-comps
 	url = https://git.centos.org/git/sig-core/comps.git
+[submodule "well-known-keys"]
+	path = well-known-keys
+	url = ssh://git@github.com/arrjay/well-known-keys
