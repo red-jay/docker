@@ -655,15 +655,17 @@ chmod +x /mnt/sysimage/etc/libvirt/hooks/qemu
 } > "/mnt/sysimage/usr/local/sbin/vmm-ip"
 
 # copy install repo to www share
-mkdir -p /mnt/sysimage/usr/share/nginx/html/bootstrap/centos7/
-cp -R /run/install/repo/Packages /mnt/sysimage/usr/share/nginx/html/bootstrap/centos7
-cp -R /run/install/repo/images /mnt/sysimage/usr/share/nginx/html/bootstrap/centos7
-cp -R /run/install/repo/repodata /mnt/sysimage/usr/share/nginx/html/bootstrap/centos7
-cp -R /run/install/repo/LiveOS /mnt/sysimage/usr/share/nginx/html/bootstrap/centos7
-cp -R /run/install/repo/.discinfo /mnt/sysimage/usr/share/nginx/html/bootstrap/centos7
-cp -R /run/install/repo/ks /mnt/sysimage/usr/share/nginx/html/bootstrap
-cp -R /run/install/repo/bootstrap-scripts /mnt/sysimage/root
-cp -R /run/install/repo/ipxe-images.tgz /mnt/sysimage/usr/share/nginx/html/bootstrap
-cp -R /run/install/repo/openbsd-dist /mnt/sysimage/usr/share/nginx/html/bootstrap/openbsd
+if [ -d /mnt/repo/bootstrap-scripts ] ; then
+  mkdir -p /mnt/sysimage/usr/share/nginx/html/bootstrap/centos7/
+  cp -R /run/install/repo/Packages /mnt/sysimage/usr/share/nginx/html/bootstrap/centos7
+  cp -R /run/install/repo/images /mnt/sysimage/usr/share/nginx/html/bootstrap/centos7
+  cp -R /run/install/repo/repodata /mnt/sysimage/usr/share/nginx/html/bootstrap/centos7
+  cp -R /run/install/repo/LiveOS /mnt/sysimage/usr/share/nginx/html/bootstrap/centos7
+  cp -R /run/install/repo/.discinfo /mnt/sysimage/usr/share/nginx/html/bootstrap/centos7
+  cp -R /run/install/repo/ks /mnt/sysimage/usr/share/nginx/html/bootstrap
+  cp -R /run/install/repo/bootstrap-scripts /mnt/sysimage/root
+  cp -R /run/install/repo/ipxe-images.tgz /mnt/sysimage/usr/share/nginx/html/bootstrap
+  cp -R /run/install/repo/openbsd-dist /mnt/sysimage/usr/share/nginx/html/bootstrap/openbsd
+fi
 
 %end
