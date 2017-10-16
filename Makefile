@@ -141,6 +141,10 @@ ifeq ($(findstring hypervisor,$(MAKECMDGOALS)),hypervisor)
 	cp ipxe-cfgs/ipxe-binaries.tgz $(tmpdir)
 endif
 endif
+ifeq ($(findstring netmgmt,$(MAKECMDGOALS)),netmgmt)
+	cp -r archive/openbsd $(tmpdir)/openbsd-dist
+	cp ipxe-cfgs/ipxe-binaries.tgz $(tmpdir)
+endif
 	mkisofs -quiet -o $@ -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -rational-rock -J -V HVINABOX -hide-joliet-trans-tbl -hide-rr-moved $(tmpdir)
 
 usb.img: $(IMAGEFILES)
