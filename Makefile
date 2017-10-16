@@ -127,6 +127,11 @@ endif
 	ln $(tmpdir)/images/pxeboot/initrd.img $(tmpdir)/isolinux/images/pxeboot/initrd.img
 	find $(tmpdir) -exec chmod a+r {} \;
 	find $(tmpdir) -type d -exec chmod a+rx {} \;
+ifneq ($(MINIMAL),1)
+ifeq ($(findstring hypervisor,$(MAKECMDGOALS)),hypervisor)
+	cp -r bootstrap-scripts $(tmpdir)/
+endif
+endif
 	mkisofs -quiet -o $@ -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -rational-rock -J -V HVINABOX -hide-joliet-trans-tbl -hide-rr-moved $(tmpdir)
 
 usb.img: $(IMAGEFILES)
