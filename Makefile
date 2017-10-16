@@ -19,6 +19,13 @@ well-known-keys/.git:
 
 well-known-keys/authorized_keys: well-known-keys/.git
 
+# iPXE
+ipxe-cfgs/.git:
+	git submodule update --init
+
+ipxe-cfgs/ipxe-binaries.tgz: ipxe-cfgs/.git
+	cd ipxe-cfgs && ./build.sh
+
 # OpenBSD
 archive/openbsd/%/amd64/index.txt:
 	$(MAKE) -f Mk/Archive.mk OBSD_BASE_URI=$(OBSD_BASE_URI) $@
@@ -130,6 +137,7 @@ endif
 ifneq ($(MINIMAL),1)
 ifeq ($(findstring hypervisor,$(MAKECMDGOALS)),hypervisor)
 	cp -r bootstrap-scripts $(tmpdir)/
+	cp -r archive/openbsd $(tmpdir)/openbsd-dist
 endif
 endif
 	mkisofs -quiet -o $@ -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -rational-rock -J -V HVINABOX -hide-joliet-trans-tbl -hide-rr-moved $(tmpdir)

@@ -4,3 +4,6 @@
 [submodule "well-known-keys"]
 	path = well-known-keys
 	url = https://github.com/arrjay/well-known-keys
+[submodule "ipxe-cfgs"]
+	path = ipxe-cfgs
+	url = https://github.com/arrjay/ipxe-cfgs
