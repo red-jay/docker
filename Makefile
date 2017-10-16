@@ -145,7 +145,7 @@ ifeq ($(findstring netmgmt,$(MAKECMDGOALS)),netmgmt)
 	cp -r archive/openbsd $(tmpdir)/openbsd-dist
 	cp ipxe-cfgs/ipxe-binaries.tgz $(tmpdir)
 endif
-	mkisofs -quiet -o $@ -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -rational-rock -J -V HVINABOX -hide-joliet-trans-tbl -hide-rr-moved $(tmpdir)
+	mkisofs -quiet -o $@ -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -rational-rock -J -V KICKSTART -hide-joliet-trans-tbl -hide-rr-moved $(tmpdir)
 
 usb.img: $(IMAGEFILES)
 	mkdiskimage -FM4os usb.img 2048 256 63 > usb.offset
