@@ -664,7 +664,7 @@ if [ -d /mnt/repo/bootstrap-scripts ] ; then
   cp -R /run/install/repo/.discinfo /mnt/sysimage/usr/share/nginx/html/bootstrap/centos7
   cp -R /run/install/repo/ks /mnt/sysimage/usr/share/nginx/html/bootstrap
   cp -R /run/install/repo/bootstrap-scripts /mnt/sysimage/root
-  cp -R /run/install/repo/ipxe-images.tgz /mnt/sysimage/usr/share/nginx/html/bootstrap
+  cp -R /run/install/repo/ipxe-binaries.tgz /mnt/sysimage/usr/share/nginx/html/bootstrap
   cp -R /run/install/repo/openbsd-dist /mnt/sysimage/usr/share/nginx/html/bootstrap/openbsd
 fi
 

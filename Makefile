@@ -138,6 +138,7 @@ ifneq ($(MINIMAL),1)
 ifeq ($(findstring hypervisor,$(MAKECMDGOALS)),hypervisor)
 	cp -r bootstrap-scripts $(tmpdir)/
 	cp -r archive/openbsd $(tmpdir)/openbsd-dist
+	cp ipxe-cfgs/ipxe-binaries.tgz $(tmpdir)
 endif
 endif
 	mkisofs -quiet -o $@ -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -rational-rock -J -V HVINABOX -hide-joliet-trans-tbl -hide-rr-moved $(tmpdir)

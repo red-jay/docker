@@ -667,9 +667,9 @@ chroot /mnt/sysimage /bin/firewall-offline-cmd --zone internal --add-service htt
 # copy ipxe binaries about
 mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe
 if [ ! -z "${ks_method}" ] ; then
-  ipxe_tgz="${ks_method}/../ipxe-images.tgz"
-elif [ -f /mnt/install/repo/ipxe-images.tgz ] ; then
-  ipxe_tgz=file:///mnt/install/repo/ipxe-images.tgz
+  ipxe_tgz="${ks_method}/../ipxe-binaries.tgz"
+elif [ -f /mnt/install/repo/ipxe-binaries.tgz ] ; then
+  ipxe_tgz=file:///mnt/install/repo/ipxe-binaries.tgz
 fi
 
 if [ ! -z "${ipxe_tgz}" ] ; then
