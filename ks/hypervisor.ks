@@ -655,7 +655,7 @@ chmod +x /mnt/sysimage/etc/libvirt/hooks/qemu
 } > "/mnt/sysimage/usr/local/sbin/vmm-ip"
 
 # copy install repo to www share
-if [ -d /mnt/repo/bootstrap-scripts ] ; then
+if [ -d /mnt/install/repo/bootstrap-scripts ] ; then
   mkdir -p /mnt/sysimage/usr/share/nginx/html/bootstrap/centos7/
   cp -R /run/install/repo/Packages /mnt/sysimage/usr/share/nginx/html/bootstrap/centos7
   cp -R /run/install/repo/images /mnt/sysimage/usr/share/nginx/html/bootstrap/centos7

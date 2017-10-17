@@ -137,6 +137,7 @@ endif
 ifneq ($(MINIMAL),1)
 ifeq ($(findstring hypervisor,$(MAKECMDGOALS)),hypervisor)
 	cp -r bootstrap-scripts $(tmpdir)/
+	cp -r ks $(tmpdir)/
 	cp -r archive/openbsd $(tmpdir)/openbsd-dist
 	cp ipxe-cfgs/ipxe-binaries.tgz $(tmpdir)
 endif
