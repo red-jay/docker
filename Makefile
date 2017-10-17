@@ -102,6 +102,8 @@ distclean:
 	-rm -rf archive/centos7/LiveOS
 	-rm -rf archive/centos7/Packages
 	-rm -rf archice/centos7/repodata
+	-rm -rf ipxe-cfgs/ipxe
+	-rm -rf ipxe-cfgs/ipxe-binaries.tgz
 
 clean:
 	-rm -rf *.iso
@@ -111,7 +113,7 @@ clean:
 
 ISOFILES = $(REPOFILES) $(BOOTFILES)
 ifneq ($(MINIMAL),1)
-ISOFILES += archive/openbsd/6.2/amd64/index.txt
+ISOFILES += archive/openbsd/6.2/amd64/index.txt ipxe-cfgs/ipxe-binaries.tgz
 endif
 
 %.iso: $(ISOFILES) syslinux/%.cfg grub/%.cfg ks/%.ks
