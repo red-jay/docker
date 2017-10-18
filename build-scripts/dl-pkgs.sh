@@ -6,11 +6,11 @@ set -o pipefail
 
 cd /var/cache/apt/archives
 
-for pkg in xen-system-amd64 libvirt-bin debootstrap virtinst libguestfs-tools systemd-sysv pinentry-tty rrdtool nut lm-sensors tmux vlan dnsmasq firewalld dhcpcd5 virtinst vncsnapshot tshark apparmor irqbalance ; do
+for pkg in ubuntu-standard casper lupin-casper discover laptop-detect os-prober linux-generic lvm2 thin-provisioning-tools cryptsetup mdadm debootstrap xfsprogs bcache-tools dkms syslinux extlinux isolinux memtest86+ smartmontools lm-sensors ethtool openssh-server augeas-tools smartmontools fio dbus xen-system-amd64 libvirt-bin debootstrap virtinst libguestfs-tools systemd-sysv pinentry-tty rrdtool nut lm-sensors tmux vlan dnsmasq firewalld dhcpcd5 virtinst vncsnapshot tshark apparmor irqbalance ; do
   # the very ugly grep filter removes virtual packages
   # we want word splitting in the below line
   # shellcheck disable=SC2046
-  apt-get -q download $(apt-rdepends "${pkg}" | grep -v "^ " | grep -vE 'debconf-2.0|file-rc|perlapi-*|linux-initramfs-tool|awk|cron-daemon|sysvinit|pinentry')
+  apt-get -q download $(apt-rdepends "${pkg}" | grep -v "^ " | grep -vE 'libc-dev|kldutils|debconf-2.0|file-rc|perlapi-*|linux-initramfs-tool|awk|cron-daemon|sysvinit|pinentry')
 done
 
 # clean duplicate packages - adapted from
