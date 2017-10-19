@@ -70,6 +70,7 @@ sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C mkdir -p '/repository/dists/archive/
 sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C sh -c 'cd /var/cache/apt/archives && rsync -r --delete ./ /repository/dists/archive/main/binary-amd64/'
 sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C sh -c 'cd /repository && apt-ftparchive packages dists/archive/main/binary-amd64 > dists/archive/main/binary-amd64/Packages'
 sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C sh -c 'cd /repository/dists/archive && apt-ftparchive -o APT::FTPArchive::Release::Components="main" release .  > Release'
+sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C sh -c 'cd /repository/dists && ln -sf archive '"${UBU_REL}"
 sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C find /repository -type d -exec chmod a+rx {} \;
 sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C find /repository -type f -exec chmod a+r {} \;
 
@@ -84,3 +85,6 @@ sudo chown -R "$(id -u):$(id -g)" "${REPODIR}"
 
 # destroy chroot
 sudo rm -rf "${IMGDIR}"
+
+# touch flag
+touch "${REPODIR}/.downloaded"

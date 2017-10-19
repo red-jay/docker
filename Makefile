@@ -42,6 +42,10 @@ archive/centos7/Packages/.downloaded: ks/installed-packages.txt archive/centos7/
 	cd $(subst Packages/,,$(dir $@)) && createrepo_c -g ./comps/c7-x86_64-comps.xml .
 	touch archive/centos7/Packages/.downloaded
 
+# Ubuntu Repository
+archive/ubuntu/xenial/.downloaded: build-scripts/make-archive.sh build-scripts/dl-pkgs.sh
+	./build-scripts/make-archive.sh
+
 # Kickstart recognition file
 archive/centos7/discinfo:
 	$(MAKE) -f Mk/Archive.mk CENTOS_URI=$(CENTOS_URI) archive/centos7/discinfo
