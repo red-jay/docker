@@ -70,6 +70,7 @@ sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C mkdir -p '/repository/dists/archive/
 sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C sh -c 'cd /var/cache/apt/archives && rsync -r --delete ./ /repository/dists/archive/main/binary-amd64/'
 sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C sh -c 'cd /repository && apt-ftparchive packages dists/archive/main/binary-amd64 > dists/archive/main/binary-amd64/Packages'
 sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C sh -c 'cd /repository/dists/archive && apt-ftparchive -o APT::FTPArchive::Release::Components="main" release .  > Release'
+sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C sh -c 'cd /repository/dists && rm '"${UBU_REL}"' || true'
 sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C sh -c 'cd /repository/dists && ln -sf archive '"${UBU_REL}"
 sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C find /repository -type d -exec chmod a+rx {} \;
 sudo chroot "${IMGDIR}" env LANG=C LC_ALL=C find /repository -type f -exec chmod a+r {} \;
@@ -82,6 +83,12 @@ sudo umount "${IMGDIR}/repository"
 
 # change owner on true repodir
 sudo chown -R "$(id -u):$(id -g)" "${REPODIR}"
+
+# hack codename into release file
+cp "${REPODIR}/dists/archive/Release" "${REPODIR}/dists/archive/Release.2"
+echo "Codename: ${UBU_REL}" > "${REPODIR}/dists/archive/Release"
+cat "${REPODIR}/dists/archive/Release.2" >> "${REPODIR}/dists/archive/Release"
+rm "${REPODIR}/dists/archive/Release.2"
 
 # destroy chroot
 sudo rm -rf "${IMGDIR}"
