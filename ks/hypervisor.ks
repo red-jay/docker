@@ -150,7 +150,7 @@ if [ -z "${syscfg}" ] ; then
         syscfg=nickel
         inst_fqdn="nickel.produxi.net"
         ;;
-      "To Be Filled By O.E.M."|"#GIADAI##661##")
+      "To Be Filled By O.E.M."|"#GIADAI##661##"|"")
       # yuck, go grab ethernet MACs by PCI topology
       for macfile in /sys/devices/pci*/*/net/*/address /sys/devices/pci*/*/*/net/*/address ; do
         read mac < "${macfile}"
@@ -168,6 +168,11 @@ if [ -z "${syscfg}" ] ; then
           "00:e0:6f:11:ac:20")
             syscfg=radon
             inst_fqdn="radon.bbxn.us"
+            break
+            ;;
+          "e8:03:9a:da:48:45")
+            syscfg=strontium
+            inst_fqdn="strontium.bbxn.us"
             break
             ;;
         esac
@@ -224,7 +229,7 @@ if [[ " radon mercury nickel " =~ " ${syscfg} " ]] ; then
   reboot_flag="reboot"
 fi
 
-if [[ " rhenium qemu-generic " =~ " ${syscfg} " ]] ; then
+if [[ " strontium rhenium qemu-generic " =~ " ${syscfg} " ]] ; then
   reboot_flag="poweroff"
 fi
 
@@ -288,7 +293,7 @@ if [ "${syscfg}" == "rhenium" ] ; then
 
 fi
 
-if [[ " radon mercury nickel qemu-generic " =~ " ${syscfg} " ]] ; then
+if [[ " strontium radon mercury nickel qemu-generic " =~ " ${syscfg} " ]] ; then
   partition_all_drives
 
   {
@@ -357,6 +362,11 @@ if [ -d /sys/firmware/efi/efivars ] ; then
 else
   # install efi grub in i386
   chroot /mnt/sysimage grub2-mkconfig | sed 's@linux16@linuxefi@g' | sed 's@initrd16@initrdefi@g' > /mnt/sysimage/boot/efi/EFI/centos/grub.cfg
+fi
+
+# strontium is...slightly perplexed
+if [[ " strontium " =~ " ${syscfg} " ]] ; then
+  cp /mnt/sysimage/boot/efi/EFI/centos/grubx64.efi /mnt/sysimage/boot/efi/EFI/BOOT/grubx64.efi
 fi
 
 # rewire the repo files :)
@@ -441,6 +451,10 @@ if [[ " radon mercury " =~ " ${syscfg} " ]] ; then
   topcard='enp3s0'
 fi
 
+if [[ " strontium " =~ " ${syscfg} " ]] ; then
+  topcard='enp4s0'
+fi
+
 if [[ " nickel " =~ " ${syscfg} " ]] ; then
   topcard='enp1s0f0'
 fi
@@ -457,6 +471,9 @@ case "${syscfg}" in
     ;;
   nickel)
     fallback_ipv4=172.16.143.153/25
+    ;;
+  strontium)
+    fallback_ipv4=172.16.143.154/25
     ;;
 esac
 
