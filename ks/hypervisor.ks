@@ -150,6 +150,10 @@ if [ -z "${syscfg}" ] ; then
         syscfg=nickel
         inst_fqdn="nickel.produxi.net"
         ;;
+      C07MD1PCDY3H)
+        syscfg=palladium
+        inst_fqdn="palladium.produxi.net"
+        ;;
       "To Be Filled By O.E.M."|"#GIADAI##661##"|"")
       # yuck, go grab ethernet MACs by PCI topology
       for macfile in /sys/devices/pci*/*/net/*/address /sys/devices/pci*/*/*/net/*/address ; do
@@ -225,7 +229,7 @@ efi_sp_dev=''
 boot_dev=''
 sys_dev=''
 
-if [[ " radon mercury nickel " =~ " ${syscfg} " ]] ; then
+if [[ " radon mercury palladium nickel " =~ " ${syscfg} " ]] ; then
   reboot_flag="reboot"
 fi
 
@@ -293,7 +297,7 @@ if [ "${syscfg}" == "rhenium" ] ; then
 
 fi
 
-if [[ " strontium radon mercury nickel qemu-generic " =~ " ${syscfg} " ]] ; then
+if [[ " strontium radon mercury palladium nickel qemu-generic " =~ " ${syscfg} " ]] ; then
   partition_all_drives
 
   {
@@ -455,7 +459,7 @@ if [[ " strontium " =~ " ${syscfg} " ]] ; then
   topcard='enp4s0'
 fi
 
-if [[ " nickel " =~ " ${syscfg} " ]] ; then
+if [[ " palladium nickel " =~ " ${syscfg} " ]] ; then
   topcard='enp1s0f0'
 fi
 
@@ -474,6 +478,9 @@ case "${syscfg}" in
     ;;
   strontium)
     fallback_ipv4=172.16.143.154/25
+    ;;
+  palladium)
+    fallback_ipv4=172.16.143.155/25
     ;;
 esac
 
