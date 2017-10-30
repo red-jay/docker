@@ -677,6 +677,7 @@ chmod +x /mnt/sysimage/etc/libvirt/hooks/qemu
 
   printf 'awk '"'"'$2 == "'"'"'"${mac}"'"'"'" { print $3 }'"'"' < "${lf}"\n'
 } > "/mnt/sysimage/usr/local/sbin/vmm-ip"
+chmod +x /mnt/sysimage/usr/local/sbin/vmm-ip
 
 # copy install repo to www share
 if [ -d /mnt/install/repo/bootstrap-scripts ] ; then
