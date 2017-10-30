@@ -93,6 +93,7 @@ BOOTFILES += archive/centos7/EFI/BOOT/mmx64.efi archive/centos7/EFI/BOOT/mmia32.
 BOOTFILES += archive/centos7/EFI/BOOT/BOOTX64.EFI archive/centos7/EFI/BOOT/BOOTIA32.EFI
 BOOTFILES += archive/centos7/images/pxeboot/vmlinuz archive/centos7/images/pxeboot/initrd.img
 BOOTFILES += archive/centos7/LiveOS/squashfs.img
+BOOTFILES += well-known-keys/authorized_keys
 
 LIVEFILES = syslinux.cfg openbsd-dist/$(OBSD_VER)/amd64/index.txt
 IMAGEFILES = $(REPOFILES) $(LIVEFILES) $(EFIFILES)
@@ -130,6 +131,7 @@ endif
 	cp /usr/share/syslinux/isolinux.bin $(tmpdir)/isolinux/
 	cp archive/centos7/discinfo $(tmpdir)/.discinfo
 	cp ks/$(basename $(notdir $@)).ks $(tmpdir)/ks.cfg
+	cp well-known-keys/authorized_keys $(tmpdir)/
 	cp -r archive/centos7/Packages $(tmpdir)/
 	cp -r archive/centos7/repodata $(tmpdir)/
 	cp -r archive/centos7/EFI $(tmpdir)/
@@ -165,6 +167,7 @@ endif
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s /usr/share/syslinux/libutil.c32 ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/centos7/discinfo ::.discinfo
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s ks/$(basename $(notdir $@)).ks ::ks.cfg
+	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s well-known-keys/authorized_keys ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/centos7/Packages ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/centos7/repodata ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/centos7/EFI ::

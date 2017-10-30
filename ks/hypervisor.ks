@@ -358,6 +358,14 @@ shopt -s nullglob
 # pick up env vars from %pre
 . /tmp/post-vars
 
+# pick up authorized_keys
+if [ -f /run/install/repo/authorized_keys ] ; then
+  mkdir -p /mnt/sysimage/root/.ssh
+  cp /run/install/repo/authorized_keys /mnt/sysimage/root/.ssh
+  chmod 0700 /mnt/sysimage/root/.ssh
+  chmod 0600 /mnt/sysimage/root/.ssh/authorized_keys
+fi
+
 # install grub cross-bootably
 if [ -d /sys/firmware/efi/efivars ] ; then
   # install i386 grub in efi
@@ -680,7 +688,7 @@ chmod +x /mnt/sysimage/etc/libvirt/hooks/qemu
 chmod +x /mnt/sysimage/usr/local/sbin/vmm-ip
 
 # copy install repo to www share
-if [ -d /mnt/install/repo/bootstrap-scripts ] ; then
+if [ -d /run/install/repo/bootstrap-scripts ] ; then
   mkdir -p /mnt/sysimage/usr/share/nginx/html/bootstrap/centos7/
   cp -R /run/install/repo/Packages /mnt/sysimage/usr/share/nginx/html/bootstrap/centos7
   cp -R /run/install/repo/images /mnt/sysimage/usr/share/nginx/html/bootstrap/centos7
@@ -688,6 +696,9 @@ if [ -d /mnt/install/repo/bootstrap-scripts ] ; then
   cp -R /run/install/repo/LiveOS /mnt/sysimage/usr/share/nginx/html/bootstrap/centos7
   cp -R /run/install/repo/.discinfo /mnt/sysimage/usr/share/nginx/html/bootstrap/centos7
   cp -R /run/install/repo/ks /mnt/sysimage/usr/share/nginx/html/bootstrap
+  if [ -f /run/install/repo/authorized_keys ] ; then
+    cp /run/install/repo/authorized_keys /mnt/sysimage/usr/share/nginx/html/bootstrap
+  fi
   cp -R /run/install/repo/bootstrap-scripts /mnt/sysimage/root
   cp -R /run/install/repo/ipxe-binaries.tgz /mnt/sysimage/usr/share/nginx/html/bootstrap
   cp -R /run/install/repo/openbsd-dist /mnt/sysimage/usr/share/nginx/html/bootstrap/openbsd
