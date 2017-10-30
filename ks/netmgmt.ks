@@ -850,8 +850,14 @@ printf 'dhcp\n-inet6\ngroup vmm\n' > /mnt/sysimage/usr/share/nginx/html/pub/Open
 printf 'inet 172.16.16.129 255.255.255.192\n-inet6\ngroup virthost\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio2.sv1
 printf 'inet 172.16.32.129 255.255.255.192\n-inet6\ngroup virthost\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio2.sv2
 # vio3 - transit
-printf 'inet 172.16.16.1 255.255.255.192\n-inet6\ngroup transit\n!route add -net 172.16.52.0/26 172.16.16.11\nup\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio3.sv1
+printf 'inet 172.16.16.1 255.255.255.192\n-inet6\ngroup transit\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio3.sv1
 printf 'inet 172.16.32.1 255.255.255.192\n-inet6\ngroup transit\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio3.sv2
+# bgpd AS
+{
+  printf 'AS 4233244401\nrouter-id 172.16.16.1\nnexthop qualify via bgp\nlisten on 172.16.16.1\nnetwork inet connected\n'
+  printf 'deny from any prefix 10.0.0.0/8 prefixlen >= 8\ndeny from any prefix 192.168.0.0/16 prefixlen >=16\n'
+  printf 'neighbor 172.16.16.11 {\n descr "tgw.sv1"\n remote-as 4233244401\n ttl-security yes\n announce IPv4 unicast\n}\n'
+} > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/bgpd.conf.sv1
 
 {
   printf '#!/bin/sh\n'
@@ -862,7 +868,12 @@ printf 'inet 172.16.32.1 255.255.255.192\n-inet6\ngroup transit\n' > /mnt/sysima
   printf ' mv $f $basefile\n'
   printf 'done\n'
 
+  printf 'mv -f /etc/bgpd.conf.$site /etc/bgpd.conf\n'
+
   printf 'rm /etc/hostname.*.*\n'
+  printf 'rm /etc/bgpd.conf.*\n'
+
+  printf 'rcctl enable bgpd\n'
 
   printf 'cp /etc/rc.d/dhcrelay /etc/rc.d/dhcrelay_virthosts\n'
   printf 'rcctl enable dhcrelay_virthosts\nrcctl set dhcrelay_virthosts flags "-i vio2 172.16.16.72 172.16.32.72"\n'
@@ -894,6 +905,7 @@ chmod a+rx /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/rc.firstt
   printf 'antispoof quick for { virthosts netmgmt vmm }\n\n'
 
   printf 'pass in on { virthosts transit } proto udp from port 68 to port 67\n'
+  printf 'pass on { transit } proto tcp from (transit:network) to (transit:network) port 179\n'
   printf 'pass in proto udp from port 67 to {172.16.16.72, 172.16.32.72} port 67\n'
   printf 'pass in quick on transit proto udp from (transit:network) to %s port 69 divert-to 127.0.0.1 port 6969\n' "{172.16.16.72/29, 172.16.32.72/29}"
   printf 'pass out quick on netmgmt proto udp to %s port 69 group _tftp_proxy divert-reply\n' "{172.16.16.72/29, 172.16.32.72/29}"
@@ -909,7 +921,7 @@ tar cpzf /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/${ob_ver}/amd64/site${ob
 # tgw site
 mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc
 # vio0 - transit
-printf 'inet 172.16.16.11 255.255.255.192\n-inet6\ngroup transit\n!route add -net 172.16.16.64/26 172.16.16.1\nup\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio0.sv1
+printf 'inet 172.16.16.11 255.255.255.192\n-inet6\ngroup transit\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio0.sv1
 printf 'inet 172.16.32.11 255.255.255.192\n-inet6\ngroup transit\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio0.sv2
 # vio1 - vmm
 printf 'dhcp\n-inet6\ngroup vmm\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio1
@@ -918,6 +930,12 @@ printf 'inet 172.16.52.1 255.255.255.224\n-inet6\ngroup pln\n' > /mnt/sysimage/u
 printf 'dhcp\n-inet6\ngroup pln\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio2.sv2
 # vio3 - wext
 printf 'inet 172.16.52.32 255.255.255.224\n-inet6\ngroup wext\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio3.sv1
+# bgpd AS
+{
+  printf 'AS 4233244401\nrouter-id 172.16.16.11\nnexthop qualify via bgp\nlisten on 172.16.16.11\nnetwork inet connected\n'
+  printf 'deny from any prefix 10.0.0.0/8 prefixlen >= 8\ndeny from any prefix 192.168.0.0/16 prefixlen >=16\n'
+  printf 'neighbor 172.16.16.1 {\n descr "ifw.sv1"\n remote-as 4233244401\n ttl-security yes\n announce IPv4 unicast\n}\n'
+} > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/bgpd.conf.sv1
 
 {
   printf '#!/bin/sh\n'
@@ -928,7 +946,12 @@ printf 'inet 172.16.52.32 255.255.255.224\n-inet6\ngroup wext\n' > /mnt/sysimage
   printf ' mv $f $basefile\n'
   printf 'done\n'
 
+  printf 'mv -f /etc/bgpd.conf.$site /etc/bgpd.conf\n'
+
   printf 'rm /etc/hostname.*.*\n'
+  printf 'rm /etc/bgpd.conf.*\n'
+
+  printf 'rcctl enable bgpd\n'
 
   printf 'if [ $site == "sv1" ] ; then\n'
   printf 'cp /etc/rc.d/dhcrelay /etc/rc.d/dhcrelay_pln\n'
@@ -958,6 +981,7 @@ chmod a+rx /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/rc.firstt
 
   printf 'pass in on { pln wext } proto udp from port 68 to port 67\n'
   printf 'pass out proto udp from port 67 to {172.16.16.72, 172.16.32.72} port 67\n'
+  printf 'pass on { transit } proto tcp from (transit:network) to (transit:network) port 179\n'
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/pf.conf
 
 tar cpzf /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/${ob_ver}/amd64/site${ob_ver_nd}-tgw.tgz -C /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw .
