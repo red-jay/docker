@@ -280,6 +280,19 @@ shopt -s nullglob
 # pick up env vars from %pre
 . /tmp/post-vars
 
+# pick up authorized_keys
+if [ ! -z "${ks_method}" ] ; then
+  mkdir -p /mnt/sysimage/root/.ssh
+  curl -L -o /mnt/sysimage/root/.ssh/authorized_keys "${ks_method}/../authorized_keys"
+  chmod 0700 /mnt/sysimage/root/.ssh
+  chmod 0600 /mnt/sysimage/root/.ssh/authorized_keys
+elif [ -f /run/install/repo/authorized_keys ] ; then
+  mkdir -p /mnt/sysimage/root/.ssh
+  cp /run/install/repo/authorized_keys /mnt/sysimage/root/.ssh
+  chmod 0700 /mnt/sysimage/root/.ssh
+  chmod 0600 /mnt/sysimage/root/.ssh/authorized_keys
+fi
+
 # install grub cross-bootably
 if [ -d /sys/firmware/efi/efivars ] ; then
   # install i386 grub in efi
