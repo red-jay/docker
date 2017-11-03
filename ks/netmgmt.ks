@@ -916,6 +916,7 @@ chmod a+rx /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/rc.firstt
   printf 'pass out quick on netmgmt proto udp from port { 67, 68 } to %s port 67\n' "{172.16.16.72, 172.16.32.72}"
   printf 'pass out on vmm proto udp from port 68 to port 67\n'
   printf 'antispoof quick for { virthosts netmgmt vmm }\n\n'
+  printf 'pass in on vmm proto tcp from (vmm:network) to (vmm) port 22\n'
 
   printf 'pass in on { virthosts transit } proto udp from port 68 to port 67\n'
   printf 'pass on { transit } proto tcp from (transit:network) to (transit:network) port 179\n'
@@ -991,6 +992,7 @@ chmod a+rx /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/rc.firstt
 
   printf 'pass out on vmm proto udp from port 68 to port 67\n\n'
   printf 'antispoof quick for { pln wext vmm }\n\n'
+  printf 'pass in on vmm proto tcp from (vmm:network) to (vmm) port 22\n'
 
   printf 'pass in on { pln wext } proto udp from port 68 to port 67\n'
   printf 'pass out proto udp from port 67 to {172.16.16.72, 172.16.32.72} port 67\n'
