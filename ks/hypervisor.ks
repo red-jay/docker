@@ -154,6 +154,10 @@ if [ -z "${syscfg}" ] ; then
         syscfg=palladium
         inst_fqdn="palladium.produxi.net"
         ;;
+      C07JC8QCDWYL)
+        syscfg=tungsten
+        inst_fqdn="tungsten.produxi.net"
+        ;;
       "To Be Filled By O.E.M."|"#GIADAI##661##"|"")
       # yuck, go grab ethernet MACs by PCI topology
       for macfile in /sys/devices/pci*/*/net/*/address /sys/devices/pci*/*/*/net/*/address ; do
@@ -229,7 +233,7 @@ efi_sp_dev=''
 boot_dev=''
 sys_dev=''
 
-if [[ " radon mercury palladium nickel " =~ " ${syscfg} " ]] ; then
+if [[ " radon mercury tungsten palladium nickel " =~ " ${syscfg} " ]] ; then
   reboot_flag="reboot"
 fi
 
@@ -297,7 +301,7 @@ if [ "${syscfg}" == "rhenium" ] ; then
 
 fi
 
-if [[ " strontium radon mercury palladium nickel qemu-generic " =~ " ${syscfg} " ]] ; then
+if [[ " strontium radon mercury tungsten palladium nickel qemu-generic " =~ " ${syscfg} " ]] ; then
   partition_all_drives
 
   {
@@ -364,6 +368,7 @@ if [ -f /run/install/repo/authorized_keys ] ; then
   cp /run/install/repo/authorized_keys /mnt/sysimage/root/.ssh
   chmod 0700 /mnt/sysimage/root/.ssh
   chmod 0600 /mnt/sysimage/root/.ssh/authorized_keys
+  printf 'PermitRootLogin without-password\n' >> /mnt/sysimage/etc/ssh/sshd_config
 fi
 
 # install grub cross-bootably
@@ -467,7 +472,7 @@ if [[ " strontium " =~ " ${syscfg} " ]] ; then
   topcard='enp4s0'
 fi
 
-if [[ " palladium nickel " =~ " ${syscfg} " ]] ; then
+if [[ " tungsten palladium nickel " =~ " ${syscfg} " ]] ; then
   topcard='enp1s0f0'
 fi
 
@@ -489,6 +494,9 @@ case "${syscfg}" in
     ;;
   palladium)
     fallback_ipv4=172.16.143.155/25
+    ;;
+  tungsten)
+    fallback_ipv4=172.16.143.156/25
     ;;
 esac
 
@@ -606,6 +614,7 @@ done
 # hand some usb devices over for direct passthrough by unbinding them
 {
   printf 'SUBSYSTEM=="usb",ATTRS{idVendor}=="0b05",ATTRS{idProduct}=="1784",RUN="/bin/sh -c echo -n $kernel > /sys/bus/drivers/$driver/unbind"\n'
+  printf 'SUBSYSTEM=="usb",ATTRS{idVendor}=="2478",ATTRS{idProduct}=="2008",RUN="/bin/sh -c echo -n $kernel > /sys/bus/drivers/$driver/unbind"\n'
 } > /mnt/sysimage/etc/udev/rules.d/81-autopass.rules
 
 # configure chronyd
@@ -615,13 +624,17 @@ done
 } > /mnt/sysimage/etc/chrony.conf
 
 # serial ports on tmux via...systemd and uucp
+AUTOCONS_SPEED=115200
+if [[ " tungsten " =~ " ${syscfg} " ]] ; then
+  AUTOCONS_SPEED=9600
+fi
 {
   printf '[Unit]\nDescription=tmux console\n[Service]\nType=oneshot\nExecStart=/bin/tmux -L console new-session -d -s console bash\nRemainAfterExit=yes\n'
 } > "/mnt/sysimage/etc/systemd/system/tmux-console.service"
 ln -s /etc/systemd/system/tmux-console.service /mnt/sysimage/etc/systemd/system/multi-user.target.wants/tmux-console.service
 {
   printf '[Unit]\nDescription=tmux serial on %%I\nRequires=tmux-console.service\nAfter=tmux-console.service\n'
-  printf '[Service]\nType=oneshot\nExecStart=/bin/tmux -L console new-window -d -n %%i '"'"'cu -s 115200 -l /dev/%%i'"'"'\n'
+  printf '[Service]\nType=oneshot\nExecStart=/bin/tmux -L console new-window -d -n %%i '"'"'cu -s %s -l /dev/%%i'"'"'\n' "${AUTOCONS_SPEED}"
   printf 'RemainAfterExit=yes\n'
 } > "/mnt/sysimage/etc/systemd/system/tmux-serial@.service"
 {
