@@ -26,6 +26,17 @@ ipxe-cfgs/.git:
 ipxe-cfgs/ipxe-binaries.tgz: ipxe-cfgs/.git
 	cd ipxe-cfgs && ./build.sh
 
+# intCA
+intca-pub/.git:
+	git submodule update --init
+
+intca-pub/index.txt: intca-pub/.git
+	cd intca-pub && ls -ln > index.txt
+
+# certs
+certs/index.txt: certs
+	cd certs && ls -ln > index.txt
+
 # OpenBSD
 archive/openbsd/%/amd64/index.txt:
 	$(MAKE) -f Mk/Archive.mk OBSD_BASE_URI=$(OBSD_BASE_URI) $@
@@ -49,6 +60,9 @@ archive/ubuntu/xenial/.downloaded: build-scripts/make-archive.sh build-scripts/d
 # Kickstart recognition file
 archive/centos7/discinfo:
 	$(MAKE) -f Mk/Archive.mk CENTOS_URI=$(CENTOS_URI) archive/centos7/discinfo
+
+# keep archive files
+.SECONDARY: archive/centos7/EFI/BOOT/fonts/unicode.pf2 archive/centos7/EFI/BOOT/grubia32.efi archive/centos7/EFI/BOOT/mmia32.efi archive/centos7/EFI/BOOT/BOOTX64.EFI archive/centos7/images/pxeboot/initrd.img archive/centos7/EFI/BOOT/mmx64.efi archive/centos7/EFI/BOOT/grubx64.efi archive/centos7/images/pxeboot/vmlinuz archive/centos7/EFI/BOOT/BOOTIA32.EFI archive/openbsd/6.2/amd64/index.txt
 
 # Centos 7 Kickstarts
 kscheck: ks/Makefile
@@ -93,7 +107,7 @@ BOOTFILES += archive/centos7/EFI/BOOT/mmx64.efi archive/centos7/EFI/BOOT/mmia32.
 BOOTFILES += archive/centos7/EFI/BOOT/BOOTX64.EFI archive/centos7/EFI/BOOT/BOOTIA32.EFI
 BOOTFILES += archive/centos7/images/pxeboot/vmlinuz archive/centos7/images/pxeboot/initrd.img
 BOOTFILES += archive/centos7/LiveOS/squashfs.img
-BOOTFILES += well-known-keys/authorized_keys
+BOOTFILES += well-known-keys/authorized_keys intca-pub/index.txt certs/index.txt
 
 LIVEFILES = syslinux.cfg openbsd-dist/$(OBSD_VER)/amd64/index.txt
 IMAGEFILES = $(REPOFILES) $(LIVEFILES) $(EFIFILES)
@@ -132,6 +146,8 @@ endif
 	cp archive/centos7/discinfo $(tmpdir)/.discinfo
 	cp ks/$(basename $(notdir $@)).ks $(tmpdir)/ks.cfg
 	cp well-known-keys/authorized_keys $(tmpdir)/
+	cp -r intca-pub $(tmpdir)/
+	cp -r certs $(tmpdir)/
 	cp -r archive/centos7/Packages $(tmpdir)/
 	cp -r archive/centos7/repodata $(tmpdir)/
 	cp -r archive/centos7/EFI $(tmpdir)/
@@ -168,6 +184,8 @@ endif
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/centos7/discinfo ::.discinfo
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s ks/$(basename $(notdir $@)).ks ::ks.cfg
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s well-known-keys/authorized_keys ::
+	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s intca-pub ::
+	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s certs ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/centos7/Packages ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/centos7/repodata ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/centos7/EFI ::

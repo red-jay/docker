@@ -864,8 +864,18 @@ popd
 find /mnt/sysimage/var/lib/tftpboot -type d -exec chmod a+x {} \;
 find /mnt/sysimage/var/lib/tftpboot -exec chmod a+r {} \;
 
+# get vpn ca cert
+if [ ! -z "${ks_method}" ] ; then
+  curl -L -o /mnt/sysimage/usr/share/nginx/html/pub/BBXN_INT_SV1.pem "${ks_method}../intca-pub/BBXN_INT_SV1.pem"
+  cert_idx="${ks_method}../certs/index.txt"
+elif [ -f /mnt/install/repo/intca-pub/BBXN_INT_SV1.pem ] ; then
+  cp /mnt/install/repo/intca-pub/BBXN_INT_SV1.pem /mnt/sysimage/usr/share/nginx/html/pub/BBXN_INT_SV1.pem
+  cert_idx="file:///mnt/install/repo/certs/index.txt"
+fi
+
 # create openbsd site tree
 mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc
+
 # vio0 - netmgmt
 printf 'inet 172.16.16.65 255.255.255.192\n-inet6\ngroup netmgmt\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio0.sv1
 printf 'inet 172.16.32.65 255.255.255.192\n-inet6\ngroup netmgmt\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio0.sv2
@@ -948,7 +958,16 @@ install -m 0600 /mnt/sysimage/root/.ssh/authorized_keys /mnt/sysimage/usr/share/
 tar cpzf /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/${ob_ver}/amd64/site${ob_ver_nd}-ifw.tgz -C /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw .
 
 # tgw site
-mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc
+mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/iked/{ca,certs,private}
+cp /mnt/sysimage/usr/share/nginx/html/pub/BBXN_INT_SV1.pem /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/iked/ca/ca.crt
+pushd /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/iked/certs
+  host_certs=$(curl "${cert_idx}" | awk '{print $9}')
+  hc_dir=${cert_idx%/index.txt}
+  for x in ${host_certs} ; do
+    if [ "${x}" == "index.txt" ] ; then continue ; fi
+    curl -LO "${hc_dir}/${x}"
+  done
+popd
 # vio0 - transit
 printf 'inet 172.16.16.11 255.255.255.192\n-inet6\ngroup transit\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio0.sv1
 printf 'inet 172.16.32.11 255.255.255.192\n-inet6\ngroup transit\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio0.sv2

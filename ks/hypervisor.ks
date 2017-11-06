@@ -716,9 +716,13 @@ if [ -d /run/install/repo/bootstrap-scripts ] ; then
   if [ -f /run/install/repo/authorized_keys ] ; then
     cp /run/install/repo/authorized_keys /mnt/sysimage/usr/share/nginx/html/bootstrap
   fi
+  cp -R /run/install/repo/intca-pub /mnt/sysimage/usr/share/nginx/html/bootstrap
+  cp -R /run/install/repo/certs /mnt/sysimage/usr/share/nginx/html/bootstrap
   cp -R /run/install/repo/bootstrap-scripts /mnt/sysimage/root
   cp -R /run/install/repo/ipxe-binaries.tgz /mnt/sysimage/usr/share/nginx/html/bootstrap
   cp -R /run/install/repo/openbsd-dist /mnt/sysimage/usr/share/nginx/html/bootstrap/openbsd
+  find /run/install/repo/usr/share/nginx/html -type d -exec chmod a+rx {} \;
+  find /run/install/repo/usr/share/nginx/html -type f -exec chmod a+r {} \;
 fi
 
 %end
