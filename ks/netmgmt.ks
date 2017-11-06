@@ -286,11 +286,13 @@ if [ ! -z "${ks_method}" ] ; then
   curl -L -o /mnt/sysimage/root/.ssh/authorized_keys "${ks_method}/../authorized_keys"
   chmod 0700 /mnt/sysimage/root/.ssh
   chmod 0600 /mnt/sysimage/root/.ssh/authorized_keys
+  printf 'PermitRootLogin without-password\n' >> /mnt/sysimage/etc/ssh/sshd_config
 elif [ -f /run/install/repo/authorized_keys ] ; then
   mkdir -p /mnt/sysimage/root/.ssh
   cp /run/install/repo/authorized_keys /mnt/sysimage/root/.ssh
   chmod 0700 /mnt/sysimage/root/.ssh
   chmod 0600 /mnt/sysimage/root/.ssh/authorized_keys
+  printf 'PermitRootLogin without-password\n' >> /mnt/sysimage/etc/ssh/sshd_config
 fi
 
 # install grub cross-bootably
@@ -575,12 +577,12 @@ dhcp_subnet() {
 
   # pwln
   for subnet in ${dhcp_pwln} ; do
-    dhcp_subnet "${subnet}" "powerline" "${nextserver}"
+    dhcp_subnet "${subnet}" "powerline" "${nextserver}" 2
   done
 
   # wext
   for subnet in ${dhcp_wext} ; do
-    dhcp_subnet "${subnet}" "wifiext" "${nextserver}"
+    dhcp_subnet "${subnet}" "wifiext" "${nextserver}" 2
   done
 
   printf 'if    exists ipxe.http\n'
@@ -628,13 +630,23 @@ dhcp_subnet() {
   printf 'subclass "transit" 1:52:54:00:3E:EE:84; subclass "transit" 52:54:00:3E:EE:84;\n'
   printf 'host tgw.sv2 { hardware ethernet 54:54:00:3E:EE:84; option host-name "tgw.sv2.bbxn.us"; }\n'
 
-  printf 'subclass "powerline" 1:52:54:00:22:CA:BE; subclass "powerline" 52:54:00:22:CA:BE;\n'
+  printf 'host tgw.sv2.pl { hardware ethernet 52:54:00:22:ca:be; fixed-address 172.16.52.8;}\n'
 
   # ufw
   # dfw
 
   # switches!
   printf 'subclass "netmgmt" 1:88:75:56:6a:d6:c1; subclass "netmgmt" 88:75:56:6a:d6:c1;\n'
+  printf 'host lr-kallax-sw { hardware ethernet 88:75:56:6a:d6:c1; option host-name "lr-kallax-sw"; }\n'
+
+  printf 'subclass "netmgmt" 1:a0:21:b7:af:2a:bd; subclass "netmgmt" a0:21:b7:af:2a:bd;\n'
+  printf 'host kitchen-sw { hardware ethernet a0:21:b7:af:2a:bd; option host-name "kitchen-sw"; }\n'
+
+  printf 'subclass "netmgmt" 1:30:f7:0d:8c:d0:4b; subclass "netmgmt" 30:f7:0d:8c:d0:4b;\n'
+  printf 'host kitchen-ap { hardware ethernet 30:f7:0d:8c:d0:4b; option host-name "kitchen-ap"; }\n'
+
+  printf 'subclass "netmgmt" 1:9c:3d:cf:f9:51:1e; subclass "netmgmt" 9c:3d:cf:f9:51:1e;\n'
+  printf 'host br2-sw { hardware ethernet 9c:3d:cf:f9:51:1e; option host-name "br2-sw"; }\n'
 } > /mnt/sysimage/etc/dhcp/dhcpd.conf
 
 # dhcp managing script
@@ -1001,6 +1013,11 @@ chmod a+rx /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/rc.firstt
   printf 'pass out proto udp from port 67 to {172.16.16.72, 172.16.32.72} port 67\n'
   printf 'pass on { transit } proto tcp from (transit:network) to (transit:network) port 179\n'
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/pf.conf
+
+{
+  printf 'net.inet.ip.forwarding=1\n'
+  printf 'net.inet.ipcomp.enable=1\n'
+} > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/sysctl.conf
 
 install -m 0700 -d /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/root/.ssh
 install -m 0600 /mnt/sysimage/root/.ssh/authorized_keys /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/root/.ssh/authorized_keys
