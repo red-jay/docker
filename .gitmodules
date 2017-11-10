@@ -9,4 +9,4 @@
 	url = https://github.com/arrjay/ipxe-cfgs
 [submodule "intca-pub"]
 	path = intca-pub
-	url = git@github.com:arrjay/intca-pub
+	url = https://github.com/arrjay/intca-pub
