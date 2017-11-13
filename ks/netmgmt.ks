@@ -781,9 +781,9 @@ case $obsd_toplev in
   http*)
     subs=$(curl "${obsd_toplev}/" 2>/dev/null|awk '$0 ~ "<a href=" { if ($1 == "<a") { split($2,j,"[<>]");print j[2] } }')
     for d in ${subs} ; do
-      curl --head --fail "${obsd_toplev}/${d}/amd64/bsd" 2>/dev/null 1>&2; echo $?
+      curl --head --fail "${obsd_toplev}/${d}/amd64/bsd" 2>/dev/null 1>&2
       rc=$?
-      if [ $? -eq 0 ] ; then
+      if [ ${rc} -eq 0 ] ; then
         obsd_uri="${obsd_toplev}/${d}/amd64"
         ob_ver="${d///}"
       fi
@@ -794,11 +794,31 @@ esac
 obsd_idx="${obsd_uri}/index.txt"
 ob_ver_nd=${ob_ver//.}
 
+printf 'location /pub { autoindex on; }\n' > /mnt/sysimage/etc/nginx/default.d/pub.conf
+
 mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/${ob_ver}/amd64
 pushd /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/${ob_ver}/amd64
   curl -LO "${obsd_idx}"
   for f in $(awk '($9 && $9 != "index.txt") {print $9}' < index.txt) ; do
     curl -LO "${obsd_uri}/${f}"
+  done
+popd
+
+case $obsd_toplev in
+  /*)
+    obp_uri="file://${obsd_toplev}/syspatch/${ob_ver}/amd64"
+    ;;
+  *)
+    obp_uri="${obsd_toplev}/syspatch/${ob_ver}/amd64"
+    ;;
+esac
+obs_sha="${obp_uri}/SHA256.sig"
+
+mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/syspatch/${ob_ver}/amd64
+pushd /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/syspatch/${ob_ver}/amd64
+  curl -LO "${obs_sha}"
+  for f in $(awk '$1 == "SHA256" {print substr($2, 2, (length($2) - 2))}' < SHA256.sig) ; do
+    curl -LO "${obp_uri}/${f}"
   done
 popd
 
@@ -917,6 +937,8 @@ printf 'inet 172.16.32.1 255.255.255.192\n-inet6\ngroup transit\n' > /mnt/sysima
   printf 'rcctl enable dhcrelay_transit\nrcctl set dhcrelay_transit flags "-i vio3 172.16.16.72 172.16.32.72"\n'
 
   printf 'rcctl enable tftpproxy\nrcctl set tftpproxy flags -v\n'
+
+  printf 'syspatch\n'
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/install.site
 chmod a+rx /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/install.site
 
@@ -946,7 +968,7 @@ chmod a+rx /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/rc.firstt
   printf 'pass in quick on transit proto udp from (transit:network) to %s port 69 divert-to 127.0.0.1 port 6969\n' "{172.16.16.72/29, 172.16.32.72/29}"
   printf 'pass out quick on netmgmt proto udp to %s port 69 group _tftp_proxy divert-reply\n' "{172.16.16.72/29, 172.16.32.72/29}"
 
-  printf 'pass proto tcp from (transit:network) to %s port 80\n' "{172.16.16.72, 172.16.32.72}"
+  printf 'pass proto tcp from { (transit:network), (netmgmt) } to %s port 80\n' "{172.16.16.72, 172.16.32.72}"
 
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/pf.conf
 
@@ -958,16 +980,8 @@ install -m 0600 /mnt/sysimage/root/.ssh/authorized_keys /mnt/sysimage/usr/share/
 tar cpzf /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/${ob_ver}/amd64/site${ob_ver_nd}-ifw.tgz -C /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw .
 
 # tgw site
-mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/iked/{ca,certs,private}
-cp /mnt/sysimage/usr/share/nginx/html/pub/BBXN_INT_SV1.pem /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/iked/ca/ca.crt
-pushd /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/iked/certs
-  host_certs=$(curl "${cert_idx}" | awk '{print $9}')
-  hc_dir=${cert_idx%/index.txt}
-  for x in ${host_certs} ; do
-    if [ "${x}" == "index.txt" ] ; then continue ; fi
-    curl -LO "${hc_dir}/${x}"
-  done
-popd
+mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc
+
 # vio0 - transit
 printf 'inet 172.16.16.11 255.255.255.192\n-inet6\ngroup transit\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio0.sv1
 printf 'inet 172.16.32.11 255.255.255.192\n-inet6\ngroup transit\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio0.sv2
@@ -1009,6 +1023,8 @@ printf 'inet 172.16.52.32 255.255.255.224\n-inet6\ngroup wext\n' > /mnt/sysimage
   printf 'rcctl enable dhcrelay_wext\nrcctl set dhcrelay_wext flags "-i vio3 172.16.16.72 172.16.32.72"\n'
   printf 'fi\n'
 
+  printf 'syspatch\n'
+
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/install.site
 chmod a+rx /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/install.site
 
@@ -1030,12 +1046,12 @@ chmod a+rx /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/rc.firstt
 
   printf 'pass in on { pln wext } proto udp from port 68 to port 67\n'
   printf 'pass out proto udp from port 67 to {172.16.16.72, 172.16.32.72} port 67\n'
+  printf 'pass out proto tcp from (transit) to {172.16.16.72, 172.16.32.72} port 80\n'
   printf 'pass on { transit } proto tcp from (transit:network) to (transit:network) port 179\n'
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/pf.conf
 
 {
   printf 'net.inet.ip.forwarding=1\n'
-  printf 'net.inet.ipcomp.enable=1\n'
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/sysctl.conf
 
 install -m 0700 -d /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/root/.ssh
