@@ -184,8 +184,12 @@ endif
 	syslinux -t $$(cat usb.offset) $(basename $(notdir $@)).img
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s syslinux/$(basename $(notdir $@)).cfg ::syslinux.cfg 
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s /usr/share/syslinux/chain.c32 ::
+ifneq ("$(wildcard /usr/share/syslinux/libcom32.c32)","")
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s /usr/share/syslinux/libcom32.c32 ::
+endif
+ifneq ("$(wildcard /usr/share/syslinux/libutil.c32)","")
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s /usr/share/syslinux/libutil.c32 ::
+endif
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/centos7/discinfo ::.discinfo
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s ks/$(basename $(notdir $@)).ks ::ks.cfg
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s well-known-keys/authorized_keys ::
