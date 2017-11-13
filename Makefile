@@ -136,6 +136,7 @@ clean:
 ISOFILES = $(REPOFILES) $(BOOTFILES)
 ifneq ($(MINIMAL),1)
 ISOFILES += archive/openbsd/6.2/amd64/index.txt archive/openbsd-syspatch/6.2/amd64/.all ipxe-cfgs/ipxe-binaries.tgz
+ISOFILES += archive/openbsd-packages/6.2/amd64/index.txt
 endif
 
 %.iso: $(ISOFILES) syslinux/%.cfg grub/%.cfg ks/%.ks
@@ -167,12 +168,14 @@ ifeq ($(findstring hypervisor,$(MAKECMDGOALS)),hypervisor)
 	cp -r ks $(tmpdir)/
 	cp -r archive/openbsd $(tmpdir)/openbsd-dist
 	cp -r archive/openbsd-syspatch $(tmpdir)/openbsd-dist/syspatch
+	cp -r archive/openbsd-packages/6.2 $(tmpdir)/openbsd-dist/6.2/packages
 	cp ipxe-cfgs/ipxe-binaries.tgz $(tmpdir)
 endif
 endif
 ifeq ($(findstring netmgmt,$(MAKECMDGOALS)),netmgmt)
 	cp -r archive/openbsd $(tmpdir)/openbsd-dist
 	cp -r archive/openbsd-syspatch $(tmpdir)/openbsd-dist/syspatch
+	cp -r archive/openbsd-packages/6.2 $(tmpdir)/openbsd-dist/6.2/packages
 	cp ipxe-cfgs/ipxe-binaries.tgz $(tmpdir)
 endif
 	mkisofs -quiet -o $@ -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -rational-rock -J -V KICKSTART -hide-joliet-trans-tbl -hide-rr-moved $(tmpdir)
