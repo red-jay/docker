@@ -10,6 +10,12 @@ archive/openbsd/%/amd64/index.txt:
 	$(MAKE) -C $(dir $@) BASE_URI=$(OBSD_BASE_URI) index.txt
 	rm $(dir $@)Makefile
 
+archive/openbsd-syspatch/%/amd64/.all:
+	$(MAKE) -f $(self) $(dir $@)
+	cp Mk/Archive-openbsd-syspatch.mk $(dir $@)Makefile
+	$(MAKE) -C $(dir $@) BASE_URI=$(OBSD_BASE_URI) .all
+	rm $(dir $@)Makefile
+
 archive/centos%/comps/.git:
 	git submodule update --init
 

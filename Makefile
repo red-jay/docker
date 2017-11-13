@@ -41,6 +41,9 @@ certs/index.txt: certs
 archive/openbsd/%/amd64/index.txt:
 	$(MAKE) -f Mk/Archive.mk OBSD_BASE_URI=$(OBSD_BASE_URI) $@
 
+archive/openbsd-syspatch/%/amd64/SHA256:
+	$(MAKE) -f Mk/Archive.mk OBSD_BASE_URI=$(OBSD_BASE_URI) $@
+
 # Centos 7 Repository
 archive/centos%/repodata/repomd.xml:
 	$(MAKE) -f Mk/Archive.mk $@
@@ -109,7 +112,8 @@ BOOTFILES += archive/centos7/images/pxeboot/vmlinuz archive/centos7/images/pxebo
 BOOTFILES += archive/centos7/LiveOS/squashfs.img
 BOOTFILES += well-known-keys/authorized_keys intca-pub/index.txt certs/index.txt
 
-LIVEFILES = syslinux.cfg openbsd-dist/$(OBSD_VER)/amd64/index.txt
+LIVEFILES = syslinux.cfg archive/openbsd/$(OBSD_VER)/amd64/index.txt
+LIVEFILES += archiveopenbsd-syspatch/$(OBSD_VER)/amd64/.all
 IMAGEFILES = $(REPOFILES) $(LIVEFILES) $(EFIFILES)
 
 distclean:
@@ -163,11 +167,13 @@ ifeq ($(findstring hypervisor,$(MAKECMDGOALS)),hypervisor)
 	cp -r bootstrap-scripts $(tmpdir)/
 	cp -r ks $(tmpdir)/
 	cp -r archive/openbsd $(tmpdir)/openbsd-dist
+	cp -r archive/openbsd-syspatch $(tmpdir)/openbsd-dist/syspatch
 	cp ipxe-cfgs/ipxe-binaries.tgz $(tmpdir)
 endif
 endif
 ifeq ($(findstring netmgmt,$(MAKECMDGOALS)),netmgmt)
 	cp -r archive/openbsd $(tmpdir)/openbsd-dist
+	cp -r archive/openbsd-syspatch $(tmpdir)/openbsd-dist/syspatch
 	cp ipxe-cfgs/ipxe-binaries.tgz $(tmpdir)
 endif
 	mkisofs -quiet -o $@ -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -rational-rock -J -V KICKSTART -hide-joliet-trans-tbl -hide-rr-moved $(tmpdir)
