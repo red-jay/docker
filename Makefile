@@ -41,7 +41,7 @@ certs/index.txt: certs
 archive/openbsd/%/amd64/index.txt:
 	$(MAKE) -f Mk/Archive.mk OBSD_BASE_URI=$(OBSD_BASE_URI) $@
 
-archive/openbsd-syspatch/%/amd64/SHA256:
+archive/openbsd-syspatch/%/amd64/.all:
 	$(MAKE) -f Mk/Archive.mk OBSD_BASE_URI=$(OBSD_BASE_URI) $@
 
 archive/openbsd-packages/%/amd64/index.txt:
@@ -115,10 +115,6 @@ BOOTFILES += archive/centos7/images/pxeboot/vmlinuz archive/centos7/images/pxebo
 BOOTFILES += archive/centos7/LiveOS/squashfs.img
 BOOTFILES += well-known-keys/authorized_keys intca-pub/index.txt certs/index.txt
 
-LIVEFILES = syslinux.cfg archive/openbsd/$(OBSD_VER)/amd64/index.txt
-LIVEFILES += archiveopenbsd-syspatch/$(OBSD_VER)/amd64/.all
-IMAGEFILES = $(REPOFILES) $(LIVEFILES) $(EFIFILES)
-
 distclean:
 	$(MAKE) clean
 	-rm -rf archive/openbsd
@@ -139,7 +135,7 @@ clean:
 
 ISOFILES = $(REPOFILES) $(BOOTFILES)
 ifneq ($(MINIMAL),1)
-ISOFILES += archive/openbsd/6.2/amd64/index.txt ipxe-cfgs/ipxe-binaries.tgz
+ISOFILES += archive/openbsd/6.2/amd64/index.txt archive/openbsd-syspatch/6.2/amd64/.all ipxe-cfgs/ipxe-binaries.tgz
 endif
 
 %.iso: $(ISOFILES) syslinux/%.cfg grub/%.cfg ks/%.ks
