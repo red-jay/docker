@@ -44,6 +44,9 @@ archive/openbsd/%/amd64/index.txt:
 archive/openbsd-syspatch/%/amd64/SHA256:
 	$(MAKE) -f Mk/Archive.mk OBSD_BASE_URI=$(OBSD_BASE_URI) $@
 
+archive/openbsd-packages/%/amd64/index.txt:
+	$(MAKE) -f Mk/Archive.mk OBSD_BASE_URI=$(OBSD_BASE_URI) $@
+
 # Centos 7 Repository
 archive/centos%/repodata/repomd.xml:
 	$(MAKE) -f Mk/Archive.mk $@
