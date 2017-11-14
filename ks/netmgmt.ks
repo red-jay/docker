@@ -822,6 +822,25 @@ pushd /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/syspatch/${ob_ver}/amd64
   done
 popd
 
+case $obsd_toplev in
+  /*)
+    obpkg_uri="file://${obsd_toplev}/${ob_ver}/packages/amd64"
+    ;;
+  *)
+    obpkg_uri="${obsd_toplev}/${ob_ver}/packages/amd64"
+    ;;
+esac
+obpkg_idx="${obpkg_uri}/index.txt"
+
+mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/${ob_ver}/packages/amd64
+pushd /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/${ob_ver}/packages/amd64
+  curl -LO "${obpkg_idx}"
+  for f in $(awk 'NR>1 {print $NF}' < index.txt) ; do
+    if [ $f == index.txt ] ; then continue ; fi
+    curl -LO "${obpkg_uri}/${f}"
+  done
+popd
+
 mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/_openbsd/${ob_ver}/amd64
 pushd /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/_openbsd/${ob_ver}/
   ln -s amd64 x86_64
