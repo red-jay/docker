@@ -725,4 +725,10 @@ if [ -d /run/install/repo/bootstrap-scripts ] ; then
   find /run/install/repo/usr/share/nginx/html -type f -exec chmod a+r {} \;
 fi
 
+# copy private-isos to /var/lib/libvirt
+if [ -d /run/install/repo/private-isos ] ; then
+  mkdir -p /mnt/sysimage/var/lib/libvirt/images
+  cp -R /run/install/repo/private-isos /mnt/sysimage/var/lib/libvirt/images/private
+fi
+
 %end

@@ -12,6 +12,7 @@ CENTOS_URI = http://wcs.bbxn.us/centos
 C7_URI = $(CENTOS_URI)/7
 EPEL7_URI = http://wcs.bbxn.us/epel/7
 OBSD_BASE_URI = http://wcs.bbxn.us/OpenBSD
+INCLUDE_PRIVATE = true
 
 # keying
 well-known-keys/.git:
@@ -66,6 +67,10 @@ archive/ubuntu/xenial/.downloaded: build-scripts/make-archive.sh build-scripts/d
 # Kickstart recognition file
 archive/centos7/discinfo:
 	$(MAKE) -f Mk/Archive.mk CENTOS_URI=$(CENTOS_URI) archive/centos7/discinfo
+
+# private ISOs
+private-isos/%.iso: Mk/Private.mk
+	$(MAKE) -f Mk/Private.mk $@
 
 # keep archive files
 .SECONDARY: archive/centos7/EFI/BOOT/fonts/unicode.pf2 archive/centos7/EFI/BOOT/grubia32.efi archive/centos7/EFI/BOOT/mmia32.efi archive/centos7/EFI/BOOT/BOOTX64.EFI archive/centos7/images/pxeboot/initrd.img archive/centos7/EFI/BOOT/mmx64.efi archive/centos7/EFI/BOOT/grubx64.efi archive/centos7/images/pxeboot/vmlinuz archive/centos7/EFI/BOOT/BOOTIA32.EFI archive/openbsd/6.2/amd64/index.txt
@@ -137,6 +142,11 @@ ISOFILES = $(REPOFILES) $(BOOTFILES)
 ifneq ($(MINIMAL),1)
 ISOFILES += archive/openbsd/6.2/amd64/index.txt archive/openbsd-syspatch/6.2/amd64/.all ipxe-cfgs/ipxe-binaries.tgz
 ISOFILES += archive/openbsd-packages/6.2/amd64/index.txt
+ifeq ($(findstring hypervisor,$(MAKECMDGOALS)),hypervisor)
+ifeq ($(INCLUDE_PRIVATE),true)
+ISOFILES += private-isos/tgw.sv1.iso private-isos/tgw.sv1a.iso private-isos/tgw.sv2.iso
+endif
+endif
 endif
 
 %.iso: $(ISOFILES) syslinux/%.cfg grub/%.cfg ks/%.ks
@@ -164,6 +174,9 @@ endif
 	find $(tmpdir) -type d -exec chmod a+rx {} \;
 ifneq ($(MINIMAL),1)
 ifeq ($(findstring hypervisor,$(MAKECMDGOALS)),hypervisor)
+ifeq ($(INCLUDE_PRIVATE),true)
+	cp -r private-isos $(tmpdir)/
+endif
 	cp -r bootstrap-scripts $(tmpdir)/
 	cp -r ks $(tmpdir)/
 	cp -r archive/openbsd $(tmpdir)/openbsd-dist
@@ -206,6 +219,9 @@ endif
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/centos7/images ::
 ifneq ($(MINIMAL),1)
 ifeq ($(findstring hypervisor,$(MAKECMDGOALS)),hypervisor)
+ifeq ($(INCLUDE_PRIVATE),true)
+	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s private-isos ::
+endif
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s bootstrap-scripts ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s ks ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/openbsd ::openbsd-dist
