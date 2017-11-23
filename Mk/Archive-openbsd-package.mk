@@ -32,7 +32,7 @@ recursive: $(PKG)
 %.name: .index
 	set -e ; PKG=$$(grep ^$(@:.name=)-[0-9] $(tmpdir)/index.txt) && $(MAKE) PKG=$$PKG recursive
 
-index.txt: openvpn.name SHA256 SHA256.sig
+index.txt: apg.name openvpn.name SHA256 SHA256.sig
 	ls -ln > index.txt
 
 endif

@@ -1042,10 +1042,45 @@ printf 'inet 172.16.52.32 255.255.255.224\n-inet6\ngroup wext\n' > /mnt/sysimage
   printf 'rcctl enable dhcrelay_wext\nrcctl set dhcrelay_wext flags "-i vio3 172.16.16.72 172.16.32.72"\n'
   printf 'fi\n'
 
+  printf 'pkg_add openvpn\n'
+  printf 'pkg_add apg\n'
+
+  printf 'install -m 700 -d /etc/openvpn/private-client-conf\n'
+  printf 'install -m 755 -d /var/log/openvpn\n'
+
+  printf 'install -m 755 -d /var/openvpn/chrootjail/etc/openvpn\n'
+  printf 'install -m 700 -d /var/openvpn/chrootjail/etc/openvpn/private\n'
+  printf 'install -m 755 -d /etc/openvpn/chrootjail/etc/openvpn/ccd\n'
+  printf 'install -m 755 -d /var/openvpn/chrootjail/var/openvpn\n'
+
+  printf 'ln -s /var/openvpn/chrootjail/etc/openvpn/crl.pem /etc/openvpn/crl.pem\n'
+  printf 'ln -s /var/openvpn/chrootjail/etc/openvpn/ccd/ /etc/openvpn/\n'
+  printf 'ln -s /var/openvpn/chrootjail/etc/openvpn/certs /etc/openvpn\n'
+  printf 'ln -s /var/openvpn/chrootjail/etc/openvpn/private /etc/openvpn\n'
+  printf 'ln -s /var/openvpn/chrootjail/etc/openvpn/replay-persist-file /etc/openvpn/replay-persist-file\n'
+
+  printf 'openssl dhparam -out /var/openvpn/chrootjail/etc/openvpn/dh.pem 2048\n'
+  printf 'chmod 0644 /var/openvpn/chrootjail/etc/openvpn/dh.pem'
+  printf 'touch /var/openvpn/chrootjail/etc/openvpn/private/mgmt.pwd\n'
+  printf 'chmod 0640 /var/openvpn/chrootjail/etc/openvpn/private/mgmt.pwd\n'
+  printf '/usr/local/bin/apg -M SNCL -m 21 -n 1 > /var/openvpn/chrootjail/etc/openvpn/private/mgmt.pwd\n'
+  printf 'ln -s tgw.$site.crt /var/openvpn/chrootjail/etc/openvpn/certs/openvpn.crt\n'
+
   printf 'syspatch\n'
 
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/install.site
 chmod a+rx /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/install.site
+
+mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/var/openvpn/chrootjail/etc/openvpn/certs
+pushd /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/var/openvpn/chrootjail/etc/openvpn/certs
+  host_certs=$(curl "${cert_idx}" | awk '{print $9}')
+  hc_dir=${cert_idx%/index.txt}
+  for x in ${host_certs} ; do
+    if [ "${x}" == "index.txt" ] ; then continue ; fi
+    curl -LO "${hc_dir}/${x}"
+  done
+  cp /mnt/sysimage/usr/share/nginx/html/pub/BBXN_INT_SV1.pem CA.pem
+popd
 
 {
   printf '#!/bin/sh\n'
