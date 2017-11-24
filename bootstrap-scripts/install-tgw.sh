@@ -17,5 +17,16 @@ case "${1}" in
     ;;
 esac
 
-virt-install --pxe --name tgw.${1} --memory 384 --os-variant openbsd4 --disk size=12,bus=virtio --graphics none --network bridge=transit,mac=${bootmac},model=virtio --network bridge=vmm,model=virtio ${vi_opts} --noautoconsole --wait -1
+if [[ -f "/var/lib/libvirt/images/private/tgw.${1}.iso" ]] ; then
+  vi_opts="${vi_opts} --disk path=/var/lib/libvirt/images/private/tgw.${1}.iso,device=cdrom"
+fi
+
+virt-install --pxe --name tgw.${1} --memory 384 --os-variant openbsd4 --disk size=12,bus=virtio --graphics none --network bridge=transit,mac=${bootmac},model=virtio --network bridge=vmm,model=virtio ${vi_opts} --noreboot --noautoconsole --wait -1
+
+
+if [[ -f "/var/lib/libvirt/images/private/tgw.${1}.iso" ]] ; then
+  virsh detach-disk --config --persistent tgw.${1} /var/lib/libvirt/images/private/tgw.${1}.iso
+fi
+
+virsh start tgw.${1}
 virsh autostart tgw.${1}

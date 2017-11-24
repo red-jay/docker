@@ -1020,6 +1020,7 @@ printf 'inet 172.16.52.32 255.255.255.224\n-inet6\ngroup wext\n' > /mnt/sysimage
 
 {
   printf '#!/bin/sh\n'
+  printf 'exec > /root/post.log ; exec 2>&1\n'
   printf 'site=$(hostname | sed '"-e 's/[^\.]*\.//' | sed -e 's/\..*//'"')\n'
 
   printf 'for f in /etc/hostname.*.$site ; do\n'
@@ -1060,11 +1061,15 @@ printf 'inet 172.16.52.32 255.255.255.224\n-inet6\ngroup wext\n' > /mnt/sysimage
   printf 'ln -s /var/openvpn/chrootjail/etc/openvpn/replay-persist-file /etc/openvpn/replay-persist-file\n'
 
   printf 'openssl dhparam -out /var/openvpn/chrootjail/etc/openvpn/dh.pem 2048\n'
-  printf 'chmod 0644 /var/openvpn/chrootjail/etc/openvpn/dh.pem'
+  printf 'chmod 0644 /var/openvpn/chrootjail/etc/openvpn/dh.pem\n'
   printf 'touch /var/openvpn/chrootjail/etc/openvpn/private/mgmt.pwd\n'
   printf 'chmod 0640 /var/openvpn/chrootjail/etc/openvpn/private/mgmt.pwd\n'
   printf '/usr/local/bin/apg -M SNCL -m 21 -n 1 > /var/openvpn/chrootjail/etc/openvpn/private/mgmt.pwd\n'
   printf 'ln -s tgw.$site.crt /var/openvpn/chrootjail/etc/openvpn/certs/openvpn.crt\n'
+
+  printf 'touch /var/openvpn/chrootjail/etc/openvpn/private/openvpn.key\n'
+  printf 'chmod 0640 /var/openvpn/chrootjail/etc/openvpn/private/openvpn.key\n'
+  printf 'mount /dev/cd0c /mnt && cat /mnt/openvpn.key > /var/openvpn/chrootjail/etc/openvpn/private\n'
 
   printf 'syspatch\n'
 
