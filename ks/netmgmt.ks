@@ -1069,7 +1069,7 @@ printf 'inet 172.16.52.32 255.255.255.224\n-inet6\ngroup wext\n' > /mnt/sysimage
 
   printf 'touch /var/openvpn/chrootjail/etc/openvpn/private/openvpn.key\n'
   printf 'chmod 0640 /var/openvpn/chrootjail/etc/openvpn/private/openvpn.key\n'
-  printf 'mount /dev/cd0c /mnt && cat /mnt/openvpn.key > /var/openvpn/chrootjail/etc/openvpn/private\n'
+  printf 'mount /dev/cd0c /mnt && cat /mnt/openvpn.key > /var/openvpn/chrootjail/etc/openvpn/private/openvpn.key\n'
 
   printf 'syspatch\n'
 
