@@ -1025,7 +1025,7 @@ mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/var/openvpn/chr
   printf 'key /etc/openvpn/private/openvpn.key\n'
   printf 'dh /etc/openvpn/dh.pem\n'
   printf 'ifconfig-pool-persist /var/openvpn/ipp.txt\n'
-  #printf 'tls-auth /etc/openvpn/private/vpn-ta.key\n'
+  printf 'tls-auth /etc/openvpn/private/TA.key\n'
   printf 'replay-persist /var/openvpn/replay-persist-file\n'
   printf 'max-clients 20\n'
   printf 'status /var/log/openvpn/openvpn-status.log\n'
@@ -1092,6 +1092,7 @@ mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/var/openvpn/chr
   printf 'install -m 755 -d /var/openvpn/chrootjail/var/openvpn\n'
 
   printf 'ln -s /var/openvpn/chrootjail/etc/openvpn/crl.pem /etc/openvpn/crl.pem\n'
+  printf 'ln -s /var/openvpn/chrootjail/etc/openvpn/server.conf /etc/openvpn/server.conf\n'
   printf 'ln -s /var/openvpn/chrootjail/etc/openvpn/ccd/ /etc/openvpn/\n'
   printf 'ln -s /var/openvpn/chrootjail/etc/openvpn/certs /etc/openvpn\n'
   printf 'ln -s /var/openvpn/chrootjail/etc/openvpn/private /etc/openvpn\n'
@@ -1107,7 +1108,7 @@ mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/var/openvpn/chr
 
   printf 'touch /var/openvpn/chrootjail/etc/openvpn/private/openvpn.key\n'
   printf 'chmod 0640 /var/openvpn/chrootjail/etc/openvpn/private/openvpn.key\n'
-  printf 'mount /dev/cd0c /mnt && cat /mnt/openvpn.key > /var/openvpn/chrootjail/etc/openvpn/private/openvpn.key\n'
+  printf 'mount /dev/cd0c /mnt && cat /mnt/openvpn.key > /var/openvpn/chrootjail/etc/openvpn/private/openvpn.key && cat /mnt/openvpn-TA.key > /var/openvpn/chrootjail/etc/openvpn/private/TA.key\n'
 
   printf 'syspatch\n'
 
