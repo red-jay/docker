@@ -1018,6 +1018,42 @@ printf 'inet 172.16.52.32 255.255.255.224\n-inet6\ngroup wext\n' > /mnt/sysimage
   printf 'neighbor 172.16.16.1 {\n descr "ifw.sv1"\n remote-as 4233244401\n ttl-security yes\n announce IPv4 unicast\n}\n'
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/bgpd.conf.sv1
 
+mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/var/openvpn/chrootjail/etc/openvpn
+{
+  printf 'ca /etc/openvpn/certs/CA.pem\n'
+  printf 'cert /etc/openvpn/certs/openvpn.crt\n'
+  printf 'key /etc/openvpn/private/openvpn.key\n'
+  printf 'dh /etc/openvpn/dh.pem\n'
+  printf 'ifconfig-pool-persist /var/openvpn/ipp.txt\n'
+  #printf 'tls-auth /etc/openvpn/private/vpn-ta.key\n'
+  printf 'replay-persist /var/openvpn/replay-persist-file\n'
+  printf 'max-clients 20\n'
+  printf 'status /var/log/openvpn/openvpn-status.log\n'
+  printf 'log-append /var/log/openvpn/openvpn.log\n'
+  printf 'proto udp\n'
+  printf 'port 1194\n'
+  printf 'management 127.0.0.1 1100\n'
+  printf 'daemon openvpn\n'
+  printf 'chroot /var/openvpn/chrootjail\n'
+  #printf 'crl-verify /etc/openvpn/certs/CA.crl\n'
+  printf 'float\n'
+  printf 'persist-key\n'
+  printf 'persist-tun\n'
+  printf 'keepalive 10 120\n'
+  printf 'comp-lzo\n'
+  printf 'user _openvpn\n'
+  printf 'group _openvpn\n'
+  printf 'verb 4\n'
+  printf 'mute 6\n'
+
+  printf 'dev tun0\n'
+  printf 'client-config-dir  /etc/openvpn/ccd\n'
+
+  printf 'tls-server\n'
+  printf 'server 192.168.129.224 255.255.255.224\n'
+  printf 'topology subnet\n'
+} > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/var/openvpn/chrootjail/etc/openvpn/server.conf
+
 {
   printf '#!/bin/sh\n'
   printf 'exec > /root/post.log ; exec 2>&1\n'
@@ -1051,7 +1087,8 @@ printf 'inet 172.16.52.32 255.255.255.224\n-inet6\ngroup wext\n' > /mnt/sysimage
 
   printf 'install -m 755 -d /var/openvpn/chrootjail/etc/openvpn\n'
   printf 'install -m 700 -d /var/openvpn/chrootjail/etc/openvpn/private\n'
-  printf 'install -m 755 -d /etc/openvpn/chrootjail/etc/openvpn/ccd\n'
+  printf 'install -m 755 -d /var/openvpn/chrootjail/etc/openvpn/ccd\n'
+  printf 'install -m 755 -d /var/openvpn/chrootjail/tmp\n'
   printf 'install -m 755 -d /var/openvpn/chrootjail/var/openvpn\n'
 
   printf 'ln -s /var/openvpn/chrootjail/etc/openvpn/crl.pem /etc/openvpn/crl.pem\n'
@@ -1062,6 +1099,7 @@ printf 'inet 172.16.52.32 255.255.255.224\n-inet6\ngroup wext\n' > /mnt/sysimage
 
   printf 'openssl dhparam -out /var/openvpn/chrootjail/etc/openvpn/dh.pem 2048\n'
   printf 'chmod 0644 /var/openvpn/chrootjail/etc/openvpn/dh.pem\n'
+  printf 'ln -s /var/openvpn/chrootjail/etc/openvpn/dh.pem /etc/openvpn\n'
   printf 'touch /var/openvpn/chrootjail/etc/openvpn/private/mgmt.pwd\n'
   printf 'chmod 0640 /var/openvpn/chrootjail/etc/openvpn/private/mgmt.pwd\n'
   printf '/usr/local/bin/apg -M SNCL -m 21 -n 1 > /var/openvpn/chrootjail/etc/openvpn/private/mgmt.pwd\n'
