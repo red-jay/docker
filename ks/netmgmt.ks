@@ -1027,7 +1027,7 @@ mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/var/openvpn/chr
   printf 'ifconfig-pool-persist /var/openvpn/ipp.txt\n'
   printf 'tls-auth /etc/openvpn/private/TA.key\n'
   printf 'replay-persist /var/openvpn/replay-persist-file\n'
-  printf 'max-clients 20\n'
+  printf 'max-clients 30\n'
   printf 'status /var/log/openvpn/openvpn-status.log\n'
   printf 'log-append /var/log/openvpn/openvpn.log\n'
   printf 'proto udp\n'
@@ -1050,7 +1050,6 @@ mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/var/openvpn/chr
   printf 'client-config-dir  /etc/openvpn/ccd\n'
 
   printf 'tls-server\n'
-  printf 'server 192.168.129.224 255.255.255.224\n'
   printf 'topology subnet\n'
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/var/openvpn/chrootjail/etc/openvpn/server.conf
 
@@ -1077,6 +1076,11 @@ mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/var/openvpn/chr
 
   printf 'cp /etc/rc.d/dhcrelay /etc/rc.d/dhcrelay_wext\n'
   printf 'rcctl enable dhcrelay_wext\nrcctl set dhcrelay_wext flags "-i vio3 172.16.16.72 172.16.32.72"\n'
+  printf 'printf "server 172.16.52.0 255.255.255.224\n" >> /var/openvpn/chrootjail/etc/openvpn/server.conf\n'
+  printf 'fi\n'
+
+  printf 'if [ $site == "sv2" ] ; then\n'
+  printf 'printf "server 172.16.52.32 255.255.255.224\n" >> /var/openvpn/chrootjail/etc/openvpn/server.conf\n'
   printf 'fi\n'
 
   printf 'pkg_add openvpn\n'
