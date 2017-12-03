@@ -934,6 +934,12 @@ printf 'rtlabel dist\ninet 172.16.32.1 255.255.255.192\n-inet6\ngroup transit\n'
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/bgpd.conf.sv1
 
 {
+  printf 'AS 4233244402\nrouter-id 172.16.32.1\nnexthop qualify via bgp\nlisten on 172.16.32.1\nnetwork inet rtlabel dist\n'
+  printf 'deny from any prefix 10.0.0.0/8 prefixlen >= 8\ndeny from any prefix 192.168.0.0/16 prefixlen >=16\n'
+  printf 'neighbor 172.16.32.11 {\n descr "tgw.sv2"\n remote-as 4233244402\n ttl-security yes\n announce IPv4 unicast\n}\n'
+} > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/bgpd.conf.sv2
+
+{
   printf '#!/bin/sh\n'
   printf 'exec > /root/post.log ; exec 2>&1\n'
   printf 'site=$(hostname | sed '"-e 's/[^\.]*\.//' | sed -e 's/\..*//'"')\n'
@@ -1014,11 +1020,20 @@ printf 'dhcp\n-inet6\ngroup pln\n' > /mnt/sysimage/usr/share/nginx/html/pub/Open
 printf 'rtlabel dist\ninet 172.16.52.32 255.255.255.224\n-inet6\ngroup wext\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio3.sv1
 # bgpd AS
 {
-  printf 'AS 4233244401\nrouter-id 172.16.16.11\nnexthop qualify via bgp\nnetwork inet rtlabel dist\n'
+  printf 'AS 4233244401\nrouter-id 172.16.16.11\n'
+  printf 'nexthop qualify via bgp\nnetwork inet rtlabel dist\n'
   printf 'network 172.16.52.64/27\n'
   printf 'deny from any prefix 10.0.0.0/8 prefixlen >= 8\ndeny from any prefix 192.168.0.0/16 prefixlen >=16\n'
   printf 'neighbor 172.16.16.1 {\n descr "ifw.sv1"\n remote-as 4233244401\n ttl-security yes\n announce IPv4 unicast\n}\n'
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/bgpd.conf.sv1
+
+{
+  printf 'AS 4233244402\nrouter-id 172.16.32.11\n'
+  printf 'nexthop qualify via bgp\nnetwork inet rtlabel dist\n'
+  printf 'network 172.16.52.96/27\n'
+  printf 'deny from any prefix 10.0.0.0/8 prefixlen >= 8\ndeny from any prefix 192.168.0.0/16 prefixlen >=16\n'
+  printf 'neighbor 172.16.32.1 {\n descr "ifw.sv2"\n remote-as 4233244402\n ttl-security yes\n announce IPv4 unicast\n}\n'
+} > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/bgpd.conf.sv2
 
 mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/var/openvpn/chrootjail/etc/openvpn
 {
