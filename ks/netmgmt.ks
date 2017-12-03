@@ -1054,6 +1054,32 @@ mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/var/openvpn/chr
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/var/openvpn/chrootjail/etc/openvpn/server.conf
 
 {
+  printf 'ca /etc/openvpn/certs/CA.pem\n'
+  printf 'cert /etc/openvpn/certs/openvpn-client.crt\n'
+  printf 'key /etc/openvpn/private/openvpn-client.key\n'
+  printf 'tls-auth /etc/openvpn/private/TA.key\n'
+  printf 'status /var/log/openvpn/openvpn-client-status.log\n'
+  printf 'log-append /var/log/openvpn/openvpn-client.log\n'
+  printf 'proto udp\n'
+  printf 'nobind\n'
+  printf 'resolv-retry infinite\n'
+  printf 'daemon openvpn\n'
+  printf 'chroot /var/openvpn/chrootjail\n'
+  printf 'persist-key\n'
+  printf 'persist-tun\n'
+  printf 'comp-lzo\n'
+  printf 'user _openvpn\n'
+  printf 'group _openvpn\n'
+  printf 'verb 4\n'
+  printf 'mute 6\n'
+  printf 'mute-replay-warnings\n'
+
+  printf 'dev tun1\n'
+
+  printf 'tls-client\n'
+} > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/var/openvpn/chrootjail/etc/openvpn/client.conf
+
+{
   printf '#!/bin/sh\n'
   printf 'exec > /root/post.log ; exec 2>&1\n'
   printf 'site=$(hostname | sed '"-e 's/[^\.]*\.//' | sed -e 's/\..*//'"')\n'
@@ -1076,11 +1102,12 @@ mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/var/openvpn/chr
 
   printf 'cp /etc/rc.d/dhcrelay /etc/rc.d/dhcrelay_wext\n'
   printf 'rcctl enable dhcrelay_wext\nrcctl set dhcrelay_wext flags "-i vio3 172.16.16.72 172.16.32.72"\n'
-  printf 'printf "server 172.16.52.0 255.255.255.224\n" >> /var/openvpn/chrootjail/etc/openvpn/server.conf\n'
+  printf 'printf "server 172.16.52.64 255.255.255.224\n" >> /var/openvpn/chrootjail/etc/openvpn/server.conf\n'
   printf 'fi\n'
 
   printf 'if [ $site == "sv2" ] ; then\n'
-  printf 'printf "server 172.16.52.32 255.255.255.224\n" >> /var/openvpn/chrootjail/etc/openvpn/server.conf\n'
+  printf 'printf "server 172.16.52.96 255.255.255.224\n" >> /var/openvpn/chrootjail/etc/openvpn/server.conf\n'
+  printf 'printf "remote 172.16.52.1 1194\n" >> /var/openvpn/chrootjail/etc/openvpn/client.conf\n'
   printf 'fi\n'
 
   printf 'pkg_add openvpn\n'
@@ -1097,6 +1124,7 @@ mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/var/openvpn/chr
 
   printf 'ln -s /var/openvpn/chrootjail/etc/openvpn/crl.pem /etc/openvpn/crl.pem\n'
   printf 'ln -s /var/openvpn/chrootjail/etc/openvpn/server.conf /etc/openvpn/server.conf\n'
+  printf 'ln -s /var/openvpn/chrootjail/etc/openvpn/client.conf /etc/openvpn/client.conf\n'
   printf 'ln -s /var/openvpn/chrootjail/etc/openvpn/ccd/ /etc/openvpn/\n'
   printf 'ln -s /var/openvpn/chrootjail/etc/openvpn/certs /etc/openvpn\n'
   printf 'ln -s /var/openvpn/chrootjail/etc/openvpn/private /etc/openvpn\n'
@@ -1109,10 +1137,15 @@ mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/var/openvpn/chr
   printf 'chmod 0640 /var/openvpn/chrootjail/etc/openvpn/private/mgmt.pwd\n'
   printf '/usr/local/bin/apg -M SNCL -m 21 -n 1 > /var/openvpn/chrootjail/etc/openvpn/private/mgmt.pwd\n'
   printf 'ln -s tgw.$site.crt /var/openvpn/chrootjail/etc/openvpn/certs/openvpn.crt\n'
+  printf 'ln -s tgw.$site-client.crt /var/openvpn/chrootjail/etc/openvpn/certs/openvpn-client.crt\n'
 
   printf 'touch /var/openvpn/chrootjail/etc/openvpn/private/openvpn.key\n'
+  printf 'touch /var/openvpn/chrootjail/etc/openvpn/private/openvpn-client.key\n'
   printf 'chmod 0640 /var/openvpn/chrootjail/etc/openvpn/private/openvpn.key\n'
-  printf 'mount /dev/cd0c /mnt && cat /mnt/openvpn.key > /var/openvpn/chrootjail/etc/openvpn/private/openvpn.key && cat /mnt/openvpn-TA.key > /var/openvpn/chrootjail/etc/openvpn/private/TA.key\n'
+  printf 'chmod 0640 /var/openvpn/chrootjail/etc/openvpn/private/openvpn-private.key\n'
+  printf 'mount /dev/cd0c /mnt && cat /mnt/openvpn-TA.key > /var/openvpn/chrootjail/etc/openvpn/private/TA.key\n'
+  printf 'cat /mnt/openvpn.key > /var/openvpn/chrootjail/etc/openvpn/private/openvpn.key || true\n'
+  printf 'cat /mnt/openvpn-client.key > /var/openvpn/chrootjail/etc/openvpn/private/openvpn-client.key || true\n'
 
   printf 'syspatch\n'
 
@@ -1150,6 +1183,7 @@ chmod a+rx /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/rc.firstt
   printf 'pass out proto udp from port 67 to {172.16.16.72, 172.16.32.72} port 67\n'
   printf 'pass out proto tcp from (transit) to {172.16.16.72, 172.16.32.72} port 80\n'
   printf 'pass on { transit } proto tcp from (transit:network) to (transit:network) port 179\n'
+  printf 'pass on { pln wext } proto udp from {(pln:network),(wext:network)} to {(pln:network),(wext:network)} port 1194\n'
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/pf.conf
 
 {
