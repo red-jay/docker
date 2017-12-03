@@ -1075,6 +1075,7 @@ mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/var/openvpn/chr
   printf 'mute-replay-warnings\n'
 
   printf 'dev tun1\n'
+  printf 'client\n'
 
   printf 'tls-client\n'
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/var/openvpn/chrootjail/etc/openvpn/client.conf
