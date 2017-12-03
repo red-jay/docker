@@ -1194,6 +1194,17 @@ chmod a+rx /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/rc.firstt
 install -m 0700 -d /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/root/.ssh
 install -m 0600 /mnt/sysimage/root/.ssh/authorized_keys /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/root/.ssh/authorized_keys
 
+{
+  printf '#!/bin/sh\n'
+  printf 'site=$(hostname | sed '"-e 's/[^\.]*\.//' | sed -e 's/\..*//'"')\n'
+  printf '[ -e /var/openvpn/chrootjail/etc/openvpn/certs/tgw.$site.crt ] && /usr/local/sbin/openvpn --config /etc/openvpn/server.conf\n'
+  printf 'if [ -e /var/openvpn/chrootjail/etc/openvpn/certs/tgw.$site-client.crt ] ; then\n'
+  printf '  [ -e /var/openvpn/chrootjail/etc/openvpn/client.conf ]  && /usr/local/sbin/openvpn --config /etc/openvpn/client.conf\n'
+  printf '  [ -e /var/openvpn/chrootjail/etc/openvpn/client2.conf ] && /usr/local/sbin/openvpn --config /etc/openvpn/client2.conf\n'
+  printf 'fi\n'
+} > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/rc.local
+chmod a+rx /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/rc.local
+
 tar cpzf /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/${ob_ver}/amd64/site${ob_ver_nd}-tgw.tgz -C /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw .
 
 # wire a pxe autochain
