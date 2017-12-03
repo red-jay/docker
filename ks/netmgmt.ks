@@ -1008,10 +1008,10 @@ printf 'rtlabel dist\ninet 172.16.32.11 255.255.255.192\n-inet6\ngroup transit\n
 # vio1 - vmm
 printf 'dhcp\n-inet6\ngroup vmm\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio1
 # vio2 - pln
-printf 'inet 172.16.52.1 255.255.255.224\n-inet6\ngroup pln\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio2.sv1
+printf 'rtlabel dist\ninet 172.16.52.1 255.255.255.224\n-inet6\ngroup pln\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio2.sv1
 printf 'dhcp\n-inet6\ngroup pln\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio2.sv2
 # vio3 - wext
-printf 'inet 172.16.52.32 255.255.255.224\n-inet6\ngroup wext\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio3.sv1
+printf 'rtlabel dist\ninet 172.16.52.32 255.255.255.224\n-inet6\ngroup wext\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio3.sv1
 # bgpd AS
 {
   printf 'AS 4233244401\nrouter-id 172.16.16.11\nnexthop qualify via bgp\nnetwork inet rtlabel dist\n'
