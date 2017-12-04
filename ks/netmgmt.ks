@@ -1023,16 +1023,34 @@ printf 'rtlabel dist\ninet 172.16.52.32 255.255.255.224\n-inet6\ngroup wext\n' >
   printf 'AS 4233244401\nrouter-id 172.16.16.11\n'
   printf 'nexthop qualify via bgp\nnetwork inet rtlabel dist\n'
   printf 'network 172.16.52.64/27\n'
+  printf 'match from any set nexthop self\n'
   printf 'deny from any prefix 10.0.0.0/8 prefixlen >= 8\ndeny from any prefix 192.168.0.0/16 prefixlen >=16\n'
-  printf 'neighbor 172.16.16.1 {\n descr "ifw.sv1"\n remote-as 4233244401\n ttl-security yes\n announce IPv4 unicast\n}\n'
+  printf 'group vpn {\n'
+  printf ' neighbor 172.16.52.66 {\n  remote-as 4233244402\n  descr "tgw.sv2"\n  passive\n ttl-security yes\n }\n'
+  printf ' neighbor 172.16.52.67 {\n  remote-as 4233244403\n  descr "tgw.sv1a"\n  passive\n ttl-security yes\n }\n'
+  printf '}\n'
+  printf 'deny to group vpn prefix 172.16.52.0/23 prefixlen >= 23\n'
+  printf 'group transit {\n'
+  printf ' neighbor 172.16.16.1 {\n  descr "ifw.sv1"\n  remote-as  4233244401\n  ttl-security  yes\n  announce IPv4 unicast\n }\n'
+  printf '}\n'
+  printf 'deny to group transit prefix 172.16.16.0/20 prefixlen >= 20\n'
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/bgpd.conf.sv1
 
 {
   printf 'AS 4233244402\nrouter-id 172.16.32.11\n'
   printf 'nexthop qualify via bgp\nnetwork inet rtlabel dist\n'
   printf 'network 172.16.52.96/27\n'
+  printf 'match from any set nexthop self\n'
   printf 'deny from any prefix 10.0.0.0/8 prefixlen >= 8\ndeny from any prefix 192.168.0.0/16 prefixlen >=16\n'
-  printf 'neighbor 172.16.32.1 {\n descr "ifw.sv2"\n remote-as 4233244402\n ttl-security yes\n announce IPv4 unicast\n}\n'
+  printf 'group vpn {\n'
+  printf ' neighbor 172.16.52.65 {\n  remote-as 4233244401\n  descr "tgw.sv1"\n  announce IPv4 unicast\n ttl-security yes\n }\n'
+  printf ' neighbor 172.16.52.67 {\n  remote-as 4233244403\n  descr "tgw.sv1a"\n  passive\n ttl-security yes\n }\n'
+  printf '}\n'
+  printf 'deny to group vpn prefix 172.16.52.0/23 prefixlen >= 23\n'
+  printf 'group transit {\n'
+  printf ' neighbor 172.16.32.1 {\n  descr "ifw.sv2"\n  remote-as  4233244402\n  ttl-security  yes\n  announce IPv4 unicast\n }\n'
+  printf '}\n'
+  printf 'deny to group transit prefix 172.16.32.0/20 prefixlen >= 20\n'
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/bgpd.conf.sv2
 
 mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/var/openvpn/chrootjail/etc/openvpn
@@ -1069,6 +1087,10 @@ mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/var/openvpn/chr
   printf 'tls-server\n'
   printf 'topology subnet\n'
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/var/openvpn/chrootjail/etc/openvpn/server.conf
+
+{
+  printf 'ifconfig-push 172.16.52.66 255.255.255.224\n'
+} > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/var/openvpn/chrootjail/etc/openvpn/ccd/tgw.sv2.bbxn.us
 
 {
   printf 'ca /etc/openvpn/certs/CA.pem\n'
