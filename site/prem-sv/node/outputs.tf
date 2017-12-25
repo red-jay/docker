@@ -21,7 +21,7 @@ output "cidr-subnet-dmz" {
 output "cidr-subnet-user" {
   value = "${local.user}"
 }
+
 output "cidr-subnet-guest" {
   value = "${local.guest}"
 }
-
