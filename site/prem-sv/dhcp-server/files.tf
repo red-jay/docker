@@ -5,6 +5,7 @@ data "template_file" "netmgmt_subnet" {
   vars {
     netmgmt = "${element(var.netmgmt-ranges,count.index)}"
     class   = "netmgmt"
+    next-server = "${cidrhost(var.addr,0)}"
   }
 }
 

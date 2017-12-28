@@ -1,9 +1,10 @@
 network ${cidrhost(netmgmt,0)} netmask ${cidrnetmask(netmgmt)} {
- pool {
-   allow members of "${class}";
-   range ${cidrhost(netmgmt,32)} ${cidrhost(netmgmt,-1)};
- }
-   option subnet-mask ${cidrnetmask(netmgmt)};
-   option broadcast-address ${cidrhost(netmgmt,-1)};
- }
+  pool {
+    allow members of "${class}";
+    range dynamic-bootp ${cidrhost(netmgmt,32)} ${cidrhost(netmgmt,-1)};
+  }
+  option subnet-mask ${cidrnetmask(netmgmt)};
+  option broadcast-address ${cidrhost(netmgmt,-1)};
+  option routers ${cidrhost(netmgmt,1)};
+  next-server ${next-server};
 }
