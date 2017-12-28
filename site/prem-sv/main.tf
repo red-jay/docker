@@ -23,19 +23,19 @@ module "dhcp-1" {
   source         = "./dhcp-server"
   addr           = "${local.tftp-1-subrange}"
   fqdn           = "dhcp-1.${var.domainname}"
-  netmgmt-ranges = "${local.netmgmt-ranges}"
+  netmgmt-ranges = "${list(lookup(module.node-1.networks,"netmgmt"))}"
 }
 
 module "dhcp-2" {
   source         = "./dhcp-server"
   addr           = "${local.tftp-2-subrange}"
   fqdn           = "dhcp-2.${var.domainname}"
-  netmgmt-ranges = "${local.netmgmt-ranges}"
+  netmgmt-ranges = "${list(lookup(module.node-2.networks,"netmgmt"))}"
 }
 
 module "dhcp-1a" {
   source         = "./dhcp-server"
   addr           = "${local.tftp-1a-subrange}"
   fqdn           = "dhcp-1a.${var.domainname}"
-  netmgmt-ranges = "${local.netmgmt-ranges}"
+  netmgmt-ranges = "${list(lookup(module.node-1a.networks,"netmgmt"))}"
 }
