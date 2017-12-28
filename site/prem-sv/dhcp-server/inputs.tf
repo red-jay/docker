@@ -1,0 +1,3 @@
+variable "addr" {}
+
+variable "fqdn" {}
