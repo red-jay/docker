@@ -1,10 +1,14 @@
-data "template_file" "netmgmt_subnet" {
+locals {
+  range-keys = "${keys(var.ranges)}"
+}
+
+data "template_file" "subnet" {
   template = "${file("${path.module}/dhcpd-subnet.template")}"
-  count    = "${length(var.netmgmt-ranges)}"
+  count    = "${length(local.range-keys)}"
 
   vars {
-    netmgmt = "${element(var.netmgmt-ranges,count.index)}"
-    class   = "netmgmt"
+    range       = "${lookup(var.ranges,element(local.range-keys,count.index))}"
+    class       = "${element(local.range-keys,count.index)}"
     next-server = "${cidrhost(var.addr,0)}"
   }
 }
@@ -13,7 +17,8 @@ data "template_file" "dhcpd_conf" {
   template = "${file("${path.module}/dhcpd.conf.template")}"
 
   vars {
-  netmgmt = "${join("\n",data.template_file.netmgmt_subnet.*.rendered)}"
+    classes = ""
+    netmgmt = "${join("\n",data.template_file.subnet.*.rendered)}"
   }
 }
 

@@ -1,1 +1,13 @@
+authoritative;
+ddns-update-style none;
+use-host-decl-names on;
+
+option px-network code 170 = text;
+
+# netmgmt class is always defined as we should always have netmgmt subnet
+class "netmgmt" { match hardware; }
+
+# the rest are pulled from the tf map
+${classes}
+
 ${netmgmt}

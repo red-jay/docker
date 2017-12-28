@@ -18,24 +18,24 @@ module "node-2" {
   supernet = "${local.block-node-2}"
 }
 
-# dhcp servers
+# dhcp(/tftp) servers
 module "dhcp-1" {
-  source         = "./dhcp-server"
-  addr           = "${local.tftp-1-subrange}"
-  fqdn           = "dhcp-1.${var.domainname}"
-  netmgmt-ranges = "${list(lookup(module.node-1.networks,"netmgmt"))}"
+  source = "./dhcp-server"
+  addr   = "${local.tftp-1-subrange}"
+  fqdn   = "dhcp-1.${var.domainname}"
+  ranges = "${module.node-1.networks}"
 }
 
 module "dhcp-2" {
-  source         = "./dhcp-server"
-  addr           = "${local.tftp-2-subrange}"
-  fqdn           = "dhcp-2.${var.domainname}"
-  netmgmt-ranges = "${list(lookup(module.node-2.networks,"netmgmt"))}"
+  source = "./dhcp-server"
+  addr   = "${local.tftp-2-subrange}"
+  fqdn   = "dhcp-2.${var.domainname}"
+  ranges = "${module.node-2.networks}"
 }
 
 module "dhcp-1a" {
-  source         = "./dhcp-server"
-  addr           = "${local.tftp-1a-subrange}"
-  fqdn           = "dhcp-1a.${var.domainname}"
-  netmgmt-ranges = "${list(lookup(module.node-1a.networks,"netmgmt"))}"
+  source = "./dhcp-server"
+  addr   = "${local.tftp-1a-subrange}"
+  fqdn   = "dhcp-1a.${var.domainname}"
+  ranges = "${module.node-1a.networks}"
 }
