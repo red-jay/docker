@@ -3,6 +3,6 @@ variable "addr" {}
 variable "fqdn" {}
 
 variable "netmgmt-ranges" {
-  type = "list"
+  type    = "list"
   default = []
 }
