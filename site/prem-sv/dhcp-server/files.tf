@@ -1,9 +1,4 @@
-# we turn lists into strings here, buddy
-locals {
-  netmgmt = "${join("\n",formatlist("%s",var.netmgmt-ranges))}"
-}
-
-data "template_file" "subnet" {
+data "template_file" "netmgmt_subnet" {
   template = "${file("${path.module}/dhcpd-subnet.template")}"
   count    = 3
 
@@ -17,7 +12,7 @@ data "template_file" "dhcpd_conf" {
   template = "${file("${path.module}/dhcpd.conf.template")}"
 
   vars {
-    netmgmt = "${local.netmgmt}"
+  netmgmt = "${join("\n",data.template_file.netmgmt_subnet.*.rendered)}"
   }
 }
 

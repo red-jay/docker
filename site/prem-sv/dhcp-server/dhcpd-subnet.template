@@ -1,7 +1,7 @@
 network ${cidrhost(netmgmt,0)} netmask ${cidrnetmask(netmgmt)} {
  pool {
    allow members of "${class}";
-   range ${cidrhost(netmgmt,31)} ${cidrhost(netmgmt,64)};
+   range ${cidrhost(netmgmt,31)} ${cidrhost(netmgmt,-1)};
  }
    option subnet-mask ${cidrnetmask(netmgmt)};
    option broadcast-address ${cidrhost(netmgmt,-1)};
