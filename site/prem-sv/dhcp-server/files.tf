@@ -1,6 +1,6 @@
 data "template_file" "netmgmt_subnet" {
   template = "${file("${path.module}/dhcpd-subnet.template")}"
-  count    = 3
+  count    = "${length(var.netmgmt-ranges)}"
 
   vars {
     netmgmt = "${element(var.netmgmt-ranges,count.index)}"
