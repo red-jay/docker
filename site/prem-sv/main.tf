@@ -30,6 +30,7 @@ module "dhcp-1" {
   fqdn            = "dhcp-1.${var.domainname}"
   ranges          = "${local.dhcp-1-range}"
   restricted_nets = "${module.node-1.restricted-nets}"
+  host-map        = "${var.host-map}"
 }
 
 module "dhcp-2" {
@@ -38,6 +39,7 @@ module "dhcp-2" {
   fqdn            = "dhcp-2.${var.domainname}"
   ranges          = "${module.node-2.networks}"
   restricted_nets = "${module.node-2.restricted-nets}"
+  host-map        = "${var.host-map}"
 }
 
 module "dhcp-1a" {
@@ -46,4 +48,5 @@ module "dhcp-1a" {
   fqdn            = "dhcp-1a.${var.domainname}"
   ranges          = "${module.node-1a.networks}"
   restricted_nets = "${module.node-1a.restricted-nets}"
+  host-map        = "${var.host-map}"
 }

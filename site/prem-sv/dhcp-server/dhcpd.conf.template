@@ -12,4 +12,4 @@ include "/etc/dhcp/ipxe-option-space.conf";
 include "/etc/dhcp/bootfile.conf";
 
 # subnets
-${netmgmt}
+${subnets}

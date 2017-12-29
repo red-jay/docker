@@ -1,5 +1,6 @@
 locals {
   range-keys = "${keys(var.ranges)}"
+  host-keys  = "${keys(var.host-map)}"
   classes    = "${formatlist("class \"%s\" { match hardware };",local.range-keys)}"
 }
 
@@ -15,12 +16,28 @@ data "template_file" "subnet" {
   }
 }
 
+data "template_file" "host_mapping" {
+  template = "${file("${path.module}/dhcpd-classmap.template")}"
+  count    = "${length(local.host-keys)}"
+
+  vars {
+    name = "${element(local.host-keys,count.index)}"
+    class = "${lookup(var.host-map[element(local.host-keys,count.index)],"class")}"
+    m1 = "${substr(replace(lookup(var.host-map[element(local.host-keys,count.index)],"hwaddr"),"/[.:]/",""),0,2)}"
+    m2 = "${substr(replace(lookup(var.host-map[element(local.host-keys,count.index)],"hwaddr"),"/[.:]/",""),2,2)}"
+    m3 = "${substr(replace(lookup(var.host-map[element(local.host-keys,count.index)],"hwaddr"),"/[.:]/",""),4,2)}"
+    m4 = "${substr(replace(lookup(var.host-map[element(local.host-keys,count.index)],"hwaddr"),"/[.:]/",""),6,2)}"
+    m5 = "${substr(replace(lookup(var.host-map[element(local.host-keys,count.index)],"hwaddr"),"/[.:]/",""),8,2)}"
+    m6 = "${substr(replace(lookup(var.host-map[element(local.host-keys,count.index)],"hwaddr"),"/[.:]/",""),10,2)}"
+  }
+}
+
 data "template_file" "dhcpd_conf" {
   template = "${file("${path.module}/dhcpd.conf.template")}"
 
   vars {
     classes = "${join("\n",local.classes)}"
-    netmgmt = "${join("\n",data.template_file.subnet.*.rendered)}"
+    subnets = "${join("\n",data.template_file.subnet.*.rendered)}"
   }
 }
 
@@ -37,4 +54,9 @@ resource "local_file" "ipxe_option_space" {
 resource "local_file" "dhcpd_bootfile_conf" {
   filename = "tf-output/${var.fqdn}/etc/dhcp/bootfile.conf"
   content  = "${file("${path.module}/dhcp-bootfile.conf")}"
+}
+
+resource "local_file" "dhcpd_hostclass" {
+  filename = "tf-output/${var.fqdn}/etc/dhcp/hwaddr-access.conf"
+  content = "${join("\n",data.template_file.host_mapping.*.rendered)}"
 }
