@@ -10,6 +10,7 @@ resource "random_id" "nickel_mac" {
   keepers = {
     sysmac = "${lookup(var.nickel_hwid,"ether")}"
   }
+
   byte_length = 3
-  prefix = "5e267e"
+  prefix      = "5e267e"
 }

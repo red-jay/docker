@@ -4,21 +4,30 @@ variable "nodes" {
 }
 
 module "node-1" {
-  source     = "./node"
-  supernet   = "${local.block-node-1}"
-  domainname = "${var.domainname}"
+  source          = "./node"
+  supernet        = "${local.block-node-1}"
+  domainname      = "${var.domainname}"
+  user-vlan       = "10"
+  restricted-vlan = "20"
+  guest-vlan      = "30"
 }
 
 module "node-1a" {
-  source     = "./node"
-  supernet   = "${local.block-node-1a}"
-  domainname = "${var.domainname}"
+  source          = "./node"
+  supernet        = "${local.block-node-1a}"
+  domainname      = "${var.domainname}"
+  user-vlan       = "12"
+  restricted-vlan = "22"
+  guest-vlan      = "32"
 }
 
 module "node-2" {
-  source     = "./node"
-  supernet   = "${local.block-node-2}"
-  domainname = "${var.domainname}"
+  source          = "./node"
+  supernet        = "${local.block-node-2}"
+  domainname      = "${var.domainname}"
+  user-vlan       = "11"
+  restricted-vlan = "21"
+  guest-vlan      = "31"
 }
 
 locals {

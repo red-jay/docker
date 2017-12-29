@@ -5,3 +5,9 @@ variable "site-bits" {
 }
 
 variable "domainname" {}
+
+variable "user-vlan" {}
+
+variable "restricted-vlan" {}
+
+variable "guest-vlan" {}

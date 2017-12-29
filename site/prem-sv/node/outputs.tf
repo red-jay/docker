@@ -11,6 +11,19 @@ output "networks" {
                 )}"
 }
 
+output "vlans" {
+  value = "${map(
+                  "4","netmgmt",
+                  "5","server",
+                  "66","transit",
+                  "6","hypervisor",
+                  "303","dmz",
+                  var.user-vlan,"user",
+                  var.restricted-vlan,"restricted",
+                  var.guest-vlan,"guest",
+                )}"
+}
+
 output "restricted-nets" {
   value = "${local.restricted_keys}"
 }
