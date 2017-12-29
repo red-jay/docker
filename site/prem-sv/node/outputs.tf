@@ -10,3 +10,7 @@ output "networks" {
                   "transit",local.transit,
                 )}"
 }
+
+output "restricted-nets" {
+  value = "${local.restricted_keys}"
+}

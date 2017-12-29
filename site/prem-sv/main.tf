@@ -18,8 +18,8 @@ module "node-2" {
   supernet = "${local.block-node-2}"
 }
 
-# dhcp-1 also gets wifiext, powerline networks
 locals {
+  # dhcp-1 also gets wifiext, powerline networks
   dhcp-1-range = "${merge(module.node-1.networks, local.wext-1-range, local.pln-1-range)}"
 }
 
