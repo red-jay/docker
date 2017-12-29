@@ -24,6 +24,16 @@ data "template_file" "dhcpd_conf" {
 }
 
 resource "local_file" "dhcpd_conf" {
-  filename = "tf-output/${var.fqdn}/etc/dhcpd.conf"
+  filename = "tf-output/${var.fqdn}/etc/dhcp/dhcpd.conf"
   content  = "${data.template_file.dhcpd_conf.rendered}"
+}
+
+resource "local_file" "ipxe_option_space" {
+  filename = "tf-output/${var.fqdn}/etc/dhcp/ipxe-option-space.conf"
+  content  = "${file("${path.module}/ipxe-option-space.conf")}"
+}
+
+resource "local_file" "dhcpd_bootfile_conf" {
+  filename = "tf-output/${var.fqdn}/etc/dhcp/bootfile.conf"
+  content  = "${file("${path.module}/dhcp-bootfile.conf")}"
 }
