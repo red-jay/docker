@@ -6,6 +6,7 @@ output "networks" {
                   "server",local.server,
                   "dmz",local.dmz,
                   "user",local.user,
-                  "guest",local.guest
+                  "guest",local.guest,
+                  "transit",local.transit,
                 )}"
 }
