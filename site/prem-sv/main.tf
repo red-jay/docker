@@ -20,8 +20,6 @@ module "node-2" {
 
 # dhcp-1 also gets wifiext, powerline networks
 locals {
-  wext-1-range = "${map("wifiext",cidrsubnet(local.block-local,2,1))}"
-  pln-1-range = "${map("powerline",cidrsubnet(local.block-local,2,0))}"
   dhcp-1-range = "${merge(module.node-1.networks, local.wext-1-range, local.pln-1-range)}"
 }
 

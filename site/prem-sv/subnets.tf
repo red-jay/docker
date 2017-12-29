@@ -1,3 +1,4 @@
 locals {
-  netmgmt-ranges = "${list(lookup(module.node-1.networks,"netmgmt"), lookup(module.node-1a.networks,"netmgmt"), lookup(module.node-2.networks,"netmgmt"))}"
+  wext-1-range = "${map("wifiext",cidrsubnet(local.block-local,2,1))}"
+  pln-1-range  = "${map("powerline",cidrsubnet(local.block-local,2,0))}"
 }
