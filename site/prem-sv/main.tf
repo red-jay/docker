@@ -18,12 +18,19 @@ module "node-2" {
   supernet = "${local.block-node-2}"
 }
 
+# dhcp-1 also gets wifiext, powerline networks
+locals {
+  wext-1-range = "${map("wifiext",cidrsubnet(local.block-local,2,1))}"
+  pln-1-range = "${map("powerline",cidrsubnet(local.block-local,2,0))}"
+  dhcp-1-range = "${merge(module.node-1.networks, local.wext-1-range, local.pln-1-range)}"
+}
+
 # dhcp(/tftp) servers
 module "dhcp-1" {
   source = "./dhcp-server"
   addr   = "${local.tftp-1-subrange}"
   fqdn   = "dhcp-1.${var.domainname}"
-  ranges = "${module.node-1.networks}"
+  ranges = "${local.dhcp-1-range}"
 }
 
 module "dhcp-2" {
