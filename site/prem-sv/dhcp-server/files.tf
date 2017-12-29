@@ -1,5 +1,6 @@
 locals {
   range-keys = "${keys(var.ranges)}"
+  classes    = "${formatlist("class \"%s\" { match hardware };",local.range-keys)}"
 }
 
 data "template_file" "subnet" {
@@ -17,7 +18,7 @@ data "template_file" "dhcpd_conf" {
   template = "${file("${path.module}/dhcpd.conf.template")}"
 
   vars {
-    classes = ""
+    classes = "${join("\n",local.classes)}"
     netmgmt = "${join("\n",data.template_file.subnet.*.rendered)}"
   }
 }
