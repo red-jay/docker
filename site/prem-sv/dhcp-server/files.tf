@@ -10,6 +10,7 @@ data "template_file" "subnet" {
   vars {
     range       = "${lookup(var.ranges,element(local.range-keys,count.index))}"
     class       = "${element(local.range-keys,count.index)}"
+    allows      = "${contains(var.restricted_nets,element(local.range-keys,count.index)) ? "allow members of \"${element(local.range-keys,count.index)}\";" : "" }"
     next-server = "${cidrhost(var.addr,0)}"
   }
 }
