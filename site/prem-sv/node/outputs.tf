@@ -14,3 +14,9 @@ output "networks" {
 output "restricted-nets" {
   value = "${local.restricted_keys}"
 }
+
+output "host-map" {
+  value = "${map(
+                 "ifw.sv1.${var.domainname}", "${map("class","netmgmt","hwaddr","${random_id.ifw_hwaddr.hex}")}"
+                )}"
+}
