@@ -12,15 +12,19 @@ output "networks" {
 }
 
 output "vlans" {
+  # NOTE: this is used to plumb hypervisors, so we need to clamp names to 15c (IFNAMSIZ)
   value = "${map(
-                  "4","netmgmt",
-                  "5","server",
-                  "66","transit",
-                  "6","hypervisor",
+                  "4","netm",
+                  "5","srv",
+                  "66","xsit",
+                  "6","hv",
                   "303","dmz",
-                  var.user-vlan,"user",
-                  var.restricted-vlan,"restricted",
-                  var.guest-vlan,"guest",
+                  "400","pln",
+                  var.wext-vlan,"s${var.series}.wext",
+                  var.user-vlan,"s${var.series}.user",
+                  var.restricted-vlan,"s${var.series}.res",
+                  var.guest-vlan,"s${var.series}.gst",
+                  var.iot-vlan,"s${var.series}.iot",
                 )}"
 }
 
