@@ -1,6 +1,6 @@
 network ${cidrhost(range,0)} netmask ${cidrnetmask(range)} {
-  pool {
-    ${allows}
+  # ${class}
+  pool {${allows}
     range dynamic-bootp ${cidrhost(range,32)} ${cidrhost(range,-1)};
   }
   option subnet-mask ${cidrnetmask(range)};
