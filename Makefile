@@ -191,6 +191,7 @@ ifeq ($(findstring netmgmt,$(MAKECMDGOALS)),netmgmt)
 	cp -r archive/openbsd-packages/6.2 $(tmpdir)/openbsd-dist/6.2/packages
 	cp ipxe-cfgs/ipxe-binaries.tgz $(tmpdir)
 endif
+	cp ks-scripts/fs-layout.sh $(tmpdir)
 	mkisofs -quiet -o $@ -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -rational-rock -J -V KICKSTART -hide-joliet-trans-tbl -hide-rr-moved $(tmpdir)
 
 %.img: $(ISOFILES) syslinux/%.cfg grub/%.cfg ks/%.ks
@@ -217,6 +218,7 @@ endif
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s grub/$(basename $(notdir $@)).cfg ::EFI/BOOT/grub.cfg
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/centos7/LiveOS ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/centos7/images ::
+	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s ks-scripts/fs-layout.sh ::
 ifneq ($(MINIMAL),1)
 ifeq ($(findstring hypervisor,$(MAKECMDGOALS)),hypervisor)
 ifeq ($(INCLUDE_PRIVATE),true)
