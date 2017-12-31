@@ -110,6 +110,10 @@ make-bcache () {
   if [ "${NOOP}" -eq 0 ] ; then command make-bcache "${@}" ; else echo "make-bcache" "${@}" 1>&3 ; fi
 }
 
+cryptsetup () {
+  if [ "${NOOP}" -eq 0 ] ; then command cryptsetup "${@}" ; else echo "cryptsetup" "${@}" 1>&3 ; fi
+}
+
 # get rootdisk, and the repodisk if there
 repodisk=$(key2disk 'MOUNTPOINT="/run/install/repo"')
 repodisk=${repodisk##*/}
@@ -132,6 +136,7 @@ while read -r -d $'\0' cmdl ; do
 done < "/proc/${gpid}/cmdline"
 
 # if the installer set aside the luks_flag, set the password now.
+LUKS_PASSWORD=""
 if [ -f /tmp/luks_flag ] ; then LUKS_PASSWORD="changeit" ; fi
 
 # minimum required disk size
@@ -470,6 +475,8 @@ fi
 if [ "${flash_disk_nr}" -gt 1 ] ; then
   # shellchek disable=SC2086
   mdadm --create /dev/md/cache -Ncache -l"${cache_raid_level}" -n "$(count_words "${cache_devs}")" --metadata=1.1 ${cache_devs}
+  # run stop_bcache here as it may awaken upon RAID assembly(!)
+  stop_bcache
   wipefs      -a /dev/md/cache
 
   if [ "${in_anaconda}" -eq 1 ] ; then
@@ -510,6 +517,42 @@ if [ ! -z "${bcache_cache}" ] ; then
     echo writeback > /sys/block/bcache0/bcache/cache_mode
   fi
   # this is where we trick anaconda by replacing pv.1
+  if [ "${in_anaconda}" -eq 1 ] ; then
+    sed -i -e 's/.* pv.1 .*/part pv.1 --fstype="lvmpv" --onpart="bcache0"/' /tmp/part-include
+  fi
+fi
+
+# if we're asked to encrypt do that here...
+if [ -b /dev/bcache0 ] ; then
+  data_luks_source="/dev/bcache0"
+elif [ -e /dev/md/data ] ; then
+  data_luks_source=$(readlink /dev/md/data)
+  data_luks_source="/dev/md/${data_luks_source}"
+else
+  for part in ${data_devs} ; do data_luks_source="${part}" ; done
+fi
+
+if [ -e /dev/md/system ] ; then
+  sys_luks_source="/dev/md/system"
+else
+  for part in ${sys_devs} ; do sys_luks_source="${part}" ; done
+fi
+
+if [ ! -z "${LUKS_PASSWORD}" ] ; then
+  if [ "${in_anaconda}" -eq 1 ] ; then
+    # rewrite part-include pv.0, pv.1 devices
+    sed -i -e 's/(.* pv.0 .*)/\1 --encrypted --passphrase="'"${LUKS_PASSWORD}"'"/' /tmp/part-include
+    sed -i -e 's/(.* pv.1 .*)/\1 --encrypted --passphrase="'"${LUKS_PASSWORD}"'"/' /tmp/part-include
+  else
+    # set up encryption via cryptsetup
+    # anaconda sets the aes-xts-plain64 cipher out of the box. no bets on the rest tho. YOLO.
+    luksopts="-c aes-xts-plain64 -s 512 -h sha256 -i 5000 --align-payload=8192"
+    # shellcheck disable=SC2086
+    {
+      printf '%s' "${LUKS_PASSWORD}" | cryptsetup luksFormat ${luksopts} "${sys_luks_source}"
+      printf '%s' "${LUKS_PASSWORD}" | cryptsetup luksFormat ${luksopts} "${data_luks_source}"
+    }
+  fi
 fi
 
 # write LVM config for kickstart here for handoff
