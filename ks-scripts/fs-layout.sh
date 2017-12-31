@@ -365,7 +365,7 @@ candidate_disk_nr=$(count_words "${candidate_disks}")
 flash_disk_nr=$(count_words "${flash_disks}")
 
 # wipe partitions now
-for disk in ${candidate_disks} ; do
+for disk in ${candidate_disks} ${flash_disks} ; do
   wipedisk "${disk}"
 done
 
