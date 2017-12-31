@@ -4,6 +4,10 @@ set -eu
 set -o pipefail
 shopt -s nullglob
 
+# steal a fs here for de bugs
+exec 3>&1
+NOOP=1
+
 get_lsblk_val() {
   local blkline blk key
   declare -A blkline
@@ -84,6 +88,22 @@ key2disk () {
       echo "${blkname}"
     ;;
   esac
+}
+
+wipefs () {
+  if [ "${NOOP}" -eq 0 ] ; then command wipefs "${@}" ; else echo "wipefs" "${@}" 1>&3 ; fi
+}
+
+mdadm () {
+  if [ "${NOOP}" -eq 0 ] ; then command mdadm "${@}" ; else echo "mdadm" "${@}" 1>&3 ; fi
+}
+
+parted() {
+  if [ "${NOOP}" -eq 0 ] ; then command parted "${@}" ; else echo "parted" "${@}" 1>&3 ; fi
+}
+
+mkfs.vfat() {
+  if [ "${NOOP}" -eq 0 ] ; then command mkfs.vfat "${@}" ; else echo "mkfs.vfat" "${@}" 1>&3 ; fi
 }
 
 # get rootdisk, and the repodisk if there
@@ -215,14 +235,15 @@ stop_bcache () {
   rw_arrays
   # walk all assembled/active(?) bcaches
   for bcachef in /sys/fs/bcache/*-*-*-*-* ; do
-    if [ -f "${bcachef}/stop" ] ; then printf 1 > "${bcachef}/stop" ; fi
-    if [ -f "${bcachef}/unregister" ] ; then printf 1 > "${bcachef}/unregister" ; fi
+    if [ -f "${bcachef}/stop" ] ; then if [ "${NOOP}" -eq 0 ] ; then printf 1 > "${bcachef}/stop" ; else echo "${bcachef}/stop" ; fi ; fi
+    if [ -f "${bcachef}/unregister" ] ; then if [ "${NOOP}" -eq 0 ] ; then printf 1 > "${bcachef}/unregister" ; else echo "${bcachef}/unregister" ; fi ; fi
   done
 
   # walk all arrays and stop bcache children on those, too
   for shortdev in ${arraylist} ; do
     # stop any bcaches now
     while [ -f "/sys/block/${shortdev}/bcache/set/stop" ] || [ -f "/sys/block/${shortdev}/bcache/stop" ] ; do
+      if [ "${NOOP}" -ne 0 ] ; then break ; fi
       if [ -f "/sys/block/${shortdev}/bcache/set/stop" ] ; then printf 1 > "/sys/block/${shortdev}/bcache/set/stop" ; fi
       if [ -f "/sys/block/${shortdev}/bcache/stop" ] ; then printf 1 > "/sys/block/${shortdev}/bcache/stop" ; fi
       sleep 1
@@ -265,7 +286,7 @@ partition_disk () {
 
   # /boot partition
   {
-    parted "${disk}" mkpart sysboot 300m 800m && partition=$((partition + 1))
+    tarted "${disk}" mkpart sysboot 300m 800m && partition=$((partition + 1))
     if [ "${raidflag}" -gt 1 ] ; then
       parted "${disk}" toggle "${partition}" raid
     fi
