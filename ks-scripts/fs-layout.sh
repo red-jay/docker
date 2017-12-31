@@ -98,12 +98,16 @@ mdadm () {
   if [ "${NOOP}" -eq 0 ] ; then command mdadm "${@}" ; else echo "mdadm" "${@}" 1>&3 ; fi
 }
 
-parted() {
+parted () {
   if [ "${NOOP}" -eq 0 ] ; then command parted "${@}" ; else echo "parted" "${@}" 1>&3 ; fi
 }
 
-mkfs.vfat() {
+mkfs.vfat () {
   if [ "${NOOP}" -eq 0 ] ; then command mkfs.vfat "${@}" ; else echo "mkfs.vfat" "${@}" 1>&3 ; fi
+}
+
+make-bcache () {
+  if [ "${NOOP}" -eq 0 ] ; then command make-bcache "${@}" ; else echo "make-bcache" "${@}" 1>&3 ; fi
 }
 
 # get rootdisk, and the repodisk if there
@@ -467,6 +471,45 @@ if [ "${flash_disk_nr}" -gt 1 ] ; then
   # shellchek disable=SC2086
   mdadm --create /dev/md/cache -Ncache -l"${cache_raid_level}" -n "$(count_words "${cache_devs}")" --metadata=1.1 ${cache_devs}
   wipefs      -a /dev/md/cache
+
+  if [ "${in_anaconda}" -eq 1 ] ; then
+    {
+      # partitions
+      i=0 ; for part in ${cache_devs} ; do s=${part##*/} ; i=$(( i + 1 ))
+        printf 'part raid9%s --fstype="mdmember" --noformat --onpart=%s\n' "${i}" "${s}" ; done
+
+      # RAIDs
+      # RHEL/Fedora don't know what bcache is, so don't...tell them directly ;)
+    } >> /tmp/part-include
+  fi
+fi
+
+# create bcache device if we have flash disks
+bcache_backing=""
+bcache_cache=""
+
+if [ "${candidate_disk_nr}" -gt 1 ] ; then
+  bcache_backing=/dev/md/data
+else
+  for part in ${data_devs} ; do bcache_backing="${part}" ; done
+fi
+
+if [ "${flash_disk_nr}" -eq 1 ] ; then
+  for part in ${cache_devs} ; do bcache_cache="${part}" ; done
+elif [ "${flash_disk_nr}" -gt 1 ] ; then
+  bcache_cache=/dev/md/cache
+fi
+
+if [ ! -z "${bcache_cache}" ] ; then
+  make-bcache --data-offset 161280k --block 4k --bucket 4M -B "${bcache_backing}"
+  make-bcache                       --block 4k --bucket 4M -C "${bcache_cache}"
+  if [ "${NOOP}" -eq 0 ] ; then
+    cacheuuid=$(bcache-super-show "${bcache_cache}" | awk '$1 ~ "cset.uuid" { print $2 }')
+    while [ ! -f /sys/block/bcache0/bcache/attach ] ; do sleep 1 ; done
+    echo "${cacheuuid}" > /sys/block/bcache0/bcache/attach
+    echo writeback > /sys/block/bcache0/bcache/cache_mode
+  fi
+  # this is where we trick anaconda by replacing pv.1
 fi
 
 # write LVM config for kickstart here for handoff
