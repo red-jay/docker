@@ -89,38 +89,28 @@ nginx
 
 %pre
 # be a chatterbox here
+exec 1> /tmp/pre-log
+exec 2>&1
 set -x
+
+env
+
+# find ppid so we can get parent cmd
+ppid=$(cut -d' ' -f4 < /proc/$$/stat)
+read -r pcmdl < "/proc/${ppid}/cmdline"
+
+case "${pcmdl}" in
+  */sbin/anaconda)
+    echo "running in anaconda ks env"
+  ;;
+esac
+
+echo ${ppid} ${pcmdl}
 
 # on with nullglub
 shopt -s nullglob
 
 # functions
-partition_all_drives() {
-  # partition drives
-  for d in /dev/[sv]d*[^0-9] ; do
-    if [ "${d}" == "${repodisk}" ] ; then continue ; fi
-    read dsz < "/sys/block/$(basename ${d})/size"
-    if [ "${dsz}" == "0" ] ; then continue ; fi
-    parted "${d}" mklabel gpt
-    parted "${d}" mkpart biosboot 1m 5m
-    parted "${d}" toggle 1 bios_grub
-    parted "${d}" toggle 1 legacy_boot
-    biosboot_dev="${biosboot_dev} ${d}1"
-
-    parted "${d}" mkpart '"EFI System Partition"' 5m 300m
-    parted "${d}" toggle 2 boot
-    efi_sp_dev="${efi_sp_dev} ${d}2"
-
-    parted "${d}" mkpart boot 300m 800m
-    parted "${d}" toggle 3 raid
-    boot_dev="${boot_dev} ${d}3"
-
-    parted "${d}" mkpart primart 800m 100%
-    parted "${d}" toggle 4 raid
-    sys_dev="${sys_dev} ${d}4"
-  done
-
-}
 
 # parts that can be _reset_ by system config but have a default
 reboot_flag="reboot"
@@ -135,10 +125,6 @@ for ent in $cmdline ; do
       ;;
   esac
 done
-
-# get whatever diskdev we're running on
-repodisk=$(awk '$2 == "/run/install/repo" { print $1 }' < /proc/mounts)
-repodisk=${repodisk%[1-9]*}
 
 # well... let's try to find one
 if [ -z "${syscfg}" ] ; then
@@ -205,33 +191,11 @@ fi
 # always stop lvm
 vgchange -an
 
-# always stop md devices
-for md in /dev/md[0-9]* ; do
-  mdadm -S "${md}"
-done
-
-# always erase disks, write a new gpt
-for d in /dev/[sv]d*[^0-9] ; do
-  # skip where we booted
-  if [ "${d}" == "${repodisk}" ] ; then continue ; fi
-
-  # partitions...
-  for part in ${d}[0-9]* ; do
-    wipefs -a "${part}"
-  done
-
-  # label
-  wipefs -a "${d}"
-done
+# configure disks via magic script ;)
+bash -x /run/install/repo/fs-layout.sh
 
 # this holds any needed conditional package statements
 touch /tmp/package-include
-
-# disk setup globals
-biosboot_dev=''
-efi_sp_dev=''
-boot_dev=''
-sys_dev=''
 
 if [[ " radon mercury tungsten palladium nickel " =~ " ${syscfg} " ]] ; then
   reboot_flag="reboot"
@@ -239,101 +203,6 @@ fi
 
 if [[ " strontium rhenium qemu-generic " =~ " ${syscfg} " ]] ; then
   reboot_flag="poweroff"
-fi
-
-# system specific configuration
-if [ "${syscfg}" == "rhenium" ] ; then
-  partition_all_drives
-
-  # start arrays and wipe any filesystems we suddenly get ;)
-  efi_sp_arr=( ${efi_sp_dev} )
-  boot_arr=( ${boot_dev} )
-  sys_arr=( ${sys_dev} )
-  mdadm --create /dev/md/efi -Nefi -l1 --homehost=${syscfg} -n ${#efi_sp_arr[@]} --metadata=1.0 ${efi_sp_dev}
-  wipefs -a /dev/md/efi
-  mdadm --create /dev/md/boot -Nboot -l1 --homehost=${syscfg} -n ${#boot_arr[@]} --metadata=1.0 ${boot_dev}
-  wipefs -a /dev/md/boot
-  mdadm --create /dev/md/system -Nsystem -l1 --homehost=${syscfg} -n ${#sys_arr[@]} --metadata=1.1 ${sys_dev}
-  wipefs -a /dev/md/system
-
-  # format the ESP
-  mkfs.vfat -F32 /dev/md/efi
-
-  # tell kickstart we already have raid volumes, and build lvm from there.
-  {
-    # partitions
-    for part in ${biosboot_dev} ; do
-      p=$(basename "${part}")
-      printf 'part biosboot --fstype=biosboot --onpart=%s\n' "${p}"
-    done
-    for part in ${efi_sp_dev} ; do
-      p=$(basename "${part}")
-      i=${p:2:1}
-      printf 'part raid.0%s --fstype="mdmember" --noformat --onpart=%s\n' "${i}" "${p}"
-    done
-    for part in ${boot_dev} ; do
-      p=$(basename "${part}")
-      i=${p:2:1}
-      printf 'part raid.1%s --fstype="mdmember" --noformat --onpart=%s\n' "${i}" "${p}"
-    done
-    for part in ${sys_dev} ; do
-      p=$(basename "${part}")
-      i=${p:2:1}
-      printf 'part raid.2%s --fstype="mdmember" --noformat --onpart=%s\n' "${i}" "${p}"
-    done
-
-    # RAIDs
-    printf 'raid pv.0 --device=system --fstype="lvmpv" --level=1 --useexisting\n'
-    printf 'raid /boot --device=boot --fstype="ext2" --useexisting --label="/boot"\n'
-    printf 'raid /boot/efi --device=efi --fstype="efi" --fsoptions="umask=0077,shortname=winnt" --noformat --useexisting --label="EFISP"\n'
-
-    # LVM
-    printf 'volgroup rhenium pv.0\n'
-    printf 'logvol / --vgname=rhenium --fstype=ext4 --name=root --size=18432\n'
-    printf 'logvol swap --vgname=rhenium --name=swap --size=512\n'
-
-    # LVM thinpool
-    printf 'logvol none --vgname=rhenium --thinpool --name=thinpool --size=18432 --grow\n'
-    printf 'logvol /var/lib/libvirt/images --vgname=rhenium --thin --poolname=thinpool --fsoptions="defaults,discard" --fstype=ext4 --name=libvirt-images --size=18432\n'
-
-    printf 'bootloader --append=" crashkernel auto" --location=mbr\n'
-  } > /tmp/part-include
-
-fi
-
-if [[ " strontium radon mercury tungsten palladium nickel qemu-generic " =~ " ${syscfg} " ]] ; then
-  partition_all_drives
-
-  {
-    for part in ${biosboot_dev} ; do
-      p=$(basename "${part}")
-      printf 'part biosboot --fstype=biosboot --onpart=%s\n' "${p}"
-    done
-    for part in ${efi_sp_dev} ; do
-      p=$(basename "${part}")
-      printf 'part /boot/efi --fstype="efi" --onpart=%s\n' "${p}"
-    done
-    for part in ${boot_dev} ; do
-      p=$(basename "${part}")
-      printf 'part /boot --fstype="ext2" --onpart=%s\n' "${p}"
-    done
-    for part in ${sys_dev} ; do
-      p=$(basename "${part}")
-      printf 'part pv.0 --fstype="lvmpv" --onpart=%s\n' "${p}"
-    done
-    # LVM
-    printf 'volgroup centos_system pv.0\n'
-    printf 'logvol / --vgname=centos_system --fstype=ext4 --name=root --size=18432\n'
-    printf 'logvol swap --vgname=centos_system --name=swap --size=512\n'
-
-    # LVM thinpool
-    printf 'logvol none --vgname=centos_system --thinpool --name=thinpool --size=18432 --grow\n'
-    printf 'logvol /var/lib/libvirt --vgname=centos_system --thin --poolname=thinpool --fsoptions="defaults,discard" --fstype=ext4 --name=libvirt --size=18432\n'
-    printf 'logvol /usr/share/nginx/html --vgname=centos_system --thin --poolname=thinpool --fsoptions="defaults,discard" --fstype=ext4 --name=http_sys --size=512\n'
-    printf 'logvol /usr/share/nginx/html/bootstrap --vgname=centos_system --thin --poolname=thinpool --fsoptions="defaults,discard" --fstype=ext4 --name=http_bootstrap --size=8192\n'
-
-    printf 'bootloader --append=" crashkernel auto" --location=mbr\n'
-  } > /tmp/part-include
 fi
 
 # hang the hostname up
