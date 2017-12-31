@@ -164,7 +164,7 @@ sudo mkdir -p "${IMGDIR}/mnt/target"
 # shellcheck disable=SC2024
 sudo tar cp -C "${IMGDIR}" . > image.tar
 # create iso
-sudo mkisofs -b boot/isolinux.bin -c boot/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -R -J -v -T -V HVINABOX "${IMGDIR}" > image.iso
+sudo mkisofs -b boot/isolinux.bin -c boot/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -R -J -joliet-long -v -T -V HVINABOX "${IMGDIR}" > image.iso
 
 # clean out IMGDIR
 sudo rm -rf "${IMGDIR}"
