@@ -286,7 +286,7 @@ partition_disk () {
 
   # /boot partition
   {
-    tarted "${disk}" mkpart sysboot 300m 800m && partition=$((partition + 1))
+    parted "${disk}" mkpart sysboot 300m 800m && partition=$((partition + 1))
     if [ "${raidflag}" -gt 1 ] ; then
       parted "${disk}" toggle "${partition}" raid
     fi
@@ -312,6 +312,27 @@ partition_disk () {
   echo "data=${disk}${partition}"
 }
 
+partition_cache () {
+  local disk raidflag partition
+  partition="0"
+  raidflag="1"
+  disk="/dev/${1}"
+  [ ! -z "${2+x}" ] && {
+    raidflag="${2}"
+  }
+  # partition label
+  parted "${disk}" mklabel gpt > /dev/null
+
+  # cache partition
+  {
+    parted "${disk}" mkpart cache 1m 100% && partition=$((partition +1))
+    if [ "${raidflag}" -gt 1 ] ; then
+      parted "${disk}" toggle "${partition}" raid
+    fi
+  } > /dev/null
+  echo "cache=${disk}${partition}"
+}
+
 # call get_arrays _once_ for stopping
 arraylist=$(get_arrays)
 # stop bcache here (which also flips arrays on)
@@ -330,13 +351,14 @@ flash_disks=""
 if [ "${disknr}" -eq "1" ] ; then
   # if we only have one disk do this
   candidate_disks="${all_disks}"
-elif [ "${disknr}" -ge "2" ] ; then
+elif [ "${disknr}" -gt "2" ] ; then
   # do we have flash or spinny disks?
   candidate_disks=$(get_baseblocks queue/rotational=1)
   flash_disks=$(get_baseblocks queue/rotational=0)
 fi
 
 candidate_disk_nr=$(count_words "${candidate_disks}")
+flash_disk_nr=$(count_words "${flash_disks}")
 
 # wipe partitions now
 for disk in ${candidate_disks} ; do
@@ -349,6 +371,7 @@ efi_bootdevs=""
 sys_bootdevs=""
 sys_devs=""
 data_devs=""
+cache_devs=""
 
 # new partition table(s)
 for disk in ${candidate_disks} ; do
@@ -364,11 +387,22 @@ for disk in ${candidate_disks} ; do
   done < <(partition_disk "${disk}" "${candidate_disk_nr}")
 done
 
+# take a moment to consider the flash drives.
+for disk in ${flash_disks} ; do
+  while read -r kv ; do
+    key=${kv%=*} ;val=${kv#*=}
+    case ${key} in
+      cache) printf -v cache_devs '%s%s ' "${cache_devs}" "${val}" ;;
+    esac
+  done < <(partition_cache "${disk}" "${flash_disk_nr}")
+done
+
 # adjust raid levels depending on numbers of disks
 efiboot_raid_level=1
 sysboot_raid_level=1
 system_raid_level=1
 data_raid_level=1
+cache_raid_level=1
 
 # if we have 4 or more drives, switch to raid10/raid6 for system/data
 if [ "${candidate_disk_nr}" -ge 4 ] ; then
@@ -427,6 +461,12 @@ else
       for part in ${data_devs}    ; do s=${part##*/} ; printf 'part pv.1      --fstype="lvmpv" --onpart=%s\n' "${s}" ; done
     } >> /tmp/part-include
   fi
+fi
+
+if [ "${flash_disk_nr}" -gt 1 ] ; then
+  # shellchek disable=SC2086
+  mdadm --create /dev/md/cache -Ncache -l"${cache_raid_level}" -n "$(count_words "${cache_devs}")" --metadata=1.1 ${cache_devs}
+  wipefs      -a /dev/md/cache
 fi
 
 # write LVM config for kickstart here for handoff
