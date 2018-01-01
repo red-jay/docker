@@ -106,12 +106,43 @@ mkfs.vfat () {
   if [ "${NOOP}" -eq 0 ] ; then command mkfs.vfat "${@}" ; else echo "mkfs.vfat" "${@}" 1>&3 ; fi
 }
 
+mkfs.ext4 () {
+  if [ "${NOOP}" -eq 0 ] ; then command mkfs.ext4 "${@}" ; else echo "mkfs.ext4" "${@}" 1>&3 ; fi
+}
+
+mkswap () {
+  if [ "${NOOP}" -eq 0 ] ; then command mkswap "${@}" ; else echo "mkswap" "${@}" 1>&3 ; fi
+}
+
 make-bcache () {
   if [ "${NOOP}" -eq 0 ] ; then command make-bcache "${@}" ; else echo "make-bcache" "${@}" 1>&3 ; fi
 }
 
 cryptsetup () {
   if [ "${NOOP}" -eq 0 ] ; then command cryptsetup "${@}" ; else echo "cryptsetup" "${@}" 1>&3 ; fi
+}
+
+pvcreate () {
+  if [ "${NOOP}" -eq 0 ] ; then command pvcreate "${@}" --dataalignment 8192s
+                           else echo    pvcreate "${@}" --dataalignment 8192s ; fi
+}
+
+vgcreate () {
+  if [ "${NOOP}" -eq 0 ] ; then command vgcreate "${@}" --dataalignment 8192s
+                           else echo    vgcreate "${@}" --dataalignment 8192s ; fi
+}
+
+lvcreate () {
+  if [ "${NOOP}" -eq 0 ] ; then command lvcreate "${@}" --dataalignment 8192s
+                           else echo    lvcreate "${@}" --dataalignment 8192s ; fi
+}
+
+mkdir () {
+  if [ "${NOOP}" -eq 0 ] ; then command mkdir -p "${@}" ; else echo "mkdir" -p "${@}" 1>&3 ; fi
+}
+
+mount () {
+  if [ "${NOOP}" -eq 0 ] ; then command mount "${@}" ; else echo "mount" "${@}" 1>&3 ; fi
 }
 
 luks_open () {
@@ -152,6 +183,9 @@ if [ -f /tmp/luks_flag ] ; then LUKS_PASSWORD="changeit" ; fi
 
 # minimum required disk size
 MINSZ=32036093952	# 32G
+
+# mounted system path
+TARGETPATH=/mnt/sysimage
 
 # return all disk devices _except_ the ones we booted from sans partitions
 # shellcheck disable=SC2120
@@ -351,6 +385,35 @@ partition_cache () {
     fi
   } > /dev/null
   echo "cache=${disk}${partition}"
+}
+
+lvm_create () {
+  local pv vg
+  pv="${2}"
+  vg="${1}"
+  wipefs -a "${pv}"
+  pvcreate "${pv}"
+  vgcreate "${vg}" "${pv}"
+}
+
+ready_lv () {
+  local lvname vgname fstype sizeM lmount devpath mpath
+  lvname="${1}"
+  vgname="${2}"
+  fstype="${3}"
+  sizeM="${4}"
+  lmount=""
+  [ ! -z "${5+x}" ] && { lmount="${5}" ; mpath="${TARGETPATH}${lmount}" ; }
+  devpath="/dev/${vgname}/${lvname}"
+  lvcreate "-L${sizeM}M" "-n${lvname}" "${vgname}"
+  case "${fstype}" in
+    ext4) mkfs.ext4 "${devpath}" ;;
+    swap) mkswap    "${devpath}" ;;
+  esac
+  if [ ! -z "${lmount}" ] ; then
+    mkdir "${mpath}"
+    mount "${devpath}" "${mpath}"
+  fi
 }
 
 # call get_arrays _once_ for stopping
@@ -569,16 +632,55 @@ if [ ! -z "${LUKS_PASSWORD}" ] ; then
   fi
 fi
 
-# write LVM config for kickstart here for handoff
 if [ "${in_anaconda}" -eq 1 ] ; then
+  # write LVM volgroup config for kickstart here for handoff
   {
     printf '%s\n' 'volgroup system pv.0'
+    printf '%s\n' 'volgroup data pv.1'
+    printf '%s\n'  'logvol none --vgname=data --thinpool --name=thinpool --size=18432 --grow'
+  } >> /tmp/part-include
+else
+  # we're *making* LVM volume groups here
+
+  # system
+  system_pv=""
+  if [ ! -z "${sys_luks_source}" ] ; then
+    if [ -e /dev/md/system ] ; then
+      system_pv=/dev/md/system
+    else
+      for part in ${sys_devs} ; do system_pv="${part}" ; done
+    fi
+  else
+    # we have a cryptodev, open it and get the uuid
+    system_pv=$(luks_open "${sys_luks_source}")
+  fi
+  lvm_create system "${system_pv}"
+
+  # data
+  data_pv=""
+  if [ ! -z "${data_luks_source}" ] ; then
+    if [ -e /dev/bcache0 ] ; then
+      data_pv=/dev/bcache0
+    elif [ -e /dev/md/data ] ; then
+      data_pv=/dev/md/data
+    else
+      for part in ${data_devs} ; do data_pv="${part}" ; done
+    fi
+  else
+    data_pv=$(luks_open "${data_luks_source}")
+  fi
+  lvm_create data "${data_pv}"
+
+  lvcreate -l100%VG --type thin-pool --thinpool thinpool data
+
+fi
+
+# at this point we've virtualized away block devices :) go forth and create logical volumes!
+
+if [ "${in_anaconda}" -eq 1 ] ; then
+  {
     printf '%s\n' 'logvol /    --vgname=system --fstype=ext4 --name=root --size=18432'
     printf '%s\n' 'logvol swap --vgname=system               --name=swap --size=512'
-
-    printf '%s\n' 'volgroup data pv.1'
-    printf '%s '  'logvol none                            --vgname=data --thinpool                 --name=thinpool'
-    printf '%s\n'        '--size=18432 --grow'
     printf '%s '  'logvol /var/lib/libvirt                --vgname=data --thin --poolname=thinpool --name=libvirt'
     printf '%s\n'        '--size=18432 --fsoptions="defaults,discard" --fstype=ext4'
     printf '%s '  'logvol /usr/share/nginx/html           --vgname=data --thin --poolname=thinpool --name=http_sys'
@@ -587,21 +689,9 @@ if [ "${in_anaconda}" -eq 1 ] ; then
     printf '%s\n'        '--size=8192  --fsoptions="defaults,discard" --fstype=ext4'
   } >> /tmp/part-include
 else
-  # we're *making* LVM volumes here. and formatting/mounting. ;)
-
-  # /
-  root_pv=""
-  if [ ! -z "${sys_luks_source}" ] ; then
-    if [ -e /dev/md/system ] ; then
-      root_pv=/dev/md/system
-    else
-      for part in ${sys_devs} ; do root_pv="${part}" ; done
-    fi
-  else
-    # we have a cryptodev, open it and get the uuid
-    root_pv=$(luks_open "${sys_luks_source}")
-  fi
-  lvm_create system "${root_pv}"
+  # lvname vgname fstype sizeM (lmount)
+  ready_lv root system ext4 18432 /
+  ready_lv swap system swap 512
 fi
 
 # install bootloader
