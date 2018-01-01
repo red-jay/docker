@@ -416,6 +416,27 @@ ready_lv () {
   fi
 }
 
+ready_thin () {
+  local lvname vgname tpoolname fstype sizeM lmount devpath mpath
+  lvname="${1}"
+  vgname="${2}"
+  tpoolname="${3}"
+  fstype="${4}"
+  sizeM="${5}"
+  lmount=""
+  [ ! -z "${6+x}" ] && { lmount="${6}" ; mpath="${TARGETPATH}${lmount}" ; }
+  devpath="/dev/${vgname}/${lvname}"
+  lvcreate "-V${sizeM}M" "-n${lvname}" --thinpool "${tpoolname}" "${vgname}"
+  case "${fstype}" in
+    ext4) mkfs.ext4 "${devpath}" ;;
+    swap) mkswap    "${devpath}" ;;
+  esac
+  if [ ! -z "${lmount}" ] ; then
+    mkdir "${mpath}"
+    mount -o discard "${devpath}" "${mpath}"
+  fi
+}
+
 # call get_arrays _once_ for stopping
 arraylist=$(get_arrays)
 # stop bcache here (which also flips arrays on)
@@ -692,6 +713,10 @@ else
   # lvname vgname fstype sizeM (lmount)
   ready_lv root system ext4 18432 /
   ready_lv swap system swap 512
+
+  ready_thin libvirt        data thinpool ext4 18432 /var/lib/libvirt
+  ready_thin http_sys       data thinpool ext4 512   /usr/share/nginx/html
+  ready_thin http_bootstrap data thinpool ext4 8192  /usr/share/nginx/html/bootstrap
 fi
 
 # install bootloader
