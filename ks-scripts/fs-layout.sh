@@ -283,14 +283,14 @@ partition_disk () {
     parted "${disk}" mkpart biosboot 1m 5m && partition=$((partition + 1))
     parted "${disk}" toggle "${partition}" bios_grub
     parted "${disk}" toggle "${partition}" legacy_boot
-  } > /dev/null
+  } > /dev/null 2>&1
   echo "biosboot=${disk}${partition}"
 
   # EFI system partition
   {
     parted "${disk}" mkpart '"EFI System Partition"' 5m 300m && partition=$((partition + 1))
     parted "${disk}" toggle "${partition}" boot
-  } > /dev/null
+  } > /dev/null 2>&1
   echo "efiboot=${disk}${partition}"
 
   # /boot partition
@@ -299,7 +299,7 @@ partition_disk () {
     if [ "${raidflag}" -gt 1 ] ; then
       parted "${disk}" toggle "${partition}" raid
     fi
-  } > /dev/null
+  } > /dev/null 2>&1
   echo "sysboot=${disk}${partition}"
 
   # system partition
@@ -308,7 +308,7 @@ partition_disk () {
     if [ "${raidflag}" -gt 1 ] ; then
       parted "${disk}" toggle "${partition}" raid
     fi
-  } > /dev/null
+  } > /dev/null 2>&1
   echo "system=${disk}${partition}"
 
   # data partition
@@ -317,7 +317,7 @@ partition_disk () {
     if [ "${raidflag}" -gt 1 ] ; then
       parted "${disk}" toggle "${partition}" raid
     fi
-  } > /dev/null
+  } > /dev/null 2>&1
   echo "data=${disk}${partition}"
 }
 
@@ -515,6 +515,7 @@ if [ ! -z "${bcache_cache}" ] ; then
     while [ ! -f /sys/block/bcache0/bcache/attach ] ; do sleep 1 ; done
     echo "${cacheuuid}" > /sys/block/bcache0/bcache/attach
     echo writeback > /sys/block/bcache0/bcache/cache_mode
+    wipefs -a /dev/bcache0
   fi
   # this is where we trick anaconda by replacing pv.1
   if [ "${in_anaconda}" -eq 1 ] ; then
@@ -572,6 +573,9 @@ if [ "${in_anaconda}" -eq 1 ] ; then
     printf '%s '  'logvol /usr/share/nginx/html/bootstrap --vgname=data --thin --poolname=thinpool --name=http_bootstrap'
     printf '%s\n'        '--size=8192  --fsoptions="defaults,discard" --fstype=ext4'
   } >> /tmp/part-include
+else
+  # we're *making* LVM volumes here. and formatting/mounting. ;)
+  :
 fi
 
 # install bootloader
