@@ -114,6 +114,17 @@ cryptsetup () {
   if [ "${NOOP}" -eq 0 ] ; then command cryptsetup "${@}" ; else echo "cryptsetup" "${@}" 1>&3 ; fi
 }
 
+luks_open () {
+  local linkunwind dir candidate luks_uuid
+  candidate="${1}"
+  dir="${candidate%/*}"
+  if [ -L "${candidate}" ] ; then linkunwind="$(readlink "${candidate}")" ; else linkunwind="${candidate##*/}" ; fi
+  luks_map=$(file -s "${dir}/${linkunwind}" | awk -F'UUID: ' '{print $2}')
+  luks_map="luks-${luks_map}"
+  printf '%s' "${LUKS_PASSWORD}" | cryptsetup luksOpen "${candidate}" "${luks_map}" -
+  echo "/dev/mapper/${luks_map}"
+}
+
 # get rootdisk, and the repodisk if there
 repodisk=$(key2disk 'MOUNTPOINT="/run/install/repo"')
 repodisk=${repodisk##*/}
@@ -524,6 +535,8 @@ if [ ! -z "${bcache_cache}" ] ; then
 fi
 
 # if we're asked to encrypt do that here...
+data_luks_source=""
+sys_luks_source=""
 if [ -b /dev/bcache0 ] ; then
   data_luks_source="/dev/bcache0"
 elif [ -e /dev/md/data ] ; then
@@ -575,7 +588,20 @@ if [ "${in_anaconda}" -eq 1 ] ; then
   } >> /tmp/part-include
 else
   # we're *making* LVM volumes here. and formatting/mounting. ;)
-  :
+
+  # /
+  root_pv=""
+  if [ ! -z "${sys_luks_source}" ] ; then
+    if [ -e /dev/md/system ] ; then
+      root_pv=/dev/md/system
+    else
+      for part in ${sys_devs} ; do root_pv="${part}" ; done
+    fi
+  else
+    # we have a cryptodev, open it and get the uuid
+    root_pv=$(luks_open "${sys_luks_source}")
+  fi
+  lvm_create system "${root_pv}"
 fi
 
 # install bootloader
