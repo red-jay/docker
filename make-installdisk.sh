@@ -93,6 +93,7 @@ sudo cp debootstrap-archive "${IMGDIR}/usr/share/debootstrap/scripts/archive"
 } | sudo tee "${IMGDIR}/etc/motd"
 
 # copy over the fancy blockdev initscript
+sudo cp ks-scripts/fs-layout.sh "${IMGDIR}/root/fs-layout.sh"
 sudo cp blockdev-init.sh  "${IMGDIR}/root/blockdev-init.sh"
 sudo cp simpledev-init.sh "${IMGDIR}/root/simpledev-init.sh"
 
