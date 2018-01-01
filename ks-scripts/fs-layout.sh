@@ -133,8 +133,8 @@ vgcreate () {
 }
 
 lvcreate () {
-  if [ "${NOOP}" -eq 0 ] ; then command lvcreate "${@}" --dataalignment 8192s
-                           else echo    lvcreate "${@}" --dataalignment 8192s ; fi
+  if [ "${NOOP}" -eq 0 ] ; then command lvcreate "${@}"
+                           else echo    lvcreate "${@}" ; fi
 }
 
 mkdir () {
@@ -671,7 +671,7 @@ else
   fi
   lvm_create data "${data_pv}"
 
-  lvcreate -l100%VG --type thin-pool --thinpool thinpool data
+  lvcreate -l100%FREE --type thin-pool --thinpool thinpool data
 
 fi
 
