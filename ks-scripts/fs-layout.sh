@@ -115,7 +115,7 @@ cryptsetup () {
 }
 
 luks_open () {
-  local linkunwind dir candidate luks_uuid
+  local linkunwind dir candidate luks_map
   candidate="${1}"
   dir="${candidate%/*}"
   if [ -L "${candidate}" ] ; then linkunwind="$(readlink "${candidate}")" ; else linkunwind="${candidate##*/}" ; fi
@@ -484,7 +484,7 @@ else
 fi
 
 if [ "${flash_disk_nr}" -gt 1 ] ; then
-  # shellchek disable=SC2086
+  # shellcheck disable=SC2086
   mdadm --create /dev/md/cache -Ncache -l"${cache_raid_level}" -n "$(count_words "${cache_devs}")" --metadata=1.1 ${cache_devs}
   # run stop_bcache here as it may awaken upon RAID assembly(!)
   stop_bcache
