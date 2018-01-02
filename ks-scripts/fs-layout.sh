@@ -357,17 +357,16 @@ ready_lv () {
   }
   devpath="/dev/${vgname}/${lvname}"
   printf '%s %s %s %s %s\n' "${devpath}" "${mpath}" "${fstyp}" "${fs_opts}" "${fs_nos}" >> "${FSTAB}"
-  lvcreate "-L${sizeM}M" "-n${lvname}" "${vgname}"
-  case "${fstyp}" in
-    ext4) mkfs.ext4 "${devpath}" ;;
-    swap) mkswap    "${devpath}" ;;
-  esac
-  if [ ! -z "${lmount}" ] ; then
-    mkdir "${mpath}"
-    mount "${devpath}" "${mpath}"
-  fi
   if [ ! -z "${KS_INCLUDE}" ] ; then
     printf 'logvol %s --vgname=%s --fstype=%s --name=%s --size=%s\n' "${lmount}" "${vgname}" "${fstyp}" "${lvname}" "${sizeM}" >> "${KS_INCLUDE}"
+  else
+    lvcreate "-L${sizeM}M" "-n${lvname}" "${vgname}"
+    case "${fstyp}" in
+      ext4) mkfs.ext4 "${devpath}" ;;
+      swap) mkswap    "${devpath}" ;;
+    esac
+    mkdir "${mpath}"
+    mount "${devpath}" "${mpath}"
   fi
 }
 
@@ -384,18 +383,17 @@ ready_thin () {
   [ ! -z "${6+x}" ] && { lmount="${6}" ; mpath="${TARGETPATH}${lmount}" ; }
   devpath="/dev/${vgname}/${lvname}"
   printf '%s %s %s %s %s\n' "${devpath}" "${mpath}" "${fstyp}" "${fs_opts}" "${fs_nos}" >> "${FSTAB}"
-  lvcreate "-V${sizeM}M" "-n${lvname}" --thinpool "${tpoolname}" "${vgname}"
-  case "${fstyp}" in
-    ext4) mkfs.ext4 "${devpath}" ;;
-    swap) mkswap    "${devpath}" ;;
-  esac
-  if [ ! -z "${lmount}" ] ; then
-    mkdir "${mpath}"
-    mount -o discard "${devpath}" "${mpath}"
-  fi
   if [ ! -z "${KS_INCLUDE}" ] ; then
     printf 'logvol %s --vgname=%s --fstype=%s --name=%s --size=%s --thin --poolname=%s --fsoptions="%s"\n' \
       "${lmount}" "${vgname}" "${fstyp}" "${lvname}" "${sizeM}" "${tpoolname}" "${fs_opts}" >> "${KS_INCLUDE}"
+  else
+    lvcreate "-V${sizeM}M" "-n${lvname}" --thinpool "${tpoolname}" "${vgname}"
+    case "${fstyp}" in
+      ext4) mkfs.ext4 "${devpath}" ;;
+      swap) mkswap    "${devpath}" ;;
+    esac
+    mkdir "${mpath}"
+    mount -o discard "${devpath}" "${mpath}"
   fi
 }
 
