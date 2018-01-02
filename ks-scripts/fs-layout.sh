@@ -4,9 +4,9 @@ set -eu
 set -o pipefail
 shopt -s nullglob
 
-# steal a fs here for de bugs
+# steal a fd here for de bugs
 exec 3>&1
-NOOP=0
+NOOP=1
 
 # minimum required disk size
 MINSZ=32036093952	# 32G
@@ -17,11 +17,31 @@ TARGETPATH=/mnt/sysimage
 # create a scratch fstab. use it. love it.
 FSTAB=$(mktemp)
 
+# password for LUKS volumes
+LUKS_PASSWORD=""
+
+# file for kickstart directives
+KS_INCLUDE=""
+
 cleanup () {
   rm -f "${FSTAB}"
 }
 
 trap cleanup EXIT
+
+# option parser
+parse_opts () {
+  local switch
+  while getopts "Whk:m:p:t:" switch ; do
+    case "${switch}" in
+      W) NOOP=0 ;;
+      k) KS_INCLUDE="${OPTARG}" ;;
+      m) MINSZ="${OPTARG}" ;;
+      p) LUKS_PASSWORD="${OPTARG}" ;;
+      t) TARGETPATH="${OPTARG}" ;;
+    esac
+  done
+}
 
 # lsblk groveling, get a value...
 get_lsblk_val () {
@@ -426,6 +446,8 @@ luks_open () {
   echo "/dev/mapper/${luks_map}"
 }
 
+parse_opts "${@}"
+
 # get rootdisk, and the repodisk if there
 repodisk=$(key2disk 'MOUNTPOINT="/run/install/repo"')
 repodisk=${repodisk##*/}
@@ -437,19 +459,16 @@ installdisks=" ${repodisk} ${rootdisk} "
 
 # determine if we are running in anaconda or not - this will set up functions to either directly format the disk or spit out kickstart directives.
 # we need the _grandparent_ pid if we're called from %pre (and not embedded in ks!)
-in_anaconda=0
-ppid=$(cut -d' ' -f4 < /proc/$$/stat)
-gpid=$(cut -d' ' -f4 < "/proc/${ppid}/stat")
-# parsing /proc/pid/cmdline sucks.
-while read -r -d $'\0' cmdl ; do
-  case $cmdl in
-    /sbin/anaconda) in_anaconda=1 ;;
-  esac
-done < "/proc/${gpid}/cmdline"
-
-# if the installer set aside the luks_flag, set the password now.
-LUKS_PASSWORD=""
-if [ -f /tmp/luks_flag ] ; then LUKS_PASSWORD="changeit" ; fi
+if [ -z "${KS_INCLUDE}" ] ; then
+  ppid=$(cut -d' ' -f4 < /proc/$$/stat)
+  gpid=$(cut -d' ' -f4 < "/proc/${ppid}/stat")
+  # parsing /proc/pid/cmdline sucks.
+  while read -r -d $'\0' cmdl ; do
+    case $cmdl in
+      /sbin/anaconda) KS_INCLUDE=/tmp/part-include ;;
+    esac
+  done < "/proc/${gpid}/cmdline"
+fi
 
 # call get_arrays _once_ for stopping
 arraylist=$(get_arrays)
@@ -529,8 +548,8 @@ if [ "${candidate_disk_nr}" -ge 4 ] ; then
 fi
 
 # record biosboot partition
-if [ "${in_anaconda}" -eq 1 ] ; then
-  for part in ${bios_bootdevs} ; do s=${part##*/} ; printf 'part biosboot --fstype=biosboot --onpart=%s\n' "${s}" ; done > /tmp/part-include
+if [ ! -z "${KS_INCLUDE}" ] ; then
+  for part in ${bios_bootdevs} ; do s=${part##*/} ; printf 'part biosboot --fstype=biosboot --onpart=%s\n' "${s}" ; done > "${KS_INCLUDE}"
 fi
 
 # create arrays, write kickstart config or setup LVM
@@ -550,7 +569,7 @@ if [ "${candidate_disk_nr}" -gt 1 ] ; then
   # format EFI ESP
   mkfs.vfat -F32 /dev/md/efi
 
-  if [ "${in_anaconda}" -eq 1 ] ; then
+  if [ ! -z "${KS_INCLUDE}" ] ; then
     {
       # partitions
       i=0 ; for part in ${efi_bootdevs}  ; do s=${part##*/} ; i=$(( i + 1 ))
@@ -567,17 +586,17 @@ if [ "${candidate_disk_nr}" -gt 1 ] ; then
       printf 'raid /boot     --device=boot   --fstype="ext2"  --useexisting --label="/boot"\n'
       printf 'raid /boot/efi --device=efi    --fstype="efi"   --useexisting --label="EFISP" --noformat --fsoptions="umask=0077,shortname=winnt"\n'
       printf 'raid pv.1      --device=data   --fstype="lvmpv" --level=%s --useexisting\n' "${data_raid_level}"
-    } >> /tmp/part-include
+    } >> "${KS_INCLUDE}"
   fi
 else
-  if [ "${in_anaconda}" -eq 1 ] ; then
+  if [ ! -z "${KS_INCLUDE}" ] ; then
     {
       # partitions
       for part in ${efi_bootdevs} ; do s=${part##*/} ; printf 'part /boot/efi --fstype="efi"   --onpart=%s\n' "${s}" ; done
       for part in ${sys_bootdevs} ; do s=${part##*/} ; printf 'part /boot     --fstype="ext2"  --onpart=%s\n' "${s}" ; done
       for part in ${sys_devs}     ; do s=${part##*/} ; printf 'part pv.0      --fstype="lvmpv" --onpart=%s\n' "${s}" ; done
       for part in ${data_devs}    ; do s=${part##*/} ; printf 'part pv.1      --fstype="lvmpv" --onpart=%s\n' "${s}" ; done
-    } >> /tmp/part-include
+    } >> "${KS_INCLUDE}"
   fi
 fi
 
@@ -588,7 +607,7 @@ if [ "${flash_disk_nr}" -gt 1 ] ; then
   stop_bcache
   wipefs      -a /dev/md/cache
 
-  if [ "${in_anaconda}" -eq 1 ] ; then
+  if [ ! -z "${KS_INCLUDE}" ] ; then
     {
       # partitions
       i=0 ; for part in ${cache_devs} ; do s=${part##*/} ; i=$(( i + 1 ))
@@ -596,7 +615,7 @@ if [ "${flash_disk_nr}" -gt 1 ] ; then
 
       # RAIDs
       # RHEL/Fedora don't know what bcache is, so don't...tell them directly ;)
-    } >> /tmp/part-include
+    } >> "${KS_INCLUDE}"
   fi
 fi
 
@@ -627,8 +646,8 @@ if [ ! -z "${bcache_cache}" ] ; then
     wipefs -a /dev/bcache0
   fi
   # this is where we trick anaconda by replacing pv.1
-  if [ "${in_anaconda}" -eq 1 ] ; then
-    sed -i -e 's/.* pv.1 .*/part pv.1 --fstype="lvmpv" --onpart="bcache0"/' /tmp/part-include
+  if [ ! -z "${KS_INCLUDE}" ] ; then
+    sed -i -e 's/.* pv.1 .*/part pv.1 --fstype="lvmpv" --onpart="bcache0"/' "${KS_INCLUDE}"
   fi
 fi
 
@@ -651,10 +670,10 @@ else
 fi
 
 if [ ! -z "${LUKS_PASSWORD}" ] ; then
-  if [ "${in_anaconda}" -eq 1 ] ; then
-    # rewrite part-include pv.0, pv.1 devices
-    sed -i -e 's/(.* pv.0 .*)/\1 --encrypted --passphrase="'"${LUKS_PASSWORD}"'"/' /tmp/part-include
-    sed -i -e 's/(.* pv.1 .*)/\1 --encrypted --passphrase="'"${LUKS_PASSWORD}"'"/' /tmp/part-include
+  if [ ! -z "${KS_INCLUDE}" ] ; then
+    # rewrite ks-include pv.0, pv.1 devices
+    sed -i -e 's/(.* pv.0 .*)/\1 --encrypted --passphrase="'"${LUKS_PASSWORD}"'"/' \
+           -e 's/(.* pv.1 .*)/\1 --encrypted --passphrase="'"${LUKS_PASSWORD}"'"/' "${KS_INCLUDE}"
   else
     # set up encryption via cryptsetup
     # anaconda sets the aes-xts-plain64 cipher out of the box. no bets on the rest tho. YOLO.
@@ -667,13 +686,13 @@ if [ ! -z "${LUKS_PASSWORD}" ] ; then
   fi
 fi
 
-if [ "${in_anaconda}" -eq 1 ] ; then
+if [ ! -z "${KS_INCLUDE}" ] ; then
   # write LVM volgroup config for kickstart here for handoff
   {
     printf '%s\n' 'volgroup system pv.0'
     printf '%s\n' 'volgroup data pv.1'
     printf '%s\n'  'logvol none --vgname=data --thinpool --name=thinpool --size=18432 --grow'
-  } >> /tmp/part-include
+  } >> "${KS_INCLUDE}"
 else
   # we're *making* LVM volume groups here
 
@@ -712,7 +731,7 @@ fi
 
 # at this point we've virtualized away block devices :) go forth and create logical volumes!
 
-if [ "${in_anaconda}" -eq 1 ] ; then
+if [ ! -z "${KS_INCLUDE}" ] ; then
   {
     printf '%s\n' 'logvol /    --vgname=system --fstype=ext4 --name=root --size=18432'
     printf '%s\n' 'logvol swap --vgname=system               --name=swap --size=512'
@@ -722,7 +741,7 @@ if [ "${in_anaconda}" -eq 1 ] ; then
     printf '%s\n'        '--size=512   --fsoptions="defaults,discard" --fstype=ext4'
     printf '%s '  'logvol /usr/share/nginx/html/bootstrap --vgname=data --thin --poolname=thinpool --name=http_bootstrap'
     printf '%s\n'        '--size=8192  --fsoptions="defaults,discard" --fstype=ext4'
-  } >> /tmp/part-include
+  } >> "${KS_INCLUDE}"
 else
   # lvname vgname fstype sizeM (lmount)
   ready_lv root system ext4 18432 /
@@ -734,6 +753,6 @@ else
 fi
 
 # install bootloader
-if [ "${in_anaconda}" -eq 1 ] ; then
-  printf 'bootloader --append=" crashkernel auto" --location=mbr\n' >> /tmp/part-include
+if [ ! -z "${KS_INCLUDE}" ] ; then
+  printf 'bootloader --append=" crashkernel auto" --location=mbr\n' >> "${KS_INCLUDE}"
 fi
