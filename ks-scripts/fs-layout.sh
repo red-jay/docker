@@ -342,22 +342,32 @@ lvm_create () {
 }
 
 ready_lv () {
-  local lvname vgname fstype sizeM lmount devpath mpath
+  local lvname vgname fstype sizeM lmount devpath mpath fs_opts fs_nos
   lvname="${1}"
   vgname="${2}"
-  fstype="${3}"
+  fstyp="${3}"
   sizeM="${4}"
   lmount=""
-  [ ! -z "${5+x}" ] && { lmount="${5}" ; mpath="${TARGETPATH}${lmount}" ; }
+  fs_opts="defaults"
+  fs_nos="1 2"
+  case "${fstyp}" in swap) lmount="swap" ; mpath="swap" fs_nos="0 0" ;; esac
+  [ ! -z "${5+x}" ] && {
+    lmount="${5}" ; mpath="${TARGETPATH}${lmount}"
+    case "${lmount}" in /) fs_nos="1 1" ;; esac
+  }
   devpath="/dev/${vgname}/${lvname}"
+  printf '%s %s %s %s %s\n' "${devpath}" "${mpath}" "${fstyp}" "${fs_opts}" "${fs_nos}" >> "${FSTAB}"
   lvcreate "-L${sizeM}M" "-n${lvname}" "${vgname}"
-  case "${fstype}" in
+  case "${fstyp}" in
     ext4) mkfs.ext4 "${devpath}" ;;
     swap) mkswap    "${devpath}" ;;
   esac
   if [ ! -z "${lmount}" ] ; then
     mkdir "${mpath}"
     mount "${devpath}" "${mpath}"
+  fi
+  if [ ! -z "${KS_INCLUDE}" ] ; then
+    printf 'logvol %s --vgname=%s --fstype=%s --name=%s --size=%s\n' "${lmount}" "${vgname}" "${fstyp}" "${lvname}" "${sizeM}" >> "${KS_INCLUDE}"
   fi
 }
 
@@ -395,6 +405,7 @@ ready_md () {
   fs_opts="defaults"
   fs_nos="1 2"
   MD_COUNTER=$(( MD_COUNTER + 1 ))
+  mpath="${TARGETPATH}${mount}"
   # efi and boot mds get 1.0 metadata, others 1.1
   case "${mdname}" in
     efi)
@@ -426,7 +437,7 @@ ready_md () {
   fi
   case "${fstyp}" in
     lvmpv|bcache) : ;;
-    *)     printf '/dev/md/%s %s %s %s %s\n' "${mdname}" "${mount}" "${fstyp}" "${fs_opts}" "${fs_nos}" >> "${FSTAB}" ;;
+    *)     printf '/dev/md/%s %s %s %s %s\n' "${mdname}" "${mpath}" "${fstyp}" "${fs_opts}" "${fs_nos}" >> "${FSTAB}" ;;
   esac
 }
 
@@ -773,10 +784,7 @@ fi
 
 # at this point we've virtualized away block devices :) go forth and create logical volumes!
 
-if [ ! -z "${KS_INCLUDE}" ] ; then
   {
-    printf '%s\n' 'logvol /    --vgname=system --fstype=ext4 --name=root --size=18432'
-    printf '%s\n' 'logvol swap --vgname=system               --name=swap --size=512'
     printf '%s '  'logvol /var/lib/libvirt                --vgname=data --thin --poolname=thinpool --name=libvirt'
     printf '%s\n'        '--size=18432 --fsoptions="defaults,discard" --fstype=ext4'
     printf '%s '  'logvol /usr/share/nginx/html           --vgname=data --thin --poolname=thinpool --name=http_sys'
@@ -784,15 +792,13 @@ if [ ! -z "${KS_INCLUDE}" ] ; then
     printf '%s '  'logvol /usr/share/nginx/html/bootstrap --vgname=data --thin --poolname=thinpool --name=http_bootstrap'
     printf '%s\n'        '--size=8192  --fsoptions="defaults,discard" --fstype=ext4'
   } >> "${KS_INCLUDE}"
-else
-  # lvname vgname fstype sizeM (lmount)
-  ready_lv root system ext4 18432 /
-  ready_lv swap system swap 512
+# lvname vgname fstype sizeM (lmount)
+ready_lv root system ext4 18432 /
+ready_lv swap system swap 512
 
-  ready_thin libvirt        data thinpool ext4 18432 /var/lib/libvirt
-  ready_thin http_sys       data thinpool ext4 512   /usr/share/nginx/html
-  ready_thin http_bootstrap data thinpool ext4 8192  /usr/share/nginx/html/bootstrap
-fi
+ready_thin libvirt        data thinpool ext4 18432 /var/lib/libvirt
+ready_thin http_sys       data thinpool ext4 512   /usr/share/nginx/html
+ready_thin http_bootstrap data thinpool ext4 8192  /usr/share/nginx/html/bootstrap
 
 # install bootloader
 if [ ! -z "${KS_INCLUDE}" ] ; then
