@@ -6,9 +6,25 @@ shopt -s nullglob
 
 # steal a fs here for de bugs
 exec 3>&1
-NOOP=1
+NOOP=0
 
-get_lsblk_val() {
+# minimum required disk size
+MINSZ=32036093952	# 32G
+
+# mounted system path
+TARGETPATH=/mnt/sysimage
+
+# create a scratch fstab. use it. love it.
+FSTAB=$(mktemp)
+
+cleanup () {
+  rm -f "${FSTAB}"
+}
+
+trap cleanup EXIT
+
+# lsblk groveling, get a value...
+get_lsblk_val () {
   local blkline blk key
   declare -A blkline
   blk="${1}"
@@ -24,7 +40,8 @@ get_lsblk_val() {
   echo "${blkline[$key]}"
 }
 
-get_lsblk_dev() {
+# guessing at lsblk devices
+get_lsblk_dev () {
   local dev
   dev="${1}"
   if [ -b "/dev/${dev}" ] ; then
@@ -35,6 +52,7 @@ get_lsblk_dev() {
   echo "${dev}"
 }
 
+# run dmsetup to get block device underlying a dm-synthetic device (luks, lvm)
 grovel_dm() {
   local blkname type dmoutput
   blkname="${1}"
@@ -53,6 +71,8 @@ grovel_dm() {
   esac
 }
 
+# given a lsblk k/v pair, try to find the actual disk behind it
+# NOTE: recursive ;)
 key2disk () {
   local filt blk type
   filt="${1}"
@@ -67,20 +87,13 @@ key2disk () {
       nblk=$(lsblk -P | grep -F "MAJ:MIN=\"${dmblk}\"")
       nblkname=$(get_lsblk_val "${nblk}" NAME)
       key2disk "NAME=\"${nblkname}\""
-      # stitch in device paths here.
-      blkname=$(get_lsblk_dev "${blkname}")
-      nblkname=$(get_lsblk_dev "${nblkname}")
     ;;
     part)
       local blkname disk part
       blkname=$(get_lsblk_val "${blk}" NAME)
       part=${blkname##*[[:alpha:]]}
       disk=${blkname%${part}}
-      # if the disk needs a check we can ask now.
       key2disk "NAME=\"${disk}\""
-      # resize the partition table. if there is nothing to do here, exit now.
-      # rewrite the disk variable here for growpart.
-      disk=$(get_lsblk_dev "${disk}")
     ;;
     disk)
       local blkname
@@ -89,103 +102,6 @@ key2disk () {
     ;;
   esac
 }
-
-wipefs () {
-  if [ "${NOOP}" -eq 0 ] ; then command wipefs "${@}" ; else echo "wipefs" "${@}" 1>&3 ; fi
-}
-
-mdadm () {
-  if [ "${NOOP}" -eq 0 ] ; then command mdadm "${@}" ; else echo "mdadm" "${@}" 1>&3 ; fi
-}
-
-parted () {
-  if [ "${NOOP}" -eq 0 ] ; then command parted "${@}" ; else echo "parted" "${@}" 1>&3 ; fi
-}
-
-mkfs.vfat () {
-  if [ "${NOOP}" -eq 0 ] ; then command mkfs.vfat "${@}" ; else echo "mkfs.vfat" "${@}" 1>&3 ; fi
-}
-
-mkfs.ext4 () {
-  if [ "${NOOP}" -eq 0 ] ; then command mkfs.ext4 "${@}" ; else echo "mkfs.ext4" "${@}" 1>&3 ; fi
-}
-
-mkswap () {
-  if [ "${NOOP}" -eq 0 ] ; then command mkswap "${@}" ; else echo "mkswap" "${@}" 1>&3 ; fi
-}
-
-make-bcache () {
-  if [ "${NOOP}" -eq 0 ] ; then command make-bcache "${@}" ; else echo "make-bcache" "${@}" 1>&3 ; fi
-}
-
-cryptsetup () {
-  if [ "${NOOP}" -eq 0 ] ; then command cryptsetup "${@}" ; else echo "cryptsetup" "${@}" 1>&3 ; fi
-}
-
-pvcreate () {
-  if [ "${NOOP}" -eq 0 ] ; then command pvcreate "${@}" --dataalignment 8192s
-                           else echo    pvcreate "${@}" --dataalignment 8192s ; fi
-}
-
-vgcreate () {
-  if [ "${NOOP}" -eq 0 ] ; then command vgcreate "${@}" --dataalignment 8192s
-                           else echo    vgcreate "${@}" --dataalignment 8192s ; fi
-}
-
-lvcreate () {
-  if [ "${NOOP}" -eq 0 ] ; then command lvcreate "${@}"
-                           else echo    lvcreate "${@}" ; fi
-}
-
-mkdir () {
-  if [ "${NOOP}" -eq 0 ] ; then command mkdir -p "${@}" ; else echo "mkdir" -p "${@}" 1>&3 ; fi
-}
-
-mount () {
-  if [ "${NOOP}" -eq 0 ] ; then command mount "${@}" ; else echo "mount" "${@}" 1>&3 ; fi
-}
-
-luks_open () {
-  local linkunwind dir candidate luks_map
-  candidate="${1}"
-  dir="${candidate%/*}"
-  if [ -L "${candidate}" ] ; then linkunwind="$(readlink "${candidate}")" ; else linkunwind="${candidate##*/}" ; fi
-  luks_map=$(file -s "${dir}/${linkunwind}" | awk -F'UUID: ' '{print $2}')
-  luks_map="luks-${luks_map}"
-  printf '%s' "${LUKS_PASSWORD}" | cryptsetup luksOpen "${candidate}" "${luks_map}" -
-  echo "/dev/mapper/${luks_map}"
-}
-
-# get rootdisk, and the repodisk if there
-repodisk=$(key2disk 'MOUNTPOINT="/run/install/repo"')
-repodisk=${repodisk##*/}
-rootdisk=$(key2disk 'MOUNTPOINT="/"')
-rootdisk=${rootdisk##*/}
-
-# these disks are skipped while partitioning as they have our installers (and are in use!)
-installdisks=" ${repodisk} ${rootdisk} "
-
-# determine if we are running in anaconda or not - this will set up functions to either directly format the disk or spit out kickstart directives.
-# we need the _grandparent_ pid if we're called from %pre (and not embedded in ks!)
-in_anaconda=0
-ppid=$(cut -d' ' -f4 < /proc/$$/stat)
-gpid=$(cut -d' ' -f4 < "/proc/${ppid}/stat")
-# parsing /proc/pid/cmdline sucks.
-while read -r -d $'\0' cmdl ; do
-  case $cmdl in
-    /sbin/anaconda) in_anaconda=1 ;;
-  esac
-done < "/proc/${gpid}/cmdline"
-
-# if the installer set aside the luks_flag, set the password now.
-LUKS_PASSWORD=""
-if [ -f /tmp/luks_flag ] ; then LUKS_PASSWORD="changeit" ; fi
-
-# minimum required disk size
-MINSZ=32036093952	# 32G
-
-# mounted system path
-TARGETPATH=/mnt/sysimage
 
 # return all disk devices _except_ the ones we booted from sans partitions
 # shellcheck disable=SC2120
@@ -305,6 +221,7 @@ stop_bcache () {
   done
 }
 
+# wipe all partition data from a disk, then the disk partition table
 wipedisk () {
   local part disk
   disk="${1}"
@@ -312,6 +229,9 @@ wipedisk () {
   wipefs -a "/dev/${disk}" > /dev/null
 }
 
+# this is actually what partitions disks - can set raidflags but doesn't set up RAIDs.
+# it returns which device got which partition encoded here (biosboot,efiboot,sysboot,system,data)
+# I use it with a while loop to create strings of partitions _to_ RAID.
 partition_disk () {
   local disk raidflag partition
   partition="0"
@@ -366,6 +286,7 @@ partition_disk () {
   echo "data=${disk}${partition}"
 }
 
+# this does partitioning for cache disks. same sort of deal, but only returns 'cache' value.
 partition_cache () {
   local disk raidflag partition
   partition="0"
@@ -436,6 +357,99 @@ ready_thin () {
     mount -o discard "${devpath}" "${mpath}"
   fi
 }
+
+# this is a stack of functions overloading commands for NOOP tests.
+wipefs () {
+  if [ "${NOOP}" -eq 0 ] ; then command wipefs "${@}" ; else echo "wipefs" "${@}" 1>&3 ; fi
+}
+
+mdadm () {
+  if [ "${NOOP}" -eq 0 ] ; then command mdadm "${@}" ; else echo "mdadm" "${@}" 1>&3 ; fi
+}
+
+parted () {
+  if [ "${NOOP}" -eq 0 ] ; then command parted "${@}" ; else echo "parted" "${@}" 1>&3 ; fi
+}
+
+mkfs.vfat () {
+  if [ "${NOOP}" -eq 0 ] ; then command mkfs.vfat "${@}" ; else echo "mkfs.vfat" "${@}" 1>&3 ; fi
+}
+
+mkfs.ext4 () {
+  if [ "${NOOP}" -eq 0 ] ; then command mkfs.ext4 "${@}" ; else echo "mkfs.ext4" "${@}" 1>&3 ; fi
+}
+
+mkswap () {
+  if [ "${NOOP}" -eq 0 ] ; then command mkswap "${@}" ; else echo "mkswap" "${@}" 1>&3 ; fi
+}
+
+make-bcache () {
+  if [ "${NOOP}" -eq 0 ] ; then command make-bcache "${@}" ; else echo "make-bcache" "${@}" 1>&3 ; fi
+}
+
+cryptsetup () {
+  if [ "${NOOP}" -eq 0 ] ; then command cryptsetup "${@}" ; else echo "cryptsetup" "${@}" 1>&3 ; fi
+}
+
+pvcreate () {
+  if [ "${NOOP}" -eq 0 ] ; then command pvcreate "${@}" --dataalignment 8192s
+                           else echo    pvcreate "${@}" --dataalignment 8192s ; fi
+}
+
+vgcreate () {
+  if [ "${NOOP}" -eq 0 ] ; then command vgcreate "${@}" --dataalignment 8192s
+                           else echo    vgcreate "${@}" --dataalignment 8192s ; fi
+}
+
+lvcreate () {
+  if [ "${NOOP}" -eq 0 ] ; then command lvcreate "${@}"
+                           else echo    lvcreate "${@}" ; fi
+}
+
+mkdir () {
+  if [ "${NOOP}" -eq 0 ] ; then command mkdir -p "${@}" ; else echo "mkdir" -p "${@}" 1>&3 ; fi
+}
+
+mount () {
+  if [ "${NOOP}" -eq 0 ] ; then command mount "${@}" ; else echo "mount" "${@}" 1>&3 ; fi
+}
+
+# open a luks device and return what we mapped it to (/dev/mapper/luks-UUID)
+luks_open () {
+  local linkunwind dir candidate luks_map
+  candidate="${1}"
+  dir="${candidate%/*}"
+  if [ -L "${candidate}" ] ; then linkunwind="$(readlink "${candidate}")" ; else linkunwind="${candidate##*/}" ; fi
+  luks_map=$(file -s "${dir}/${linkunwind}" | awk -F'UUID: ' '{print $2}')
+  luks_map="luks-${luks_map}"
+  printf '%s' "${LUKS_PASSWORD}" | cryptsetup luksOpen "${candidate}" "${luks_map}" -
+  echo "/dev/mapper/${luks_map}"
+}
+
+# get rootdisk, and the repodisk if there
+repodisk=$(key2disk 'MOUNTPOINT="/run/install/repo"')
+repodisk=${repodisk##*/}
+rootdisk=$(key2disk 'MOUNTPOINT="/"')
+rootdisk=${rootdisk##*/}
+
+# these disks are skipped while partitioning as they have our installers (and are in use!)
+installdisks=" ${repodisk} ${rootdisk} "
+
+# determine if we are running in anaconda or not - this will set up functions to either directly format the disk or spit out kickstart directives.
+# we need the _grandparent_ pid if we're called from %pre (and not embedded in ks!)
+in_anaconda=0
+ppid=$(cut -d' ' -f4 < /proc/$$/stat)
+gpid=$(cut -d' ' -f4 < "/proc/${ppid}/stat")
+# parsing /proc/pid/cmdline sucks.
+while read -r -d $'\0' cmdl ; do
+  case $cmdl in
+    /sbin/anaconda) in_anaconda=1 ;;
+  esac
+done < "/proc/${gpid}/cmdline"
+
+# if the installer set aside the luks_flag, set the password now.
+LUKS_PASSWORD=""
+if [ -f /tmp/luks_flag ] ; then LUKS_PASSWORD="changeit" ; fi
 
 # call get_arrays _once_ for stopping
 arraylist=$(get_arrays)
