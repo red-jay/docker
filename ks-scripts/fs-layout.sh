@@ -384,7 +384,7 @@ ready_thin () {
 
 # create a md device
 ready_md () {
-  local mdname mdlevel datalevel mddev i s fstyp mount extra
+  local mdname mdlevel datalevel mddev i s fstyp mount extra fs_opts fs_nos
   datalevel="1.0"
   mdname="${1}"
   mdlevel="${2}"
@@ -423,6 +423,25 @@ ready_md () {
     lvmpv) : ;;
     *)     printf '/dev/md/%s %s %s %s %s\n' "${mdname}" "${mount}" "${fstyp}" "${fs_opts}" "${fs_nos}" >> "${FSTAB}" ;;
   esac
+}
+
+# create a partition, unless we're just piping to kickstart.
+ready_part () {
+  local partition fstyp mount extra fs_opts fs_nos
+  partition="${1}"
+  fstyp="${2}"
+  mount="${3}"
+  extra=""
+  fs_opts="defaults"
+  fs_nos="1 2"
+  # always update fstab, though we may rewrite later.
+  case "${fstyp}" in
+    lvmpv) : ;;
+    *)     printf '%s %s %s %s %s\n' "${partition}" "${mount}" "${fstyp}" "${fs_opts}" "${fs_nos}" >> "${FSTAB}" ;;
+  esac
+  if [ ! -z "${KS_INCLUDE}" ] ; then
+    printf 'part %s --fstype="%s" --onpart=%s\n' "${mount}" "${fstyp}" "${partition}" >> "${KS_INCLUDE}"
+  fi
 }
 
 # this is a stack of functions overloading commands for NOOP tests.
@@ -543,6 +562,9 @@ elif [ "${disknr}" -gt "2" ] ; then
   # do we have flash or spinny disks?
   candidate_disks=$(get_baseblocks queue/rotational=1)
   flash_disks=$(get_baseblocks queue/rotational=0)
+else
+  echo "I didn't find any disks!" 1>&2
+  exit 1
 fi
 
 candidate_disk_nr=$(count_words "${candidate_disks}")
@@ -603,24 +625,17 @@ if [ ! -z "${KS_INCLUDE}" ] ; then
   for part in ${bios_bootdevs} ; do s=${part##*/} ; printf 'part biosboot --fstype=biosboot --onpart=%s\n' "${s}" ; done > "${KS_INCLUDE}"
 fi
 
-# create arrays, write kickstart config or setup LVM
+# create arrays/partitions
 if [ "${candidate_disk_nr}" -gt 1 ] ; then
-  {
-    ready_md efi    "${efiboot_raid_level}" "${efi_bootdevs}" "efi"   "/boot/efi"
-    ready_md boot   "${sysboot_raid_level}" "${sys_bootdevs}" "ext2"  "/boot"
-    ready_md system "${system_raid_level}"  "${sys_devs}"     "lvmpv" "pv.0"
-    ready_md data   "${data_raid_level}"    "${data_devs}"    "lvmpv" "pv.1"
-  }
+  ready_md efi    "${efiboot_raid_level}" "${efi_bootdevs}" "efi"   "/boot/efi"
+  ready_md boot   "${sysboot_raid_level}" "${sys_bootdevs}" "ext2"  "/boot"
+  ready_md system "${system_raid_level}"  "${sys_devs}"     "lvmpv" "pv.0"
+  ready_md data   "${data_raid_level}"    "${data_devs}"    "lvmpv" "pv.1"
 else
-  if [ ! -z "${KS_INCLUDE}" ] ; then
-    {
-      # partitions
-      for part in ${efi_bootdevs} ; do s=${part##*/} ; printf 'part /boot/efi --fstype="efi"   --onpart=%s\n' "${s}" ; done
-      for part in ${sys_bootdevs} ; do s=${part##*/} ; printf 'part /boot     --fstype="ext2"  --onpart=%s\n' "${s}" ; done
-      for part in ${sys_devs}     ; do s=${part##*/} ; printf 'part pv.0      --fstype="lvmpv" --onpart=%s\n' "${s}" ; done
-      for part in ${data_devs}    ; do s=${part##*/} ; printf 'part pv.1      --fstype="lvmpv" --onpart=%s\n' "${s}" ; done
-    } >> "${KS_INCLUDE}"
-  fi
+  for part in ${efi_bootdevs} ; do ready_part "${part}" "efi"   "/boot/efi" ; done
+  for part in ${sys_bootdevs} ; do ready_part "${part}" "ext2"  "/boot"     ; done
+  for part in ${sys_devs}     ; do ready_part "${part}" "lvmpv" "pv.0"      ; done
+  for part in ${data_devs}    ; do ready_part "${part}" "lvmpv" "pv.1"      ; done
 fi
 
 if [ "${flash_disk_nr}" -gt 1 ] ; then
