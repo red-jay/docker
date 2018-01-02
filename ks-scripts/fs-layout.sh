@@ -23,6 +23,9 @@ LUKS_PASSWORD=""
 # file for kickstart directives
 KS_INCLUDE=""
 
+# counter for making sure calls to ready_md are unique
+MD_COUNTER=0
+
 cleanup () {
   rm -f "${FSTAB}"
 }
@@ -380,16 +383,46 @@ ready_thin () {
 
 # create a md device
 ready_md () {
-  local mdname mdlevel datalevel mddev
+  local mdname mdlevel datalevel mddev i s fstyp mount extra
   datalevel="1.0"
   mdname="${1}"
   mdlevel="${2}"
   mddev="${3}"
+  fstyp="${4}"
+  mount="${5}"
+  extra=""
+  fs_opts="defaults"
+  fs_nos="1 2"
+  MD_COUNTER=$(( MD_COUNTER + 1 ))
   # efi and boot mds get 1.0 metadata, others 1.1
-  case "${mdname}" in efi|boot) : ;; *) datalevel="1.1" ;; esac
+  case "${mdname}" in
+    efi)
+      extra='--label="EFISP" --noformat --fsoptions="umask=0077,shortname=winnt"'
+      fs_opts='umask=0077,shortname=winnt'
+      fs_nos='0 2'
+    ;;
+    boot) extra='--label="/boot"' ;;
+    *)    datalevel="1.1" ;;
+  esac
   # shellcheck disable=SC2086
   mdadm --create "/dev/md/${mdname}" -N"${mdname}" -l"${mdlevel}" -n "$(count_words "${mddev}")" --metadata="${datalevel}" ${mddev}
   wipefs -a "/dev/md/${mdname}"
+  case "${fstyp}" in
+    efi)  mkfs.vfat -F32 -nEFISP "/dev/md/${mdname}" ;;
+    ext2) mkfs.ext2 "/dev/md/${mdname}" ;;
+  esac
+  if [ ! -z "${KS_INCLUDE}" ] ; then
+    i=0 ; for part in ${mddev} ; do
+      s=${part##*/} ; i=$(( i + 1 ))
+      printf 'part raid.%s%s --fstype="mdmember" --noformat --onpart=%s\n' "${MD_COUNTER}" "${i}" "${s}" >> "${KS_INCLUDE}"
+    done
+    printf 'raid %s --device=%s --fstype="%s" --level=%s --useexisting %s\n' "${mount}" "${mdname}" "${fstyp}" "${mdlevel}" "${extra}" >> "${KS_INCLUDE}"
+  else
+    case "${fstyp}" in
+      lvmpv) : ;;
+      *)     printf '/dev/md/%s %s %s %s %s\n' "${mdname}" "${mount}" "${fstyp}" "${fs_opts}" "${fs_nos}" >> "${FSTAB}" ;;
+    esac
+  fi
 }
 
 # this is a stack of functions overloading commands for NOOP tests.
@@ -407,6 +440,10 @@ parted () {
 
 mkfs.vfat () {
   if [ "${NOOP}" -eq 0 ] ; then command mkfs.vfat "${@}" ; else echo "mkfs.vfat" "${@}" 1>&3 ; fi
+}
+
+mkfs.ext2 () {
+  if [ "${NOOP}" -eq 0 ] ; then command mkfs.ext2 "${@}" ; else echo "mkfs.ext2" "${@}" 1>&3 ; fi
 }
 
 mkfs.ext4 () {
@@ -569,34 +606,11 @@ fi
 # create arrays, write kickstart config or setup LVM
 if [ "${candidate_disk_nr}" -gt 1 ] ; then
   {
-    ready_md efi    "${efiboot_raid_level}" "${efi_bootdevs}"
-    ready_md boot   "${sysboot_raid_level}" "${sys_bootdevs}"
-    ready_md system "${system_raid_level}"  "${sys_devs}"
-    ready_md data   "${data_raid_level}"    "${data_devs}"
+    ready_md efi    "${efiboot_raid_level}" "${efi_bootdevs}" "efi"   "/boot/efi"
+    ready_md boot   "${sysboot_raid_level}" "${sys_bootdevs}" "ext2"  "/boot"
+    ready_md system "${system_raid_level}"  "${sys_devs}"     "lvmpv" "pv.0"
+    ready_md data   "${data_raid_level}"    "${data_devs}"    "lvmpv" "pv.1"
   }
-
-  # format EFI ESP
-  mkfs.vfat -F32 /dev/md/efi
-
-  if [ ! -z "${KS_INCLUDE}" ] ; then
-    {
-      # partitions
-      i=0 ; for part in ${efi_bootdevs}  ; do s=${part##*/} ; i=$(( i + 1 ))
-        printf 'part raid.0%s --fstype="mdmember" --noformat --onpart=%s\n' "${i}" "${s}" ; done
-      i=0 ; for part in ${sys_bootdevs}  ; do s=${part##*/} ; i=$(( i + 1 ))
-        printf 'part raid.1%s --fstype="mdmember" --noformat --onpart=%s\n' "${i}" "${s}" ; done
-      i=0 ; for part in ${sys_devs}      ; do s=${part##*/} ; i=$(( i + 1 ))
-        printf 'part raid.2%s --fstype="mdmember" --noformat --onpart=%s\n' "${i}" "${s}" ; done
-      i=0 ; for part in ${data_devs}     ; do s=${part##*/} ; i=$(( i + 1 ))
-        printf 'part raid.3%s --fstype="mdmember" --noformat --onpart=%s\n' "${i}" "${s}" ; done
-
-      # RAIDs
-      printf 'raid pv.0      --device=system --fstype="lvmpv" --level=%s --useexisting\n' "${system_raid_level}"
-      printf 'raid /boot     --device=boot   --fstype="ext2"  --useexisting --label="/boot"\n'
-      printf 'raid /boot/efi --device=efi    --fstype="efi"   --useexisting --label="EFISP" --noformat --fsoptions="umask=0077,shortname=winnt"\n'
-      printf 'raid pv.1      --device=data   --fstype="lvmpv" --level=%s --useexisting\n' "${data_raid_level}"
-    } >> "${KS_INCLUDE}"
-  fi
 else
   if [ ! -z "${KS_INCLUDE}" ] ; then
     {
