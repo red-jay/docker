@@ -714,8 +714,8 @@ fi
 if [ ! -z "${LUKS_PASSWORD}" ] ; then
   if [ ! -z "${KS_INCLUDE}" ] ; then
     # rewrite ks-include pv.0, pv.1 devices
-    sed -i -e 's/(.* pv.0 .*)/\1 --encrypted --passphrase="'"${LUKS_PASSWORD}"'"/' \
-           -e 's/(.* pv.1 .*)/\1 --encrypted --passphrase="'"${LUKS_PASSWORD}"'"/' "${KS_INCLUDE}"
+    sed -i -re 's/^(.* pv.0 .*)$/\1 --encrypted --passphrase="'"${LUKS_PASSWORD}"'"/' \
+           -re 's/^(.* pv.1 .*)$/\1 --encrypted --passphrase="'"${LUKS_PASSWORD}"'"/' "${KS_INCLUDE}"
   else
     # set up encryption via cryptsetup
     # anaconda sets the aes-xts-plain64 cipher out of the box. no bets on the rest tho. YOLO.
