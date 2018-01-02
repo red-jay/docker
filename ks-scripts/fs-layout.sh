@@ -342,7 +342,7 @@ lvm_create () {
 }
 
 ready_lv () {
-  local lvname vgname fstype sizeM lmount devpath mpath fs_opts fs_nos
+  local lvname vgname fstyp sizeM lmount devpath mpath fs_opts fs_nos
   lvname="${1}"
   vgname="${2}"
   fstyp="${3}"
@@ -372,23 +372,30 @@ ready_lv () {
 }
 
 ready_thin () {
-  local lvname vgname tpoolname fstype sizeM lmount devpath mpath
+  local lvname vgname tpoolname fstyp sizeM lmount devpath mpath fs_opts fs_nos
   lvname="${1}"
   vgname="${2}"
   tpoolname="${3}"
-  fstype="${4}"
+  fstyp="${4}"
   sizeM="${5}"
   lmount=""
+  fs_opts="defaults,discard"
+  fs_nos="1 2"
   [ ! -z "${6+x}" ] && { lmount="${6}" ; mpath="${TARGETPATH}${lmount}" ; }
   devpath="/dev/${vgname}/${lvname}"
+  printf '%s %s %s %s %s\n' "${devpath}" "${mpath}" "${fstyp}" "${fs_opts}" "${fs_nos}" >> "${FSTAB}"
   lvcreate "-V${sizeM}M" "-n${lvname}" --thinpool "${tpoolname}" "${vgname}"
-  case "${fstype}" in
+  case "${fstyp}" in
     ext4) mkfs.ext4 "${devpath}" ;;
     swap) mkswap    "${devpath}" ;;
   esac
   if [ ! -z "${lmount}" ] ; then
     mkdir "${mpath}"
     mount -o discard "${devpath}" "${mpath}"
+  fi
+  if [ ! -z "${KS_INCLUDE}" ] ; then
+    printf 'logvol %s --vgname=%s --fstype=%s --name=%s --size=%s --thin --poolname=%s --fsoptions="%s"\n' \
+      "${lmount}" "${vgname}" "${fstyp}" "${lvname}" "${sizeM}" "${tpoolname}" "${fs_opts}" >> "${KS_INCLUDE}"
   fi
 }
 
@@ -784,14 +791,6 @@ fi
 
 # at this point we've virtualized away block devices :) go forth and create logical volumes!
 
-  {
-    printf '%s '  'logvol /var/lib/libvirt                --vgname=data --thin --poolname=thinpool --name=libvirt'
-    printf '%s\n'        '--size=18432 --fsoptions="defaults,discard" --fstype=ext4'
-    printf '%s '  'logvol /usr/share/nginx/html           --vgname=data --thin --poolname=thinpool --name=http_sys'
-    printf '%s\n'        '--size=512   --fsoptions="defaults,discard" --fstype=ext4'
-    printf '%s '  'logvol /usr/share/nginx/html/bootstrap --vgname=data --thin --poolname=thinpool --name=http_bootstrap'
-    printf '%s\n'        '--size=8192  --fsoptions="defaults,discard" --fstype=ext4'
-  } >> "${KS_INCLUDE}"
 # lvname vgname fstype sizeM (lmount)
 ready_lv root system ext4 18432 /
 ready_lv swap system swap 512
