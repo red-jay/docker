@@ -27,6 +27,7 @@ KS_INCLUDE=""
 MD_COUNTER=0
 
 cleanup () {
+  cat "${FSTAB}"
   rm -f "${FSTAB}"
 }
 
@@ -417,12 +418,11 @@ ready_md () {
       printf 'part raid.%s%s --fstype="mdmember" --noformat --onpart=%s\n' "${MD_COUNTER}" "${i}" "${s}" >> "${KS_INCLUDE}"
     done
     printf 'raid %s --device=%s --fstype="%s" --level=%s --useexisting %s\n' "${mount}" "${mdname}" "${fstyp}" "${mdlevel}" "${extra}" >> "${KS_INCLUDE}"
-  else
-    case "${fstyp}" in
-      lvmpv) : ;;
-      *)     printf '/dev/md/%s %s %s %s %s\n' "${mdname}" "${mount}" "${fstyp}" "${fs_opts}" "${fs_nos}" >> "${FSTAB}" ;;
-    esac
   fi
+  case "${fstyp}" in
+    lvmpv) : ;;
+    *)     printf '/dev/md/%s %s %s %s %s\n' "${mdname}" "${mount}" "${fstyp}" "${fs_opts}" "${fs_nos}" >> "${FSTAB}" ;;
+  esac
 }
 
 # this is a stack of functions overloading commands for NOOP tests.
