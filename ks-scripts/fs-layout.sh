@@ -378,6 +378,20 @@ ready_thin () {
   fi
 }
 
+# create a md device
+ready_md () {
+  local mdname mdlevel datalevel mddev
+  datalevel="1.0"
+  mdname="${1}"
+  mdlevel="${2}"
+  mddev="${3}"
+  # efi and boot mds get 1.0 metadata, others 1.1
+  case "${mdname}" in efi|boot) : ;; *) datalevel="1.1" ;; esac
+  # shellcheck disable=SC2086
+  mdadm --create "/dev/md/${mdname}" -N"${mdname}" -l"${mdlevel}" -n "$(count_words "${mddev}")" --metadata="${datalevel}" ${mddev}
+  wipefs -a "/dev/md/${mdname}"
+}
+
 # this is a stack of functions overloading commands for NOOP tests.
 wipefs () {
   if [ "${NOOP}" -eq 0 ] ; then command wipefs "${@}" ; else echo "wipefs" "${@}" 1>&3 ; fi
@@ -554,16 +568,11 @@ fi
 
 # create arrays, write kickstart config or setup LVM
 if [ "${candidate_disk_nr}" -gt 1 ] ; then
-  # shellcheck disable=SC2086
   {
-    mdadm --create /dev/md/efi    -Nefi    -l"${efiboot_raid_level}" -n "$(count_words "${efi_bootdevs}")" --metadata=1.0 ${efi_bootdevs}
-    wipefs      -a /dev/md/efi
-    mdadm --create /dev/md/boot   -Nboot   -l"${sysboot_raid_level}" -n "$(count_words "${sys_bootdevs}")" --metadata=1.0 ${sys_bootdevs}
-    wipefs      -a /dev/md/boot
-    mdadm --create /dev/md/system -Nsystem -l"${system_raid_level}"  -n "$(count_words "${sys_devs}")"     --metadata=1.1 ${sys_devs}
-    wipefs      -a /dev/md/system
-    mdadm --create /dev/md/data   -Ndata   -l"${data_raid_level}"    -n "$(count_words "${data_devs}")"    --metadata=1.1 ${data_devs}
-    wipefs      -a /dev/md/data
+    ready_md efi    "${efiboot_raid_level}" "${efi_bootdevs}"
+    ready_md boot   "${sysboot_raid_level}" "${sys_bootdevs}"
+    ready_md system "${system_raid_level}"  "${sys_devs}"
+    ready_md data   "${data_raid_level}"    "${data_devs}"
   }
 
   # format EFI ESP
