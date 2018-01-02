@@ -417,10 +417,15 @@ ready_md () {
       s=${part##*/} ; i=$(( i + 1 ))
       printf 'part raid.%s%s --fstype="mdmember" --noformat --onpart=%s\n' "${MD_COUNTER}" "${i}" "${s}" >> "${KS_INCLUDE}"
     done
-    printf 'raid %s --device=%s --fstype="%s" --level=%s --useexisting %s\n' "${mount}" "${mdname}" "${fstyp}" "${mdlevel}" "${extra}" >> "${KS_INCLUDE}"
+    case "${fstyp}" in
+      bcache) : ;;
+      *)
+        printf 'raid %s --device=%s --fstype="%s" --level=%s --useexisting %s\n' "${mount}" "${mdname}" "${fstyp}" "${mdlevel}" "${extra}" >> "${KS_INCLUDE}"
+      ;;
+    esac
   fi
   case "${fstyp}" in
-    lvmpv) : ;;
+    lvmpv|bcache) : ;;
     *)     printf '/dev/md/%s %s %s %s %s\n' "${mdname}" "${mount}" "${fstyp}" "${fs_opts}" "${fs_nos}" >> "${FSTAB}" ;;
   esac
 }
@@ -436,11 +441,14 @@ ready_part () {
   fs_nos="1 2"
   # always update fstab, though we may rewrite later.
   case "${fstyp}" in
-    lvmpv) : ;;
+    lvmpv|bcache) : ;;
     *)     printf '%s %s %s %s %s\n' "${partition}" "${mount}" "${fstyp}" "${fs_opts}" "${fs_nos}" >> "${FSTAB}" ;;
   esac
   if [ ! -z "${KS_INCLUDE}" ] ; then
-    printf 'part %s --fstype="%s" --onpart=%s\n' "${mount}" "${fstyp}" "${partition}" >> "${KS_INCLUDE}"
+    case "${fstyp}" in
+      bcache) : ;;
+      *)      printf 'part %s --fstype="%s" --onpart=%s\n' "${mount}" "${fstyp}" "${partition}" >> "${KS_INCLUDE}" ;;
+    esac
   fi
 }
 
@@ -638,23 +646,19 @@ else
   for part in ${data_devs}    ; do ready_part "${part}" "lvmpv" "pv.1"      ; done
 fi
 
+# arrays/partitions for bcache - note the immediate stop/wipe here since bcache triggers kernel level grabbing
 if [ "${flash_disk_nr}" -gt 1 ] ; then
   # shellcheck disable=SC2086
-  mdadm --create /dev/md/cache -Ncache -l"${cache_raid_level}" -n "$(count_words "${cache_devs}")" --metadata=1.1 ${cache_devs}
+  ready_md cache "${cache_raid_level}" "${cache_devs}" "bcache" "bcache0"
   # run stop_bcache here as it may awaken upon RAID assembly(!)
   stop_bcache
-  wipefs      -a /dev/md/cache
-
-  if [ ! -z "${KS_INCLUDE}" ] ; then
-    {
-      # partitions
-      i=0 ; for part in ${cache_devs} ; do s=${part##*/} ; i=$(( i + 1 ))
-        printf 'part raid9%s --fstype="mdmember" --noformat --onpart=%s\n' "${i}" "${s}" ; done
-
-      # RAIDs
-      # RHEL/Fedora don't know what bcache is, so don't...tell them directly ;)
-    } >> "${KS_INCLUDE}"
-  fi
+  wipefs -a /dev/md/cache
+elif [ "${flash_disk_nr}" -eq 1 ] ; then
+  for part in ${cache_devs} ; do
+    ready_part "${part}" "bcache" "bcache0"
+    stop_bcache
+    wipefs -a "${part}"
+  done
 fi
 
 # create bcache device if we have flash disks
