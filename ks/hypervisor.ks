@@ -192,7 +192,7 @@ fi
 vgchange -an
 
 # configure disks via magic script ;)
-bash -x /run/install/repo/fs-layout.sh
+bash -x /run/install/repo/fs-layout.sh -W
 
 # this holds any needed conditional package statements
 touch /tmp/package-include
