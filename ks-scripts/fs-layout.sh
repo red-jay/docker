@@ -452,23 +452,42 @@ ready_md () {
 
 # create a partition, unless we're just piping to kickstart.
 ready_part () {
-  local partition fstyp mount extra fs_opts fs_nos
+  local partition fstyp mount extra fs_opts fs_nos mpath fsuuid
   partition="${1}"
   fstyp="${2}"
   mount="${3}"
   extra=""
   fs_opts="defaults"
   fs_nos="1 2"
+  mpath="${TARGETPATH}${mount}"
   # always update fstab, though we may rewrite later.
   case "${fstyp}" in
     lvmpv|bcache) : ;;
-    *)     printf '%s %s %s %s %s\n' "${partition}" "${mount}" "${fstyp}" "${fs_opts}" "${fs_nos}" >> "${FSTAB}" ;;
+    *)     printf '%s %s %s %s %s\n' "${partition}" "${mpath}" "${fstyp}" "${fs_opts}" "${fs_nos}" >> "${FSTAB}" ;;
   esac
   if [ ! -z "${KS_INCLUDE}" ] ; then
     case "${fstyp}" in
       bcache) : ;;
       *)      printf 'part %s --fstype="%s" --onpart=%s\n' "${mount}" "${fstyp}" "${partition}" >> "${KS_INCLUDE}" ;;
     esac
+  else
+    # format and update faketab
+    case "${fstyp}" in
+      lvmpv|bcache) : ;;
+      efi)
+        mkfs.vfat -F32 -nEFISP "${partition}"
+      ;;
+      *)
+        "mkfs.${fstyp}" "${partition}"
+      ;;
+    esac
+    # shellcheck disable=SC2015
+    grep -q "${partition}" "${FSTAB}" && {
+      fsuuid="$(blkid -s UUID "${partition}")"
+      fsuuid="${fsuuid#*UUID=\"}"
+      fsuuid="${fsuuid%\"}"
+      sed -i -e 's@^'"${partition}"'.*@UUID='"${fsuuid} ${mpath} ${fstyp} ${fs_opts} ${fs_nos}"'@' "${FSTAB}"
+    } || true
   fi
 }
 
@@ -541,13 +560,13 @@ pvcreate () {
 }
 
 vgcreate () {
-  if [ "${NOOP}" -eq 0 ] ; then command vgcreate "${@}" --dataalignment 8192s
-                           else echo    vgcreate "${@}" --dataalignment 8192s ; fi
+  if [ "${NOOP}" -eq 0 ] ; then command vgcreate "${@}" -An --dataalignment 8192s
+                           else echo    vgcreate "${@}" -An --dataalignment 8192s ; fi
 }
 
 lvcreate () {
-  if [ "${NOOP}" -eq 0 ] ; then command lvcreate "${@}"
-                           else echo    lvcreate "${@}" ; fi
+  if [ "${NOOP}" -eq 0 ] ; then command lvcreate "${@}" -An
+                           else echo    lvcreate "${@}" -An ; fi
 }
 
 vgchange () {
@@ -793,7 +812,7 @@ else
 
   # system
   system_pv=""
-  if [ -z "${sys_luks_source}" ] ; then
+  if [ -z "${LUKS_PASSWORD}" ] ; then
     if [ -e /dev/md/system ] ; then
       system_pv=/dev/md/system
     else
@@ -807,7 +826,7 @@ else
 
   # data
   data_pv=""
-  if [ -z "${data_luks_source}" ] ; then
+  if [ -z "${LUKS_PASSWORD}" ] ; then
     if [ -e /dev/bcache0 ] ; then
       data_pv=/dev/bcache0
     elif [ -e /dev/md/data ] ; then
