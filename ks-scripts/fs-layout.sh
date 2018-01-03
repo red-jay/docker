@@ -27,7 +27,6 @@ KS_INCLUDE=""
 MD_COUNTER=0
 
 cleanup () {
-  cat "${FSTAB}"
   rm -f "${FSTAB}"
 }
 
@@ -361,12 +360,11 @@ ready_lv () {
     printf 'logvol %s --vgname=%s --fstype=%s --name=%s --size=%s\n' "${lmount}" "${vgname}" "${fstyp}" "${lvname}" "${sizeM}" >> "${KS_INCLUDE}"
   else
     lvcreate "-L${sizeM}M" "-n${lvname}" "${vgname}"
+    wipefs -a "${devpath}"
     case "${fstyp}" in
       ext4) mkfs.ext4 "${devpath}" ;;
       swap) mkswap    "${devpath}" ;;
     esac
-    mkdir "${mpath}"
-    mount "${devpath}" "${mpath}"
   fi
 }
 
@@ -392,14 +390,12 @@ ready_thin () {
       ext4) mkfs.ext4 "${devpath}" ;;
       swap) mkswap    "${devpath}" ;;
     esac
-    mkdir "${mpath}"
-    mount -o discard "${devpath}" "${mpath}"
   fi
 }
 
 # create a md device
 ready_md () {
-  local mdname mdlevel datalevel mddev i s fstyp mount extra fs_opts fs_nos
+  local mdname mdlevel datalevel mddev i s fstyp mount extra fs_opts fs_nos rname
   datalevel="1.0"
   mdname="${1}"
   mdlevel="${2}"
@@ -444,6 +440,14 @@ ready_md () {
     lvmpv|bcache) : ;;
     *)     printf '/dev/md/%s %s %s %s %s\n' "${mdname}" "${mpath}" "${fstyp}" "${fs_opts}" "${fs_nos}" >> "${FSTAB}" ;;
   esac
+  sleep 1
+  case "${mdname}" in
+    data)
+      rname=$(readlink "/dev/md/${mdname}")
+      rname=${rname##*/}
+      printf 'idle' > "/sys/class/block/${rname}/md/sync_action"
+    ;;
+  esac
 }
 
 # create a partition, unless we're just piping to kickstart.
@@ -466,6 +470,32 @@ ready_part () {
       *)      printf 'part %s --fstype="%s" --onpart=%s\n' "${mount}" "${fstyp}" "${partition}" >> "${KS_INCLUDE}" ;;
     esac
   fi
+}
+
+# walk our fstab and mkdir/mount as needed
+make_n_mount () {
+  local pass found dev path fstyp fsopt dump chk
+  pass=0
+  found=1
+  while [ "${found}" -eq 1 ] ; do
+    found=0
+    # shellcheck disable=SC2034
+    while read -r dev path fstyp fsopt dump chk ; do
+      if [ "${chk}" -eq "${pass}" ] ; then
+        found=1
+        case "${fstyp}" in swap) continue ;; esac
+        fsopt="${fsopt#defaults,}"
+        fsopt="${fsopt#defaults}"
+        mkdir "${path}"
+        if [ ! -z "${fsopt}" ] ; then
+          mount  -t "${fstyp}" -o "${fsopt}" "${dev}" "${path}"
+        else
+          mount -t "${fstyp}" "${dev}" "${path}"
+        fi
+      fi
+    done < "${FSTAB}"
+    pass=$(( pass + 1 ))
+  done
 }
 
 # this is a stack of functions overloading commands for NOOP tests.
@@ -784,6 +814,7 @@ else
   lvm_create data "${data_pv}"
 
   lvcreate -l100%FREE --type thin-pool --thinpool thinpool data
+  sleep 1
 
 fi
 
@@ -797,7 +828,10 @@ ready_thin libvirt        data thinpool ext4 18432 /var/lib/libvirt
 ready_thin http_sys       data thinpool ext4 512   /usr/share/nginx/html
 ready_thin http_bootstrap data thinpool ext4 8192  /usr/share/nginx/html/bootstrap
 
-# install bootloader
 if [ ! -z "${KS_INCLUDE}" ] ; then
+  # install bootloader
   printf 'bootloader --append=" crashkernel auto" --location=mbr\n' >> "${KS_INCLUDE}"
+else
+  # mount errything
+  make_n_mount
 fi
