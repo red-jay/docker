@@ -438,6 +438,7 @@ ready_md () {
   fi
   case "${fstyp}" in
     lvmpv|bcache) : ;;
+    efi)   printf '/dev/md/%s %s %s %s %s\n' "${mdname}" "${mpath}" "vfat" "${fs_opts}" "${fs_nos}" >> "${FSTAB}" ;;
     *)     printf '/dev/md/%s %s %s %s %s\n' "${mdname}" "${mpath}" "${fstyp}" "${fs_opts}" "${fs_nos}" >> "${FSTAB}" ;;
   esac
   sleep 1
@@ -463,6 +464,7 @@ ready_part () {
   # always update fstab, though we may rewrite later.
   case "${fstyp}" in
     lvmpv|bcache) : ;;
+    efi)   printf '%s %s %s %s %s\n' "${partition}" "${mpath}" "vfat" "${fs_opts}" "${fs_nos}" >> "${FSTAB}" ;;
     *)     printf '%s %s %s %s %s\n' "${partition}" "${mpath}" "${fstyp}" "${fs_opts}" "${fs_nos}" >> "${FSTAB}" ;;
   esac
   if [ ! -z "${KS_INCLUDE}" ] ; then
@@ -502,7 +504,7 @@ make_n_mount () {
     while read -r dev path fstyp fsopt dump chk ; do
       if [ "${chk}" -eq "${pass}" ] ; then
         found=1
-        case "${fstyp}" in swap) continue ;; efi) fstyp='vfat' ;; esac
+        case "${fstyp}" in swap) continue ;; esac
         fsopt="${fsopt#defaults,}"
         fsopt="${fsopt#defaults}"
         mkdir "${path}"
@@ -860,4 +862,8 @@ if [ ! -z "${KS_INCLUDE}" ] ; then
 else
   # mount errything
   make_n_mount
+
+  # save fstab to new system
+  mkdir -p "${TARGETPATH}/etc"
+  sed 's@'${TARGETPATH}'@@g' < "${FSTAB}" > "${TARGETPATH}/etc/fstab"
 fi
