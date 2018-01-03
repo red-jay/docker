@@ -159,7 +159,7 @@ done
   printf 'tmpfs\t/run\ttmpfs\tdefaults\t0 0\n'
 } | sudo tee "${IMGDIR}/etc/fstab" > /dev/null
 
-sudo mkdir -p "${IMGDIR}/mnt/target"
+sudo mkdir -p "${IMGDIR}/mnt/sysimage"
 
 # create tarball - sudo needs to create it, but we want the user to _own_ it ;)
 # shellcheck disable=SC2024
