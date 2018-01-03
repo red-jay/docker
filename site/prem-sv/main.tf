@@ -57,9 +57,17 @@ data "template_file" "bridge_mapping" {
   }
 }
 
+data "template_file" "hv_interface_config_script" {
+  template = "${file("${path.module}/bridge-config.sh.tpl")}"
+
+  vars {
+    vlan_kvs = "${join("",data.template_file.bridge_mapping.*.rendered)}"
+  }
+}
+
 resource "local_file" "bridge_mapping" {
   filename = "tf-output/common/hv-bridge-map.sh"
-  content  = "${join("",data.template_file.bridge_mapping.*.rendered)}"
+  content  = "${data.template_file.hv_interface_config_script.rendered}"
 }
 
 # dhcp(/tftp) servers
