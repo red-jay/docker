@@ -4,7 +4,7 @@ export ATLAS_BUILD_GITHUB_TAG=$(git describe --exact-match HEAD 2> /dev/null)
 export ATLAS_BUILD_SLUG="arrjay/infra"
 export BUILD_TIMESTAMP=$(date +%s)
 
-PASSWORD_STORE_DIR=$(pwd)/vault
+export PASSWORD_STORE_DIR=$(pwd)/vault
 
 echo "loading vault..."
 for x in ${PASSWORD_STORE_DIR}/*.gpg ; do
