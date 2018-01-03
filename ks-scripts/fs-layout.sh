@@ -359,7 +359,7 @@ ready_lv () {
   if [ ! -z "${KS_INCLUDE}" ] ; then
     printf 'logvol %s --vgname=%s --fstype=%s --name=%s --size=%s\n' "${lmount}" "${vgname}" "${fstyp}" "${lvname}" "${sizeM}" >> "${KS_INCLUDE}"
   else
-    lvcreate "-L${sizeM}M" "-n${lvname}" "${vgname}"
+    lvcreate -Wy "-L${sizeM}M" "-n${lvname}" "${vgname}"
     wipefs -a "${devpath}"
     case "${fstyp}" in
       ext4) mkfs.ext4 "${devpath}" ;;
@@ -483,7 +483,7 @@ make_n_mount () {
     while read -r dev path fstyp fsopt dump chk ; do
       if [ "${chk}" -eq "${pass}" ] ; then
         found=1
-        case "${fstyp}" in swap) continue ;; esac
+        case "${fstyp}" in swap) continue ;; efi) fstyp='vfat' ;; esac
         fsopt="${fsopt#defaults,}"
         fsopt="${fsopt#defaults}"
         mkdir "${path}"
@@ -548,6 +548,11 @@ vgcreate () {
 lvcreate () {
   if [ "${NOOP}" -eq 0 ] ; then command lvcreate "${@}"
                            else echo    lvcreate "${@}" ; fi
+}
+
+vgchange () {
+  if [ "${NOOP}" -eq 0 ] ; then command vgchange "${@}"
+                           else echo    vgchange "${@}" ; fi
 }
 
 mkdir () {
@@ -698,6 +703,7 @@ if [ "${flash_disk_nr}" -gt 1 ] ; then
   ready_md cache "${cache_raid_level}" "${cache_devs}" "bcache" "bcache0"
   # run stop_bcache here as it may awaken upon RAID assembly(!)
   stop_bcache
+  vgchange -a n
   wipefs -a /dev/md/cache
 elif [ "${flash_disk_nr}" -eq 1 ] ; then
   for part in ${cache_devs} ; do
@@ -731,6 +737,7 @@ if [ ! -z "${bcache_cache}" ] ; then
     while [ ! -f /sys/block/bcache0/bcache/attach ] ; do sleep 1 ; done
     echo "${cacheuuid}" > /sys/block/bcache0/bcache/attach
     echo writeback > /sys/block/bcache0/bcache/cache_mode
+    vgchange -a n
     wipefs -a /dev/bcache0
   fi
   # this is where we trick anaconda by replacing pv.1
@@ -786,7 +793,7 @@ else
 
   # system
   system_pv=""
-  if [ ! -z "${sys_luks_source}" ] ; then
+  if [ -z "${sys_luks_source}" ] ; then
     if [ -e /dev/md/system ] ; then
       system_pv=/dev/md/system
     else
@@ -800,7 +807,7 @@ else
 
   # data
   data_pv=""
-  if [ ! -z "${data_luks_source}" ] ; then
+  if [ -z "${data_luks_source}" ] ; then
     if [ -e /dev/bcache0 ] ; then
       data_pv=/dev/bcache0
     elif [ -e /dev/md/data ] ; then
