@@ -32,8 +32,8 @@ resource "random_id" "radon_mac" {
   prefix      = "${var.mac-prefix}"
 }
 
-data "template_file" "macmapper" {
-  template = "mac[$${source}]=$${dest}"
+data "template_file" "macmapper_data" {
+  template = "$${source}) echo $${dest} ;;"
   count    = "${length(local.mac-keys)}"
 
   vars {
@@ -42,7 +42,15 @@ data "template_file" "macmapper" {
   }
 }
 
+data "template_file" "macmapper" {
+  template = "${file("${path.module}/macmapper.sh.tpl")}"
+
+  vars {
+    macdata = "${join("\n",data.template_file.macmapper_data.*.rendered)}"
+  }
+}
+
 resource "local_file" "macmapper" {
   filename = "tf-output/common/intmac-remap.sh"
-  content  = "${join("\n",data.template_file.macmapper.*.rendered)}"
+  content  = "${data.template_file.macmapper.rendered}"
 }
