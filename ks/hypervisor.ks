@@ -176,9 +176,6 @@ if [ -z "${syscfg}" ] ; then
   fi
 fi
 
-# always stop lvm
-vgchange -an
-
 # configure disks via magic script ;)
 bash -x /run/install/repo/fs-layout.sh -W
 

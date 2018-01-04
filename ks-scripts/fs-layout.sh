@@ -628,10 +628,15 @@ if [ -z "${KS_INCLUDE}" ] ; then
   done < "/proc/${gpid}/cmdline"
 fi
 
+# try to stop lvm, but don't die!
+vgchange -a n || true
+
 # call get_arrays _once_ for stopping
 arraylist=$(get_arrays)
 # stop bcache here (which also flips arrays on)
 stop_bcache
+
+vgchange -a n || true
 
 # and stop the arrays
 stop_arrays
