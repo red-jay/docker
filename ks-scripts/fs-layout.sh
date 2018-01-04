@@ -520,6 +520,14 @@ make_n_mount () {
 }
 
 # this is a stack of functions overloading commands for NOOP tests.
+blockdev () {
+  if [ "${NOOP}" -eq 0 ] ; then command blockdev "${@}" ; else echo "blockdev" "${@}" 1>&3 ; echo "${MINSZ}" ; fi
+}
+
+dmsetup () {
+  if [ "${NOOP}" -eq 0 ] ; then command dmsetup "${@}" ; else echo "dmsetup" "${@}" 1>&3 ; fi
+}
+
 wipefs () {
   if [ "${NOOP}" -eq 0 ] ; then command wipefs "${@}" ; else echo "wipefs" "${@}" 1>&3 ; fi
 }
@@ -864,6 +872,32 @@ else
   make_n_mount
 
   # save fstab to new system
-  mkdir -p "${TARGETPATH}/etc"
-  sed 's@'${TARGETPATH}'@@g' < "${FSTAB}" > "${TARGETPATH}/etc/fstab"
+  mkdir "${TARGETPATH}/etc"
+  sed 's@'"${TARGETPATH}"'@@g' < "${FSTAB}" > "${TARGETPATH}/etc/fstab"
+
+  # do we have arrays?
+  mds_defined=( /dev/md/* )
+  if [ ! -z "${mds_defined[@]}" ] ; then
+    mkdir  "${TARGETPATH}/etc/mdadm"
+    mdadm --examine --scan > "${TARGETPATH}/etc/mdadm/mdadm.conf"
+  fi
+
+  if [ ! -z "${LUKS_PASSWORD}" ] ; then
+    # if we set up luks, rekey the data pv now.
+    mkdir "${TARGETPATH}/etc/keys"
+    dd if=/dev/random of="${TARGETPATH}/etc/keys/datavol.luks" bs=1 count=32
+    printf '%s' "${LUKS_PASSWORD}" | cryptsetup luksAddKey "${data_luks_source}" "${TARGETPATH}/etc/keys/datavol.luks" -
+    printf '%s' "${LUKS_PASSWORD}" | cryptsetup luksRemoveKey "${data_luks_source}"
+
+    # configure crypttab
+    sysluks=$(pvs -S vg_name=system --noheadings -o pv_name)
+    sysluks="${sysluks##*/luks-}"
+    dataluks=$(pvs -S vg_name=data --noheadings -o pv_name)
+    dataluks="${dataluks##*/luks-}"
+
+    {
+      printf 'luks-%s UUID=%s none luks\n'                   "${sysluks}"  "${sysluks}"
+      printf 'luks-%s UUID=%s /etc/keys/datavol.luks luks\n' "${dataluks}" "${dataluks}"
+    } > "${TARGETPATH}/etc/crypttab"
+  fi
 fi
