@@ -192,6 +192,8 @@ ifeq ($(findstring netmgmt,$(MAKECMDGOALS)),netmgmt)
 	cp ipxe-cfgs/ipxe-binaries.tgz $(tmpdir)
 endif
 	cp ks-scripts/fs-layout.sh $(tmpdir)
+	cp ks-scripts/install-stack.sh $(tmpdir)
+	cp tf-output/common/hv-bridge-map.sh $(tmpdir)
 	mkisofs -quiet -o $@ -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -rational-rock -J -V KICKSTART -hide-joliet-trans-tbl -hide-rr-moved $(tmpdir)
 
 %.img: $(ISOFILES) syslinux/%.cfg grub/%.cfg ks/%.ks
@@ -219,6 +221,8 @@ endif
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/centos7/LiveOS ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/centos7/images ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s ks-scripts/fs-layout.sh ::
+	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s ks-scripts/install-stack.sh ::
+	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s tf-output/common/hv-bridge-map.sh ::
 ifneq ($(MINIMAL),1)
 ifeq ($(findstring hypervisor,$(MAKECMDGOALS)),hypervisor)
 ifeq ($(INCLUDE_PRIVATE),true)

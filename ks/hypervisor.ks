@@ -95,18 +95,6 @@ set -x
 
 env
 
-# find ppid so we can get parent cmd
-ppid=$(cut -d' ' -f4 < /proc/$$/stat)
-read -r pcmdl < "/proc/${ppid}/cmdline"
-
-case "${pcmdl}" in
-  */sbin/anaconda)
-    echo "running in anaconda ks env"
-  ;;
-esac
-
-echo ${ppid} ${pcmdl}
-
 # on with nullglub
 shopt -s nullglob
 
@@ -269,63 +257,6 @@ for f in /mnt/sysimage/etc/pki/rpm-gpg/* ; do
   chroot /mnt/sysimage rpm --import "/etc/pki/rpm-gpg/${k}"
 done
 
-# this particular vlan table is global since all HVs use it.
-vlan[4]=netmgmt		# network device controllers (where possible)
-vlan[5]=standard	# "regular" VMs and such
-vlan[7]=guest		# guest wifi
-vlan[8]=sv2-guest	# guest wifi (garage)
-vlan[66]=transit	# transit vlan
-vlan[70]=restricted	# restricted wifi vlan
-vlan[71]=sv2-res	# restricted wifi (garage)
-vlan[90]=wifi		# standard user wifi
-vlan[91]=sv2-wifi	# user wifi in the garage
-vlan[100]=virthost	# hypervisors
-vlan[303]=dmz		# DMZ range
-vlan[606]=chaos		# chaosnet
-vlan[602]=sv2-iot	# iot (garage)
-vlan[999]=iot		# internet of things devices
-vlan[990]=pln		# powerline networking
-vlan[992]=wext		# wifi backup networking
-
-# configure the network using systemd-networkd here.
-mkdir -p /mnt/sysimage/etc/systemd/network/
-
-# shoot NetworkManager in the face
-ln -s /dev/null /mnt/sysimage/etc/systemd/system/NetworkManager.service
-ln -s /dev/null /mnt/sysimage/etc/systemd/system/NetworkManager-wait-online.service
-rm -f /mnt/sysimage/etc/systemd/system/dbus-org.freedesktop.NetworkManager.service
-rm -f /mnt/sysimage/etc/systemd/system/multi-user.target.wants/NetworkManager.service
-rm -f /mnt/sysimage/etc/systemd/system/dbus-org.freedesktop.nm-dispatcher.service
-#ln -s /usr/lib/systemd/system/systemd-networkd-wait-online.service /mnt/sysimage/etc/systemd/system/network-online.target.wants/systemd-networkd-wait-online.service
-
-# disable ipv6 for most things
-printf 'net.ipv6.conf.default.disable_ipv6 = 1\nnet.ipv6.conf.lo.disable_ipv6 = 0\n' > /mnt/sysimage/etc/sysctl.d/40-ipv6.conf
-
-# create vmm
-printf '[NetDev]\nName=vmm\nKind=bridge\n' > "/mnt/sysimage/etc/systemd/network/vmm.netdev"
-printf '[Match]\nName=vmm\n[Network]\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\nAddress=192.168.128.129/25\n' > "/mnt/sysimage/etc/systemd/network/vmm.network"
-
-# update firewalld for vmm
-chroot /mnt/sysimage /usr/bin/firewall-offline-cmd --new-zone vmm
-chroot /mnt/sysimage /usr/bin/firewall-offline-cmd --zone vmm --add-interface vmm
-chroot /mnt/sysimage /usr/bin/firewall-offline-cmd --direct --add-rule eb filter FORWARD 0 --logical-in vmm -j DROP
-chroot /mnt/sysimage /usr/bin/firewall-offline-cmd --direct --add-rule eb filter FORWARD 1 --logical-out vmm -j DROP
-chroot /mnt/sysimage /usr/bin/firewall-offline-cmd --zone vmm --add-service dhcp
-chroot /mnt/sysimage /usr/bin/firewall-offline-cmd --zone vmm --add-service ntp
-chroot /mnt/sysimage /usr/bin/firewall-offline-cmd --zone vmm --add-service http
-chroot /mnt/sysimage /usr/bin/firewall-offline-cmd --zone vmm --add-port 3493/tcp
-
-# configure dnsmasq
-{
-  printf 'port=0\ninterface=vmm\nbind-interfaces\nno-hosts\n'
-  printf 'dhcp-range=192.168.128.130,192.168.128.254,30m\n'
-  printf 'dhcp-option=3\ndhcp-option=6\ndhcp-option=12\ndhcp-option=42,0.0.0.0\n'
-  printf 'dhcp-option=vendor:BBXN,1,0.0.0.0\n'
-  printf 'dhcp-authoritative\n'
-} > /mnt/sysimage/etc/dnsmasq.conf
-ln -s /usr/lib/systemd/system/dnsmasq.service /mnt/sysimage/etc/systemd/system/multi-user.target.wants/dnsmasq.service
-mkdir -p /mnt/sysimage/etc/systemd/system/dnsmasq.service.d
-printf '[Service]\nRestartSec=1s\nRestart=on-failure\n' > /mnt/sysimage/etc/systemd/system/dnsmasq.service.d/local.conf
 ln -s /usr/lib/systemd/system/nginx.service /mnt/sysimage/etc/systemd/system/multi-user.target.wants/nginx.service
 printf 'location /bootstrap/openbsd {\n autoindex on;\n}\n' > /mnt/sysimage/etc/nginx/default.d/openbsd.conf
 
@@ -369,21 +300,7 @@ case "${syscfg}" in
     ;;
 esac
 
-if [ ! -z "${topcard}" ] ; then
-  printf '[Match]\nName=%s\n[Network]\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\n' "${topcard}" > "/mnt/sysimage/etc/systemd/network/${topcard}.network"
-fi
-
-# create bridges,vlans
-for vid in "${!vlan[@]}" ; do
-  printf '[NetDev]\nName=%s\nKind=bridge\n' "${vlan[$vid]}" > "/mnt/sysimage/etc/systemd/network/${vlan[$vid]}.netdev"
-  printf '[Match]\nName=%s\n[Network]\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\n' "${vlan[$vid]}" > "/mnt/sysimage/etc/systemd/network/${vlan[$vid]}.network"
-  if [ ! -z "${topcard}" ] ; then
-    printf '[NetDev]\nName=vl-%s\nKind=vlan\n[VLAN]\nId=%s\n' "${vlan[$vid]}" "${vid}" > "/mnt/sysimage/etc/systemd/network/vl-${vlan[$vid]}.netdev"
-    printf '[Match]\nName=vl-%s\n[Network]\nBridge=%s\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\n' "${vlan[$vid]}" "${vlan[$vid]}" > "/mnt/sysimage/etc/systemd/network/vl-${vlan[$vid]}.network"
-    # associate vlans to topdev
-    printf 'VLAN=vl-%s\n' "${vlan[$vid]}" >> "/mnt/sysimage/etc/systemd/network/${topcard}.network"
-  fi
-done
+bash -x /run/install/repo/install-stack.sh
 
 if [ ! -z "${topcard}" ] ; then
   # configure virthost to use dhclient, with a fallback managed via systemd...
