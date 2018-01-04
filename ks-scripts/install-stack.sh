@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 set -eux
-
 set -o pipefail
+shopt -s nullglob
 
 IN_KS="0"
 
@@ -97,3 +97,27 @@ for vid in "${!vlan[@]}" ; do
   printf '[NetDev]\nName=%s\nKind=bridge\n' "${vlan[$vid]}" > "${TARGETPATH}/etc/systemd/network/${vlan[$vid]}.netdev"
   printf '[Match]\nName=%s\n[Network]\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\n' "${vlan[$vid]}" > "${TARGETPATH}/etc/systemd/network/${vlan[$vid]}.network"
 done
+
+# disable libvirt network autostarts
+lv_autostart=( "${TARGETPATH}"/etc/libvirt/qemu/networks/autostart/* )
+if [ ! -z "${lv_autostart[@]}" ] ; then
+  rm -f "${TARGETPATH}/etc/libvirt/qemu/networks/autostart/*"
+fi
+
+# configure spare libvirt network
+altmac=$({ printf '5A'; dd bs=1 count=5 if=/dev/random 2> /dev/null | hexdump -v -e '/1 ":%02X"'; })
+altuuid=$(uuidgen)
+cat << _EOF_ > "${TARGETPATH}/etc/libvirt/qemu/networks/alternative.xml"
+<network>
+ <name>alternative</name>
+ <uuid>${altuuid}</uuid>
+ <forward mode="nat"/>
+ <bridge name="virbr1" stp="on" delay="0"/>
+ <mac address="${altmac}"/>
+ <ip address="192.168.212.1" netmask="255.255.255.0">
+  <dhcp>
+   <range start="192.168.212.2" end="192.168.212.254"/>
+  </dhcp>
+ </ip>
+</network>
+_EOF_
