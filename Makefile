@@ -197,7 +197,7 @@ endif
 	mkisofs -quiet -o $@ -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -rational-rock -J -V KICKSTART -hide-joliet-trans-tbl -hide-rr-moved $(tmpdir)
 
 %.img: $(ISOFILES) syslinux/%.cfg grub/%.cfg ks/%.ks
-	mkdiskimage -FM4os $(basename $(notdir $@)).img 2048 256 63 > usb.offset
+	mkdiskimage -FM4os $(basename $(notdir $@)).img 2560 256 63 > usb.offset
 	dd conv=notrunc bs=440 count=1 if=/usr/share/syslinux/mbr.bin of=$(basename $(notdir $@)).img
 	env MTOOLS_SKIP_CHECK=1 mlabel -i $(basename $(notdir $@)).img@@$$(cat usb.offset) ::KICKSTART
 	syslinux -t $$(cat usb.offset) $(basename $(notdir $@)).img
