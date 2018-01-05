@@ -88,15 +88,67 @@ ln -sf /lib/systemd/system/dnsmasq.service "${TARGETPATH}/etc/systemd/system/mul
 mkdir -p "${TARGETPATH}/etc/systemd/system/dnsmasq.service.d"
 printf '[Service]\nRestartSec=1s\nRestart=on-failure\n' > "${TARGETPATH}/etc/systemd/system/dnsmasq.service.d/local.conf"
 
+# placeholder for if we have an address to remap
+remap_addr=""
+
+# check to see if we have a ethernet interface to plumb vlans against
+for hwaddr_file in /sys/devices/pci*/*/net/*/address /sys/devices/pci*/*/*/net/*/address ; do
+ hwaddr=""
+ read -r hwaddr < "${hwaddr_file}"
+ hwaddr="${hwaddr//:/}"
+ remap_addr=$(bash "${SELFDIR}/intmac-remap.sh" "${hwaddr}")
+done
+
 # load vlan data, then create bridges, vlans
 # shellcheck source=tf-output/common/hv-bridge-map.sh
 source "${SELFDIR}/hv-bridge-map.sh"
 
-# create bridges,vlans
+# create bridges
 for vid in "${!vlan[@]}" ; do
   printf '[NetDev]\nName=%s\nKind=bridge\n' "${vlan[$vid]}" > "${TARGETPATH}/etc/systemd/network/${vlan[$vid]}.netdev"
   printf '[Match]\nName=%s\n[Network]\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\n' "${vlan[$vid]}" > "${TARGETPATH}/etc/systemd/network/${vlan[$vid]}.network"
 done
+
+# turn stp on for bridges OOTB
+{
+    printf '%s\n' 'SUBSYSTEM!="net", GOTO="autostp_end"'
+    printf '%s\n' 'ACTION!="add", GOTO="autostp_end"'
+    printf '%s\n' 'ENV{DEVTYPE}!="bridge", GOTO="autostp_end"'
+    printf '%s\n' 'RUN+="/bin/sh -c '\''printf 1 > /sys/class/net/%k/bridge/stp_state'\''"'
+    printf '%s\n' 'RUN+="/bin/sh -c '\''printf 200 > /sys/class/net/%k/bridge/forward_delay'\''"'
+    printf '%s\n' 'LABEL="autostp_end"'
+} > "${TARGETPATH}/etc/udev/rules.d/80-br-autostp.rules"
+
+if [ ! -z "${remap_addr}" ] ; then
+  # create udev rule to remap an interface
+  lladdr="${remap_addr:0:2}:${remap_addr:2:2}:${remap_addr:4:2}:${remap_addr:6:2}:${remap_addr:8:2}:${remap_addr:10:2}"
+  oladdr="${hwaddr:0:2}:${hwaddr:2:2}:${hwaddr:4:2}:${hwaddr:6:2}:${hwaddr:8:2}:${hwaddr:10:2}"
+  {
+    printf 'SUBSYSTEM!="net", GOTO="autobr_end"\n'
+    printf 'ACTION!="add", GOTO="autobr_end"\n'
+    printf 'ENV{INTERFACE}=="lo", GOTO="autobr_end"\n'
+    printf 'ENV{DEVTYPE}=="bridge", GOTO="autobr_end"\n'
+    printf 'ENV{DEVTYPE}=="vlan", GOTO="autobr_end"\n'
+    printf 'ENV{DEVTYPE}=="wlan", GOTO="autobr_end"\n'
+    printf 'ENV{ID_NET_DRIVER}=="tun", GOTO="autobr_end"\n'
+    printf 'ATTRS{address}!="%s", GOTO="autobr_end"\n' "${oladdr}"
+    printf 'RUN+="/usr/sbin/ip link set dev %%k down"\n'
+    printf 'RUN+="/usr/sbin/ip link set dev %%k address %s"\n' "${lladdr}"
+    printf 'RUN+="/usr/sbin/ip link set dev %%k up"\n'
+    printf 'ENV{NM_UNMANAGED}="1"\n'
+    printf 'LABEL="autobr_end"\n'
+  } > "${TARGETPATH}/etc/udev/rules.d/81-remap-${hwaddr}.rules"
+
+  # and a systemd-networkd config to drop in carrier mode...
+  printf '[Match]\nMACAddress=%s\n[Network]\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\n' "${lladdr}" > "/mnt/sysimage/etc/systemd/network/${remap_addr}.network"
+
+  # then glue the VLANs to the card en-masse.
+  for vid in "${!vlan[@]}" ; do
+     printf '[NetDev]\nName=vl-%s\nKind=vlan\n[VLAN]\nId=%s\n' "${vlan[$vid]}" "${vid}" > "/mnt/sysimage/etc/systemd/network/vl-${vlan[$vid]}.netdev"
+     printf '[Match]\nName=vl-%s\n[Network]\nBridge=%s\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\n' "${vlan[$vid]}" "${vlan[$vid]}" > "/mnt/sysimage/etc/systemd/network/vl-${vlan[$vid]}.network"
+     printf 'VLAN=vl-%s\n' "${vlan[$vid]}" >> "/mnt/sysimage/etc/systemd/network/${remap_addr}.network"
+  done
+fi
 
 # disable libvirt network autostarts
 lv_autostart=( "${TARGETPATH}"/etc/libvirt/qemu/networks/autostart/* )

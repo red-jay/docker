@@ -257,22 +257,6 @@ done
 ln -s /usr/lib/systemd/system/nginx.service /mnt/sysimage/etc/systemd/system/multi-user.target.wants/nginx.service
 printf 'location /bootstrap/openbsd {\n autoindex on;\n}\n' > /mnt/sysimage/etc/nginx/default.d/openbsd.conf
 
-if [[ " rhenium " =~ " ${syscfg} " ]] ; then
-  topcard='enp6s0f1'
-fi
-
-if [[ " radon mercury " =~ " ${syscfg} " ]] ; then
-  topcard='enp3s0'
-fi
-
-if [[ " strontium " =~ " ${syscfg} " ]] ; then
-  topcard='enp4s0'
-fi
-
-if [[ " tungsten palladium nickel " =~ " ${syscfg} " ]] ; then
-  topcard='enp1s0f0'
-fi
-
 case "${syscfg}" in
   rhenium)
     fallback_ipv4=172.16.143.150/25
@@ -298,77 +282,6 @@ case "${syscfg}" in
 esac
 
 bash -x /run/install/repo/install-stack.sh
-
-if [ ! -z "${topcard}" ] ; then
-  # configure virthost to use dhclient, with a fallback managed via systemd...
-  {
-    printf '[Unit]\nDescription=dhclient on %%I\nWants=network.target\nBefore=network.target\nOnFailure=dhclient-fallback@%%i.service\n'
-    printf '[Service]\nEnvironment=PATH_DHCLIENT_PID=/var/run/dhclient-%%i.pid\nEnvironment=PATH_DHCLIENT_DB=/var/lib/dhclient/dhclient-%%i.leases\n'
-    printf 'ExecStart=/sbin/dhclient -4 -d -1 %%i\nRestart=on-success\n'
-  } > "/mnt/sysimage/etc/systemd/system/dhclient@.service"
-  printf '[Unit]\nDescription=dhclient watchdog for %%I\n[Timer]\nOnBootSec=5min\nOnUnitActiveSec=30min\nUnit=dhclient@%%i.service\n[Install]\nWantedBy=timers.target\n' > "/mnt/sysimage/etc/systemd/system/dhclient@.timer"
-
-  printf '[Unit]\nDescription=dhclient fallback for %%I\n[Service]\nType=oneshot\nExecStart=/usr/local/libexec/dhclient-fallback.sh %%i\n' > "/mnt/sysimage/etc/systemd/system/dhclient-fallback@.service"
-  {
-    printf '#!/usr/bin/env bash\nif [ -f "/usr/local/etc/dhclient-fallback/${1}.conf" ] ; then\n'
-    printf ' source "/usr/local/etc/dhclient-fallback/${1}.conf"\nelse\n exit 0\nfi\n'
-    printf 'ip addr add "${IPADDR0}" dev "${1}"\n'
-    printf 'if [ ! -z "${GATEWAY}" ]; then\n ip route add default via "${GATEWAY}"\nfi\n'
-  } > "/mnt/sysimage/usr/local/libexec/dhclient-fallback.sh"
-  chmod +x /mnt/sysimage/usr/local/libexec/dhclient-fallback.sh
-
-  mkdir /mnt/sysimage/etc/systemd/system/timers.target.wants
-  ln -s /etc/systemd/system/dhclient@.timer /mnt/sysimage/etc/systemd/system/timers.target.wants/dhclient@virthost.timer
-
-  # configure last-ditch DNS here too.
-  printf 'nameserver 8.8.8.8\n' > /mnt/sysimage/etc/resolv.conf
-
-  # if we have a fallback ipv4 for virthost, here you go
-  if [ ! -z "${fallback_ipv4}" ] ; then
-     mkdir -p /mnt/sysimage/usr/local/etc/dhclient-fallback
-    printf 'IPADDR0=%s\nGATEWAY=172.16.143.129\n' "${fallback_ipv4}" > "/mnt/sysimage/usr/local/etc/dhclient-fallback/virthost.conf"
-  fi
-
-  # while we're here, install udev trickery to autobridge all the other ethernet adapters
-  mkdir -p /mnt/sysimage/etc/udev/autobr-lmac
-  {
-    printf 'SUBSYSTEM!="net", GOTO="autobr_end"\n'
-    printf 'ACTION!="add", GOTO="autobr_end"\n'
-    printf 'ENV{INTERFACE}=="lo", GOTO="autobr_end"\n'
-    printf 'ENV{DEVTYPE}=="bridge", GOTO="autobr_end"\n'
-    printf 'ENV{DEVTYPE}=="vlan", GOTO="autobr_end"\n'
-    printf 'ENV{DEVTYPE}=="wlan", GOTO="autobr_end"\n'
-    printf 'ENV{ID_NET_DRIVER}=="tun", GOTO="autobr_end"\n'
-    printf 'PROGRAM="/usr/bin/test -e /etc/systemd/network/%%k.network", GOTO="autobr_end"\n'
-    printf 'RUN+="/usr/sbin/ip link set dev %%k down"\n'
-    printf 'RUN+="/etc/udev/autobr-lmac.sh"\n'
-    printf 'RUN+="/usr/sbin/ip link add br-%%k type bridge"\n'
-    printf 'RUN+="/usr/sbin/ip link set dev %%k master br-%%k"\n'
-    printf 'RUN+="/usr/sbin/ip link set %%k up"\n'
-    printf 'RUN+="/usr/sbin/ip link set br-%%k up"\n'
-    printf 'ENV{NM_UNMANAGED}="1"\n'
-    printf 'LABEL="autobr_end"\n'
-  } > /mnt/sysimage/etc/udev/rules.d/81-autobridge.rules
-
-  {
-    printf '5A'
-    dd bs=1 count=2 if=/dev/random 2>/dev/null | hexdump -v -e '/1 ":%02X"'
-  } > /mnt/sysimage/etc/udev/autobr-lmac/prefix
-
-  {
-    printf '#!/bin/bash\n'
-    printf 'cmac=${ID_NET_NAME_MAC: -12}\n'
-    printf 'if [ ! -f "/etc/udev/autobr-lmac/lmac.${cmac}" ] ; then\n'
-    printf '{\n cat /etc/udev/autobr-lmac/prefix\n dd bs=1 count=3 if=/dev/random 2>/dev/null |hexdump -v -e '"'"'/1 ":%%02X"'"'"'\n} > "/etc/udev/autobr-lmac/lmac.${cmac}"\n'
-    printf 'fi\n'
-    printf 'read lmac < "/etc/udev/autobr-lmac/lmac.${cmac}"\n'
-    printf 'if [ ${#lmac} -eq 17 ] ; then\n'
-    printf ' /sbin/ip link set dev "${INTERFACE}" address "${lmac}"\n'
-    printf 'fi\n'
-  } > /mnt/sysimage/etc/udev/autobr-lmac.sh
-
-  chmod +x /mnt/sysimage/etc/udev/autobr-lmac.sh
-fi
 
 # configure nut if we find a ups...
 for hiddev in /sys/class/hidraw/* ; do
