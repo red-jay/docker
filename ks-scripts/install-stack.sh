@@ -114,10 +114,21 @@ done
     printf '%s\n' 'SUBSYSTEM!="net", GOTO="autostp_end"'
     printf '%s\n' 'ACTION!="add", GOTO="autostp_end"'
     printf '%s\n' 'ENV{DEVTYPE}!="bridge", GOTO="autostp_end"'
+    printf '%s\n' 'ENV{NO_STP}=="1", GOTO="autostp_end"'
     printf '%s\n' 'RUN+="/bin/sh -c '\''printf 1 > /sys/class/net/%k/bridge/stp_state'\''"'
     printf '%s\n' 'RUN+="/bin/sh -c '\''printf 200 > /sys/class/net/%k/bridge/forward_delay'\''"'
     printf '%s\n' 'LABEL="autostp_end"'
 } > "${TARGETPATH}/etc/udev/rules.d/80-br-autostp.rules"
+
+# turn stp off for external
+{
+    printf '%s\n' 'SUBSYSTEM!="net", GOTO="nostp_end"'
+    printf '%s\n' 'ACTION!="add", GOTO="nostp_end"'
+    printf '%s\n' 'ENV{DEVTYPE}!="bridge", GOTO="nostp_end"'
+    printf '%s\n' 'ENV{INTERFACE}!="external", GOTO="nostp_end"'
+    printf '%s\n' 'ENV{NO_STP}="1"'
+    printf '%s\n' 'LABEL="nostp_end"'
+} > "${TARGETPATH}/etc/udev/rules.d/65-br-external-nostp.rules"
 
 if [ ! -z "${remap_addr}" ] ; then
   # create udev rule to remap an interface
@@ -131,7 +142,7 @@ if [ ! -z "${remap_addr}" ] ; then
     printf 'ENV{DEVTYPE}=="vlan", GOTO="autobr_end"\n'
     printf 'ENV{DEVTYPE}=="wlan", GOTO="autobr_end"\n'
     printf 'ENV{ID_NET_DRIVER}=="tun", GOTO="autobr_end"\n'
-    printf 'ENV{ID_NET_NAME_MAC}!="enx%s", GOTO="autobr_end"\n' "${oladdr}"
+    printf 'ENV{ID_NET_NAME_MAC}!="enx%s", GOTO="autobr_end"\n' "${hwaddr}"
     printf 'RUN+="/usr/sbin/ip link set dev %%k down"\n'
     printf 'RUN+="/usr/sbin/ip link set dev %%k address %s"\n' "${lladdr}"
     printf 'RUN+="/usr/sbin/ip link set dev %%k up"\n'

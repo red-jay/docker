@@ -11,6 +11,7 @@ vlan[32]=s1a.gst
 vlan[4]=netm
 vlan[40]=s1.wext
 vlan[400]=pln
+vlan[4000]=external
 vlan[41]=s2.wext
 vlan[42]=s1a.wext
 vlan[5]=srv

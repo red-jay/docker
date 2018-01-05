@@ -20,6 +20,7 @@ output "vlans" {
                   "6","hv",
                   "303","dmz",
                   "400","pln",
+                  "4000","external",
                   var.wext-vlan,"s${var.series}.wext",
                   var.user-vlan,"s${var.series}.user",
                   var.restricted-vlan,"s${var.series}.res",
