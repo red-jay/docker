@@ -131,7 +131,7 @@ if [ ! -z "${remap_addr}" ] ; then
     printf 'ENV{DEVTYPE}=="vlan", GOTO="autobr_end"\n'
     printf 'ENV{DEVTYPE}=="wlan", GOTO="autobr_end"\n'
     printf 'ENV{ID_NET_DRIVER}=="tun", GOTO="autobr_end"\n'
-    printf 'ATTRS{address}!="%s", GOTO="autobr_end"\n' "${oladdr}"
+    printf 'ENV{ID_NET_NAME_MAC}!="enx%s", GOTO="autobr_end"\n' "${oladdr}"
     printf 'RUN+="/usr/sbin/ip link set dev %%k down"\n'
     printf 'RUN+="/usr/sbin/ip link set dev %%k address %s"\n' "${lladdr}"
     printf 'RUN+="/usr/sbin/ip link set dev %%k up"\n'
