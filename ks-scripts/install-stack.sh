@@ -93,6 +93,7 @@ remap_addr=""
 
 # check to see if we have a ethernet interface to plumb vlans against
 for hwaddr_file in /sys/devices/pci*/*/net/*/address /sys/devices/pci*/*/*/net/*/address ; do
+ if [ ! -z "${remap_addr}" ] ; then break ; fi
  hwaddr=""
  read -r hwaddr < "${hwaddr_file}"
  hwaddr="${hwaddr//:/}"
@@ -102,6 +103,8 @@ done
 # load vlan data, then create bridges, vlans
 # shellcheck source=tf-output/common/hv-bridge-map.sh
 source "${SELFDIR}/hv-bridge-map.sh"
+# shellcheck source=tf-output/common/intmac-bridge.sh
+source "${SELFDIR}/intmac-bridge.sh"
 
 # create bridges
 for vid in "${!vlan[@]}" ; do
@@ -133,7 +136,7 @@ done
 if [ ! -z "${remap_addr}" ] ; then
   # create udev rule to remap an interface
   lladdr="${remap_addr:0:2}:${remap_addr:2:2}:${remap_addr:4:2}:${remap_addr:6:2}:${remap_addr:8:2}:${remap_addr:10:2}"
-  oladdr="${hwaddr:0:2}:${hwaddr:2:2}:${hwaddr:4:2}:${hwaddr:6:2}:${hwaddr:8:2}:${hwaddr:10:2}"
+  #oladdr="${hwaddr:0:2}:${hwaddr:2:2}:${hwaddr:4:2}:${hwaddr:6:2}:${hwaddr:8:2}:${hwaddr:10:2}"
   {
     printf 'SUBSYSTEM!="net", GOTO="autobr_end"\n'
     printf 'ACTION!="add", GOTO="autobr_end"\n'
@@ -157,9 +160,34 @@ if [ ! -z "${remap_addr}" ] ; then
   for vid in "${!vlan[@]}" ; do
      printf '[NetDev]\nName=vl-%s\nKind=vlan\n[VLAN]\nId=%s\n' "${vlan[$vid]}" "${vid}" > "/mnt/sysimage/etc/systemd/network/vl-${vlan[$vid]}.netdev"
      printf '[Match]\nName=vl-%s\n[Network]\nBridge=%s\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\n' "${vlan[$vid]}" "${vlan[$vid]}" > "/mnt/sysimage/etc/systemd/network/vl-${vlan[$vid]}.network"
-     printf 'VLAN=vl-%s\n' "${vlan[$vid]}" >> "/mnt/sysimage/etc/systemd/network/${remap_addr}.network"
+     printf 'VLAN=vl-%s\n' "${vlan[$vid]}" >> "${TARGETPATH}/etc/systemd/network/${remap_addr}.network"
   done
 fi
+
+for hwaddr in $pln ; do
+  # so we actually make a new mac for remapping, then two bridge files - one for the freshly remapped mac and one for just the new.
+  raddr=$(printf '5a'; dd bs=1 count=5 if=/dev/random 2>/dev/null | hexdump -v -e '/1 "%02x"')
+  oraddr="${raddr:0:2}:${raddr:2:2}:${raddr:4:2}:${raddr:6:2}:${raddr:8:2}:${raddr:10:2}"
+  {
+    printf 'SUBSYSTEM!="net", GOTO="rebridge_end"\n'
+    printf 'ACTION!="add", GOTO="rebridge_end"\n'
+    printf 'ENV{INTERFACE}=="lo", GOTO="rebridge_end"\n'
+    printf 'ENV{DEVTYPE}=="bridge", GOTO="rebridge_end"\n'
+    printf 'ENV{DEVTYPE}=="vlan", GOTO="rebridge_end"\n'
+    printf 'ENV{DEVTYPE}=="wlan", GOTO="rebridge_end"\n'
+    printf 'ENV{ID_NET_DRIVER}=="tun", GOTO="rebridge_end"\n'
+    printf 'ENV{ID_NET_NAME_MAC}!="enx%s", GOTO="rebridge_end"\n' "${hwaddr}"
+    printf 'RUN+="/usr/sbin/ip link set dev %%k down"\n'
+    printf 'RUN+="/usr/sbin/ip link set dev %%k address %s"\n' "${oraddr}"
+    printf 'RUN+="/usr/sbin/ip link set dev %%k up"\n'
+    printf 'ENV{NM_UNMANAGED}="1"\n'
+    printf 'LABEL="rebridge_end"\n'
+  } > "${TARGETPATH}/etc/udev/rules.d/82-map-pln-${hwaddr}.rules"
+
+  {
+    printf '[Match]\nMACAddress=%s\n[Network]\nBridge=%s\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\n' "${oraddr}" "pln"
+  } > "${TARGETPATH}/etc/systemd/network/${raddr}.network"
+done
 
 # disable libvirt network autostarts
 lv_autostart=( "${TARGETPATH}"/etc/libvirt/qemu/networks/autostart/* )

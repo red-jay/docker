@@ -12,3 +12,8 @@ variable "radon_hwid" {
   type    = "map"
   default = {}
 }
+
+variable "pln_maddrs" {
+  type    = "list"
+  default = []
+}

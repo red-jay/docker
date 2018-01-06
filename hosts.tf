@@ -54,3 +54,26 @@ resource "local_file" "macmapper" {
   filename = "tf-output/common/intmac-remap.sh"
   content  = "${data.template_file.macmapper.rendered}"
 }
+
+data "template_file" "mac2bridge_pln_data" {
+  template = "$${source} "
+  count    = "${length(var.pln_maddrs)}"
+
+  vars {
+    bridge = "pln"
+    source = "${replace(element(var.pln_maddrs,count.index),"/[.:]/","")}"
+  }
+}
+
+data "template_file" "bridger" {
+  template = "pln='$${pln_macdata}'"
+
+  vars {
+    pln_macdata = " ${join("",data.template_file.mac2bridge_pln_data.*.rendered)}"
+  }
+}
+
+resource "local_file" "bridger" {
+  filename = "tf-output/common/intmac-bridge.sh"
+  content  = "${data.template_file.bridger.rendered}"
+}
