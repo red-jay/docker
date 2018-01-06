@@ -17,3 +17,8 @@ variable "pln_maddrs" {
   type    = "list"
   default = []
 }
+
+variable "tungsten_hwid" {
+  type    = "map"
+  default = {}
+}
