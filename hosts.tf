@@ -5,6 +5,7 @@ locals {
     "nickel",       "${map("class","hypervisor","hwaddr",random_id.nickel_mac.hex)}",
     "radon-hw",     "${map("class","hypervisor","hwaddr","${lookup(var.radon_hwid,"ether")}")}",
     "radon",        "${map("class","hypervisor","hwaddr",random_id.radon_mac.hex)}",
+    "tungsten-hw",  "${map("class","hypervisor","hwaddr","${lookup(var.tungsten_hwid,"ether")}")}",
   )}"
 
   mac-remapping = "${map(
@@ -26,6 +27,15 @@ resource "random_id" "nickel_mac" {
 resource "random_id" "radon_mac" {
   keepers = {
     sysmac = "${lookup(var.radon_hwid,"ether")}"
+  }
+
+  byte_length = 3
+  prefix      = "${var.mac-prefix}"
+}
+
+resource "random_id" "tungsten_mac" {
+  keepers = {
+    sysmac = "${lookup(var.tungsten_hwid,"ether")}"
   }
 
   byte_length = 3
