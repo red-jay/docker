@@ -2,14 +2,21 @@ locals {
   host-mac-net-mapping = "${map(
     "lr-kallax-sw", "${map("class","netmgmt",   "hwaddr","${lookup(var.kallax_hwid,"ether")}")}",
     "nickel-hw",    "${map("class","hypervisor","hwaddr","${lookup(var.nickel_hwid,"ether")}")}",
-    "nickel",       "${map("class","hypervisor","hwaddr",random_id.nickel_mac.hex)}",
     "radon-hw",     "${map("class","hypervisor","hwaddr","${lookup(var.radon_hwid,"ether")}")}",
+  )}"
+/*
+    "nickel",       "${map("class","hypervisor","hwaddr",random_id.nickel_mac.hex)}",
     "radon",        "${map("class","hypervisor","hwaddr",random_id.radon_mac.hex)}",
   )}"
+*/
 
+  mac-remapping = "${map()}"
+
+/*
   mac-remapping = "${map(
     lookup(var.radon_hwid,"ether"),random_id.radon_mac.hex,
   )}"
+*/
 
   mac-keys = "${keys(local.mac-remapping)}"
 }
