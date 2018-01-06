@@ -189,9 +189,34 @@ for hwaddr in $pln ; do
   } > "${TARGETPATH}/etc/systemd/network/${raddr}.network"
 done
 
+for hwaddr in $external ; do
+  # so we actually make a new mac for remapping, then two bridge files - one for the freshly remapped mac and one for just the new.
+  raddr=$(printf '5a'; dd bs=1 count=5 if=/dev/random 2>/dev/null | hexdump -v -e '/1 "%02x"')
+  oraddr="${raddr:0:2}:${raddr:2:2}:${raddr:4:2}:${raddr:6:2}:${raddr:8:2}:${raddr:10:2}"
+  {
+    printf 'SUBSYSTEM!="net", GOTO="rebridge_end"\n'
+    printf 'ACTION!="add", GOTO="rebridge_end"\n'
+    printf 'ENV{INTERFACE}=="lo", GOTO="rebridge_end"\n'
+    printf 'ENV{DEVTYPE}=="bridge", GOTO="rebridge_end"\n'
+    printf 'ENV{DEVTYPE}=="vlan", GOTO="rebridge_end"\n'
+    printf 'ENV{DEVTYPE}=="wlan", GOTO="rebridge_end"\n'
+    printf 'ENV{ID_NET_DRIVER}=="tun", GOTO="rebridge_end"\n'
+    printf 'ENV{ID_NET_NAME_MAC}!="enx%s", GOTO="rebridge_end"\n' "${hwaddr}"
+    printf 'RUN+="/usr/sbin/ip link set dev %%k down"\n'
+    printf 'RUN+="/usr/sbin/ip link set dev %%k address %s"\n' "${oraddr}"
+    printf 'RUN+="/usr/sbin/ip link set dev %%k up"\n'
+    printf 'ENV{NM_UNMANAGED}="1"\n'
+    printf 'LABEL="rebridge_end"\n'
+  } > "${TARGETPATH}/etc/udev/rules.d/82-map-external-${hwaddr}.rules"
+
+  {
+    printf '[Match]\nMACAddress=%s\n[Network]\nBridge=%s\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\n' "${oraddr}" "external"
+  } > "${TARGETPATH}/etc/systemd/network/${raddr}.network"
+done
+
 # disable libvirt network autostarts
 lv_autostart=( "${TARGETPATH}"/etc/libvirt/qemu/networks/autostart/* )
-if [ ! -z "${lv_autostart[@]}" ] ; then
+if [ ! -z "${lv_autostart[*]}" ] ; then
   rm -f "${TARGETPATH}/etc/libvirt/qemu/networks/autostart/*"
 fi
 

@@ -18,6 +18,11 @@ variable "pln_maddrs" {
   default = []
 }
 
+variable "external_maddrs" {
+  type    = "list"
+  default = []
+}
+
 variable "tungsten_hwid" {
   type    = "map"
   default = {}
