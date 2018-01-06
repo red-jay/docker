@@ -6,10 +6,12 @@ locals {
     "radon-hw",     "${map("class","hypervisor","hwaddr","${lookup(var.radon_hwid,"ether")}")}",
     "radon",        "${map("class","hypervisor","hwaddr",random_id.radon_mac.hex)}",
     "tungsten-hw",  "${map("class","hypervisor","hwaddr","${lookup(var.tungsten_hwid,"ether")}")}",
+    "tungsten",     "${map("class","hypervisor","hwaddr",random_id.tungsten_mac.hex)}",
   )}"
 
   mac-remapping = "${map(
     lookup(var.radon_hwid,"ether"),random_id.radon_mac.hex,
+    lookup(var.tungsten_hwid,"ether"),random_id.tungsten_mac.hex,
   )}"
 
   mac-keys = "${keys(local.mac-remapping)}"
