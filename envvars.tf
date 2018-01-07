@@ -27,3 +27,8 @@ variable "tungsten_hwid" {
   type    = "map"
   default = {}
 }
+
+variable "strontium_hwid" {
+  type    = "map"
+  default = {}
+}
