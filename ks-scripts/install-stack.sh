@@ -136,7 +136,7 @@ done
 if [ ! -z "${remap_addr}" ] ; then
   # create udev rule to remap an interface
   lladdr="${remap_addr:0:2}:${remap_addr:2:2}:${remap_addr:4:2}:${remap_addr:6:2}:${remap_addr:8:2}:${remap_addr:10:2}"
-  #oladdr="${hwaddr:0:2}:${hwaddr:2:2}:${hwaddr:4:2}:${hwaddr:6:2}:${hwaddr:8:2}:${hwaddr:10:2}"
+  oladdr="${hwaddr:0:2}:${hwaddr:2:2}:${hwaddr:4:2}:${hwaddr:6:2}:${hwaddr:8:2}:${hwaddr:10:2}"
   {
     printf 'SUBSYSTEM!="net", GOTO="autobr_end"\n'
     printf 'ACTION!="add", GOTO="autobr_end"\n'
@@ -162,6 +162,11 @@ if [ ! -z "${remap_addr}" ] ; then
      printf '[Match]\nName=vl-%s\n[Network]\nBridge=%s\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\n' "${vlan[$vid]}" "${vlan[$vid]}" > "/mnt/sysimage/etc/systemd/network/vl-${vlan[$vid]}.network"
      printf 'VLAN=vl-%s\n' "${vlan[$vid]}" >> "${TARGETPATH}/etc/systemd/network/${remap_addr}.network"
   done
+
+  # configure just the hypervisor bridge with the old mac, dhcp on it.
+  printf 'MACAddress=%s\n' "${oladdr}" >> "${TARGETPATH}/etc/systemd/network/hv.netdev"
+
+  printf 'DHCP=ipv4\n[Link]\nRequiredForOnline=no\n' >> "${TARGETPATH}/etc/systemd/network/hv.network"
 fi
 
 for hwaddr in $pln ; do
