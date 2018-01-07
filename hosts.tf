@@ -4,8 +4,6 @@ locals {
     "nickel-hw",    "${map("class","hypervisor","hwaddr","${lookup(var.nickel_hwid,"ether")}")}",
     "radon-hw",     "${map("class","hypervisor","hwaddr","${lookup(var.radon_hwid,"ether")}")}",
     "tungsten-hw",  "${map("class","hypervisor","hwaddr","${lookup(var.tungsten_hwid,"ether")}")}",
-  )}"
-/*
     "nickel",       "${map("class","hypervisor","hwaddr",random_id.nickel_mac.hex)}",
     "radon",        "${map("class","hypervisor","hwaddr",random_id.radon_mac.hex)}",
     "tungsten",     "${map("class","hypervisor","hwaddr",random_id.tungsten_mac.hex)}",
@@ -15,9 +13,8 @@ locals {
     lookup(var.radon_hwid,"ether"),random_id.radon_mac.hex,
     lookup(var.tungsten_hwid,"ether"),random_id.tungsten_mac.hex,
   )}"
-*/
 
-  mac-remapping = "${map()}"
+#  mac-remapping = "${map()}"
 
   mac-keys = "${keys(local.mac-remapping)}"
 }

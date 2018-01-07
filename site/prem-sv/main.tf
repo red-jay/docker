@@ -40,11 +40,9 @@ module "node-2" {
 }
 
 locals {
-/*
   host-map     = "${merge(var.host-map, module.node-1.host-map, module.node-2.host-map, module.node-1a.host-map)}"
-*/
   # dhcp-1 also gets wifiext, powerline networks
-  host-map     = "${map()}"
+#  host-map     = "${map()}"
   dhcp-1-range = "${merge(module.node-1.networks, local.wext-1-range, local.pln-1-range)}"
   vlan-map     = "${merge(module.node-1.vlans, module.node-2.vlans, module.node-1a.vlans)}"
   vlan-keys    = "${keys(local.vlan-map)}"
