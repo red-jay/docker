@@ -104,7 +104,7 @@ sudo cp iomemory_md.sh "${IMGDIR}/root/iomemory_md.sh"
 sudo cp xen-install.sh "${IMGDIR}/root/xen-install.sh"
 sudo cp boot_pci_assign.sh "${IMGDIR}/root/boot_pci_assign.sh"
 sudo cp pci-assign.sh "${IMGDIR}/root/pci-assign.sh"
-sudo cp install-stack.sh "${IMGDIR}/root/install-stack.sh"
+sudo cp ks-scripts/install-stack.sh "${IMGDIR}/root/install-stack.sh"
 
 # if we have the netmgmt iso, bring it along now.
 if [ -f netmgmt.iso ] ; then
