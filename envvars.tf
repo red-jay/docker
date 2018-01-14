@@ -32,3 +32,8 @@ variable "strontium_hwid" {
   type    = "map"
   default = {}
 }
+
+variable "netm_maddrs" {
+  type    = "list"
+  default = []
+}

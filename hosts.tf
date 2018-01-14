@@ -101,12 +101,23 @@ data "template_file" "mac2bridge_external_data" {
   }
 }
 
+data "template_file" "mac2bridge_netm_data" {
+  template = "$${source} "
+  count    = "${length(var.netm_maddrs)}"
+
+  vars {
+    bridge = "external"
+    source = "${replace(element(var.netm_maddrs,count.index),"/[.:]/","")}"
+  }
+}
+
 data "template_file" "bridger" {
-  template = "pln='$${pln_macdata}'\nexternal='$${external_macdata}'\n"
+  template = "pln='$${pln_macdata}'\nexternal='$${external_macdata}'\nnetm='$${netm_macdata}'\n"
 
   vars {
     pln_macdata      = " ${join("",data.template_file.mac2bridge_pln_data.*.rendered)}"
     external_macdata = " ${join("",data.template_file.mac2bridge_external_data.*.rendered)}"
+    netm_macdata     = " ${join("",data.template_file.mac2bridge_netm_data.*.rendered)}"
   }
 }
 
