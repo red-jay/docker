@@ -33,6 +33,8 @@ timezone America/Los_Angeles --isUtc --nontp
 services --enabled="lldpad,chronyd"
 
 %packages
+kernel-ml
+-kernel
 @core
 @base
 

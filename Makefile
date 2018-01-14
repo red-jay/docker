@@ -11,6 +11,7 @@ else
 CENTOS_URI = http://wcs.bbxn.us/centos
 C7_URI = $(CENTOS_URI)/7
 EPEL7_URI = http://wcs.bbxn.us/epel/7
+ELK_URI = http://elrepo.org/linux/kernel/el7
 OBSD_BASE_URI = http://wcs.bbxn.us/OpenBSD
 INCLUDE_PRIVATE = true
 
@@ -53,10 +54,10 @@ archive/centos%/repodata/repomd.xml:
 	$(MAKE) -f Mk/Archive.mk $@
 
 archive/centos7/group-packages: archive/centos7/repodata/repomd.xml ks/installed-groups.txt
-	env YUM1=$(C7_URI) YUM2=$(EPEL7_URI) ./build-scripts/unwind-groups.sh ks/installed-groups.txt > archive/centos7/group-packages
+	env YUM1=$(C7_URI) YUM2=$(EPEL7_URI) YUM3=$(ELK_URI) ./build-scripts/unwind-groups.sh ks/installed-groups.txt > archive/centos7/group-packages
 
 archive/centos7/Packages/.downloaded: ks/installed-packages.txt archive/centos7/group-packages archive/centos7/repodata/repomd.xml
-	env YUM1=$(C7_URI) YUM2=$(EPEL7_URI) repotrack -c ./yum.conf -a x86_64 -p archive/centos7/Packages $$(cat archive/centos7/group-packages) $$(cat ks/installed-packages.txt) wireshark
+	env YUM1=$(C7_URI) YUM2=$(EPEL7_URI) YUM3=$(ELK_URI) repotrack -c ./yum.conf -a x86_64 -p archive/centos7/Packages $$(cat archive/centos7/group-packages) $$(cat ks/installed-packages.txt) wireshark
 	cd $(subst Packages/,,$(dir $@)) && createrepo_c -g ./comps/c7-x86_64-comps.xml .
 	touch archive/centos7/Packages/.downloaded
 
