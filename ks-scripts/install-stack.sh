@@ -67,6 +67,7 @@ chroot /usr/bin/firewall-offline-cmd --direct --add-rule eb filter FORWARD 0 --l
 chroot /usr/bin/firewall-offline-cmd --direct --add-rule eb filter FORWARD 1 --logical-out vmm -j DROP
 chroot /usr/bin/firewall-offline-cmd --zone vmm --add-service dhcp
 chroot /usr/bin/firewall-offline-cmd --zone vmm --add-service ntp
+chroot /usr/bin/firewall-offline-cmd --zone vmm --add-service http
 chroot /usr/bin/firewall-offline-cmd --zone vmm --add-port 3493/tcp
 
 # libvirtd/firewalld act poorly here, shoot filtering on bridges
