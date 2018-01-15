@@ -33,14 +33,55 @@ timezone America/Los_Angeles --isUtc --nontp
 services --enabled="lldpad,chronyd"
 
 %packages
-kernel-ml
--kernel
 @core
 @base
+kernel-ml
+-kernel
 
 @virtualization-hypervisor
 @virtualization-tools
 virt-install
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 grub2
 grub2-pc
@@ -53,6 +94,9 @@ shim-x64
 shim-ia32
 efibootmgr
 
+
+
+
 %include /tmp/package-include
 
 systemd-networkd
@@ -60,6 +104,7 @@ systemd-networkd
 lldpad
 epel-release
 nut
+
 apg
 screen
 uucp
@@ -71,12 +116,15 @@ xorg-x11-xauth
 
 policycoreutils-python
 
+nginx
+
+
+
+
 # needed for org_fedora_oscap addon
 openscap
 openscap-scanner
 scap-security-guide
-
-nginx
 
 %end
 
@@ -91,16 +139,10 @@ nginx
 
 %pre
 # be a chatterbox here
-exec 1> /tmp/pre-log
-exec 2>&1
 set -x
-
-env
 
 # on with nullglub
 shopt -s nullglob
-
-# functions
 
 # parts that can be _reset_ by system config but have a default
 reboot_flag="reboot"

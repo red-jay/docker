@@ -37,6 +37,7 @@ services --enabled="lldpad,chronyd"
 @^minimal
 -kernel
 kernel-ml
+
 chrony
 kexec-tools
 -fprintd-pam
@@ -107,6 +108,7 @@ nut
 
 open-vm-tools
 
+
 dstat
 htop
 tmux
@@ -114,10 +116,10 @@ xorg-x11-xauth
 
 policycoreutils-python
 
+nginx
 dhcp
 memtest86+
 tftp-server
-nginx
 
 # needed for org_fedora_oscap addon
 openscap
