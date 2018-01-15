@@ -393,6 +393,7 @@ if [ -d /run/install/repo/bootstrap-scripts ] ; then
   cp -R /run/install/repo/repodata /mnt/sysimage/usr/share/nginx/html/bootstrap/centos7
   cp -R /run/install/repo/LiveOS /mnt/sysimage/usr/share/nginx/html/bootstrap/centos7
   cp -R /run/install/repo/.discinfo /mnt/sysimage/usr/share/nginx/html/bootstrap/centos7
+  cp -R /run/install/repo/.treeinfo /mnt/sysimage/usr/share/nginx/html/bootstrap/centos7
   cp -R /run/install/repo/ks /mnt/sysimage/usr/share/nginx/html/bootstrap
   if [ -f /run/install/repo/authorized_keys ] ; then
     cp /run/install/repo/authorized_keys /mnt/sysimage/usr/share/nginx/html/bootstrap

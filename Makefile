@@ -65,9 +65,12 @@ archive/centos7/Packages/.downloaded: ks/installed-packages.txt archive/centos7/
 archive/ubuntu/xenial/.downloaded: build-scripts/make-archive.sh build-scripts/dl-pkgs.sh
 	./build-scripts/make-archive.sh
 
-# Kickstart recognition file
+# Kickstart recognition files
 archive/centos7/discinfo:
 	$(MAKE) -f Mk/Archive.mk CENTOS_URI=$(CENTOS_URI) archive/centos7/discinfo
+
+archive/centos7/treeinfo:
+	$(MAKE) -f Mk/Archive.mk CENTOS_URI=$(CENTOS_URI) archive/centos7/treeinfo
 
 # private ISOs
 private-isos/%.iso: Mk/Private.mk
@@ -98,7 +101,7 @@ else
 	$(MAKE) -C ks DUMPPKGS=$(CURDIR)/build-scripts/ks-dumppkgs.py installed-packages.txt
 endif
 
-REPOFILES = archive/centos7/Packages/.downloaded archive/centos7/discinfo
+REPOFILES = archive/centos7/Packages/.downloaded archive/centos7/discinfo archive/centos7/treeinfo
 
 # Boot files
 archive/centos7/images/pxeboot/%:
@@ -125,6 +128,7 @@ distclean:
 	$(MAKE) clean
 	-rm -rf archive/openbsd
 	-rm -rf archive/centos7/discinfo
+	-rm -rf archive/centos7/treeinfo
 	-rm -rf archive/centos7/EFI
 	-rm -rf archive/centos7/images
 	-rm -rf archive/centos7/LiveOS
@@ -159,6 +163,7 @@ ifneq ("$(wildcard /usr/share/syslinux/ldlinux.c32)","")
 endif
 	cp /usr/share/syslinux/isolinux.bin $(tmpdir)/isolinux/
 	cp archive/centos7/discinfo $(tmpdir)/.discinfo
+	cp archive/centos7/treeinfo $(tmpdir)/.treeinfo
 	cp ks/$(basename $(notdir $@)).ks $(tmpdir)/ks.cfg
 	cp well-known-keys/authorized_keys $(tmpdir)/
 	cp -r intca-pub $(tmpdir)/
@@ -213,6 +218,7 @@ ifneq ("$(wildcard /usr/share/syslinux/libutil.c32)","")
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s /usr/share/syslinux/libutil.c32 ::
 endif
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/centos7/discinfo ::.discinfo
+	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/centos7/treeinfo ::.treeinfo
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s ks/$(basename $(notdir $@)).ks ::ks.cfg
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s well-known-keys/authorized_keys ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s intca-pub ::

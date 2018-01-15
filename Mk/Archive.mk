@@ -35,6 +35,10 @@ archive/centos%/discinfo: | archive/centos%/
 	$(MAKE) -f $(self) $(dir $@)
 	cd $(dir $@) && curl -L -o discinfo $(CENTOS_URI)/$(subst archive/centos,,$(dir $@))os/x86_64/.discinfo
 
+archive/centos%/treeinfo: | archive/centos%/
+	$(MAKE) -f $(self) $(dir $@)
+	cd $(dir $@) && curl -L -o treeinfo $(CENTOS_URI)/$(subst archive/centos,,$(dir $@))os/x86_64/.treeinfo
+
 archive/centos%/images/pxeboot/vmlinuz: | archive/centos%/images/pxeboot/
 	$(MAKE) -f $(self) $(dir $@)
 	cd $(dir $@) && curl -LO $(CENTOS_URI)/$(subst images/pxeboot/,,$(subst archive/centos,,$(dir $@)))os/x86_64/images/pxeboot/vmlinuz
