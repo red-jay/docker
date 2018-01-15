@@ -35,6 +35,8 @@ services --enabled="lldpad,chronyd"
 %packages
 @core
 @^minimal
+-kernel
+kernel-ml
 chrony
 kexec-tools
 -fprintd-pam
@@ -635,6 +637,10 @@ dhcp_subnet() {
   # ufw
   # dfw
 
+  # efw
+  printf 'subclass "transit" 1:52:54:00:CE:88:02; subclass "transit" 52:54:00:CE:88:02;\n'
+  printf 'host efw.sv1 { hardware ethernet 52:54:00:CE:88:02; option host-name "efw.sv1.bbxn.us"; }\n'
+
   # switches!
   printf 'subclass "netmgmt" 1:88:75:56:6a:d6:c1; subclass "netmgmt" 88:75:56:6a:d6:c1;\n'
   printf 'host lr-kallax-sw { hardware ethernet 88:75:56:6a:d6:c1; option host-name "lr-kallax-sw"; }\n'
@@ -931,6 +937,7 @@ printf 'rtlabel dist\ninet 172.16.32.1 255.255.255.192\n-inet6\ngroup transit\n'
   printf 'AS 4233244401\nrouter-id 172.16.16.1\nnexthop qualify via bgp\nlisten on 172.16.16.1\nnetwork inet rtlabel dist\n'
   printf 'deny from any prefix 10.0.0.0/8 prefixlen >= 8\ndeny from any prefix 192.168.0.0/16 prefixlen >=16\n'
   printf 'neighbor 172.16.16.11 {\n descr "tgw.sv1"\n remote-as 4233244401\n ttl-security yes\n announce IPv4 unicast\n}\n'
+  printf 'neighbor 172.16.16.10 {\n descr "efw.sv1"\n remote-as 4233244401\n ttl-security yes\n announce IPv4 unicast\n}\n'
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/bgpd.conf.sv1
 
 {
@@ -1018,6 +1025,7 @@ printf 'rtlabel dist\ninet 172.16.52.1 255.255.255.224\n-inet6\ngroup pln\n' > /
 printf 'dhcp\n-inet6\ngroup pln\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio2.sv2
 # vio3 - wext
 printf 'rtlabel dist\ninet 172.16.52.32 255.255.255.224\n-inet6\ngroup wext\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio3.sv1
+
 # bgpd AS
 {
   printf 'AS 4233244401\nrouter-id 172.16.16.11\n'
@@ -1031,7 +1039,8 @@ printf 'rtlabel dist\ninet 172.16.52.32 255.255.255.224\n-inet6\ngroup wext\n' >
   printf '}\n'
   printf 'deny to group vpn prefix 172.16.52.0/23 prefixlen >= 23\n'
   printf 'group transit {\n'
-  printf ' neighbor 172.16.16.1 {\n  descr "ifw.sv1"\n  remote-as  4233244401\n  ttl-security  yes\n  announce IPv4 unicast\n }\n'
+  printf ' neighbor 172.16.16.1  {\n  descr "ifw.sv1"\n  remote-as  4233244401\n  ttl-security  yes\n  announce IPv4 unicast\n }\n'
+  printf ' neighbor 172.16.16.10 {\n  descr "efw.sv1"\n  remote-as  4233244401\n  ttl-security  yes\n  announce IPv4 unicast\n }\n'
   printf '}\n'
   printf 'deny to group transit prefix 172.16.16.0/20 prefixlen >= 20\n'
 } > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/bgpd.conf.sv1
@@ -1246,6 +1255,41 @@ install -m 0600 /mnt/sysimage/root/.ssh/authorized_keys /mnt/sysimage/usr/share/
 chmod a+rx /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/rc.local
 
 tar cpzf /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/${ob_ver}/amd64/site${ob_ver_nd}-tgw.tgz -C /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw .
+
+# efw - which is really sv1 only
+mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/efw/etc
+
+# vio0 - transit
+printf 'inet 172.16.16.10 255.255.255.192\n-inet6\ngroup transit\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/efw/etc/hostname.vio0
+# vio1 - vmm
+printf 'dhcp\n-inet6\ngroup vmm\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/efw/etc/hostname.vio1
+# vio2 - egress
+printf 'dhcp\n-inet6\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/tgw/etc/hostname.vio2
+
+{
+  printf 'AS 4233244401\nrouter-id 172.16.16.0\nnexthop qualify via bgp\nlisten on 172.16.16.10\n'
+  printf 'deny from any prefix 10.0.0.0/8 prefixlen >= 8\ndeny from any prefix 192.168.0.0/16 prefixlen >=16\n'
+  printf 'neighbor 172.16.16.11 {\n descr "tgw.sv1"\n remote-as 4233244401\n ttl-security yes\n announce default-route\n}\n'
+  printf 'neighbor 172.16.16.1  {\n descr "ifw.sv1"\n remote-as 4233244401\n ttl-security yes\n announce default-route\n}\n'
+} > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/efw/etc/bgpd.conf
+
+{
+  printf 'set skip on lo\n\n'
+
+  printf 'anchor "ftp-proxy/*"\nanchor "tftp-proxy/*"\n'
+  printf 'pass in on { transit } inet proto tcp to port ftp flags S/SA modulate state divert-to 127.0.0.1 port 8021\n\n'
+
+  printf 'block drop quick inet6 proto icmp6 all icmp6-type { routeradv, routersol }\n'
+  printf 'block return log\n\n'
+
+  printf 'pass out on vmm proto udp from port 68 to port 67\n'
+  printf 'antispoof quick for { vmm }\n\n'
+  printf 'pass in on vmm proto tcp from (vmm:network) to (vmm) port 22\n'
+
+  printf 'pass on { transit } proto tcp from (transit:network) to (transit:network) port 179\n'
+} > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/efw/etc/pf.conf
+
+tar cpzf /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD/${ob_ver}/amd64/site${ob_ver_nd}-efw.tgz -C /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/efw .
 
 # wire a pxe autochain
 mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe.d/mac
