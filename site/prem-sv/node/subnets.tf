@@ -7,6 +7,7 @@ locals {
   dmz        = "${cidrsubnet(var.supernet,var.site-bits,4)}"
   user       = "${cidrsubnet(var.supernet,var.site-bits,5)}"
   guest      = "${cidrsubnet(var.supernet,var.site-bits,6)}"
+  iot        = "${cidrsubnet(var.supernet,var.site-bits,7)}"
 
   # list of restricted networks
   restricted_keys = "${list("transit","netmgmt","hypervisor","restricted","dmz")}"

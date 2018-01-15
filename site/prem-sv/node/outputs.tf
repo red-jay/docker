@@ -8,6 +8,7 @@ output "networks" {
                   "user",local.user,
                   "guest",local.guest,
                   "transit",local.transit,
+                  "iot",local.iot,
                 )}"
 }
 
