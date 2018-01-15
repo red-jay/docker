@@ -155,6 +155,12 @@ for ent in $cmdline ; do
     syscfg=*)
       syscfg=${ent#syscfg=}
       ;;
+    site=*)
+      site=${ent#site=}
+      ;;
+    method=*)
+      ks_method=${ent#method=}
+      ;;
   esac
 done
 
@@ -246,6 +252,14 @@ touch /tmp/post-vars
 # write out the syscfg for %post
 if [ ! -z "${syscfg}" ] ; then
   printf 'syscfg="%s"\n' "${syscfg}" >> /tmp/post-vars
+fi
+
+if [ ! -z "${site}" ] ; then
+  printf 'site="%s"\n' "${site}" >> /tmp/post-vars
+fi
+
+if [ ! -z "${ks_method}" ] ; then
+  printf 'ks_method="%s"\n' "${ks_method}" >> /tmp/post-vars
 fi
 
 %end

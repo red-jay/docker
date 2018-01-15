@@ -23,6 +23,9 @@ LUKS_PASSWORD=""
 # file for kickstart directives
 KS_INCLUDE=""
 
+# create data partition?
+DATA_PARTITION="yes"
+
 # counter for making sure calls to ready_md are unique
 MD_COUNTER=0
 
@@ -35,8 +38,9 @@ trap cleanup EXIT
 # option parser
 parse_opts () {
   local switch
-  while getopts "Whk:m:p:t:" switch ; do
+  while getopts "SWhk:m:p:t:" switch ; do
     case "${switch}" in
+      S) DATA_PARTITION="no" ;;
       W) NOOP=0 ;;
       k) KS_INCLUDE="${OPTARG}" ;;
       m) MINSZ="${OPTARG}" ;;
@@ -256,7 +260,7 @@ wipedisk () {
 # it returns which device got which partition encoded here (biosboot,efiboot,sysboot,system,data)
 # I use it with a while loop to create strings of partitions _to_ RAID.
 partition_disk () {
-  local disk raidflag partition
+  local disk raidflag partition syssz
   partition="0"
   raidflag="1"
   disk="/dev/${1}"
@@ -291,8 +295,13 @@ partition_disk () {
   echo "sysboot=${disk}${partition}"
 
   # system partition
+  if [ "${DATA_PARTITION}" == "yes" ] ; then
+    syssz="24g"
+  else
+    syssz="100%"
+  fi
   {
-    parted "${disk}" mkpart system 800m 24g && partition=$((partition + 1))
+    parted "${disk}" mkpart system 800m "${syssz}" && partition=$((partition + 1))
     if [ "${raidflag}" -gt 1 ] ; then
       parted "${disk}" toggle "${partition}" raid
     fi
@@ -300,13 +309,15 @@ partition_disk () {
   echo "system=${disk}${partition}"
 
   # data partition
-  {
-    parted "${disk}" mkpart data 24g 100% && partition=$((partition + 1))
-    if [ "${raidflag}" -gt 1 ] ; then
-      parted "${disk}" toggle "${partition}" raid
-    fi
-  } > /dev/null 2>&1
-  echo "data=${disk}${partition}"
+  if [ "${DATA_PARTITION}" == "yes" ] ; then
+    {
+      parted "${disk}" mkpart data 24g 100% && partition=$((partition + 1))
+      if [ "${raidflag}" -gt 1 ] ; then
+        parted "${disk}" toggle "${partition}" raid
+      fi
+    } > /dev/null 2>&1
+    echo "data=${disk}${partition}"
+  fi
 }
 
 # this does partitioning for cache disks. same sort of deal, but only returns 'cache' value.
@@ -723,73 +734,81 @@ if [ "${candidate_disk_nr}" -gt 1 ] ; then
   ready_md efi    "${efiboot_raid_level}" "${efi_bootdevs}" "efi"   "/boot/efi"
   ready_md boot   "${sysboot_raid_level}" "${sys_bootdevs}" "ext2"  "/boot"
   ready_md system "${system_raid_level}"  "${sys_devs}"     "lvmpv" "pv.0"
-  ready_md data   "${data_raid_level}"    "${data_devs}"    "lvmpv" "pv.1"
+  if [ "${DATA_PARTITION}" == "yes" ] ; then
+    ready_md data   "${data_raid_level}"    "${data_devs}"    "lvmpv" "pv.1"
+  fi
 else
   for part in ${efi_bootdevs} ; do ready_part "${part}" "efi"   "/boot/efi" ; done
   for part in ${sys_bootdevs} ; do ready_part "${part}" "ext2"  "/boot"     ; done
   for part in ${sys_devs}     ; do ready_part "${part}" "lvmpv" "pv.0"      ; done
-  for part in ${data_devs}    ; do ready_part "${part}" "lvmpv" "pv.1"      ; done
+  if [ "${DATA_PARTITION}" == "yes" ] ; then
+    for part in ${data_devs}    ; do ready_part "${part}" "lvmpv" "pv.1"      ; done
+  fi
 fi
 
 # arrays/partitions for bcache - note the immediate stop/wipe here since bcache triggers kernel level grabbing
-if [ "${flash_disk_nr}" -gt 1 ] ; then
-  # shellcheck disable=SC2086
-  ready_md cache "${cache_raid_level}" "${cache_devs}" "bcache" "bcache0"
-  # run stop_bcache here as it may awaken upon RAID assembly(!)
-  stop_bcache
-  vgchange -a n
-  wipefs -a /dev/md/cache
-elif [ "${flash_disk_nr}" -eq 1 ] ; then
-  for part in ${cache_devs} ; do
-    ready_part "${part}" "bcache" "bcache0"
+if [ "${DATA_PARTITION}" == "yes" ] ; then
+  if [ "${flash_disk_nr}" -gt 1 ] ; then
+    # shellcheck disable=SC2086
+    ready_md cache "${cache_raid_level}" "${cache_devs}" "bcache" "bcache0"
+    # run stop_bcache here as it may awaken upon RAID assembly(!)
     stop_bcache
-    wipefs -a "${part}"
-  done
-fi
-
-# create bcache device if we have flash disks
-bcache_backing=""
-bcache_cache=""
-
-if [ "${candidate_disk_nr}" -gt 1 ] ; then
-  bcache_backing=/dev/md/data
-else
-  for part in ${data_devs} ; do bcache_backing="${part}" ; done
-fi
-
-if [ "${flash_disk_nr}" -eq 1 ] ; then
-  for part in ${cache_devs} ; do bcache_cache="${part}" ; done
-elif [ "${flash_disk_nr}" -gt 1 ] ; then
-  bcache_cache=/dev/md/cache
-fi
-
-if [ ! -z "${bcache_cache}" ] ; then
-  make-bcache --data-offset 161280k --block 4k --bucket 4M -B "${bcache_backing}"
-  make-bcache                       --block 4k --bucket 4M -C "${bcache_cache}"
-  if [ "${NOOP}" -eq 0 ] ; then
-    cacheuuid=$(bcache-super-show "${bcache_cache}" | awk '$1 ~ "cset.uuid" { print $2 }')
-    while [ ! -f /sys/block/bcache0/bcache/attach ] ; do sleep 1 ; done
-    echo "${cacheuuid}" > /sys/block/bcache0/bcache/attach
-    echo writeback > /sys/block/bcache0/bcache/cache_mode
     vgchange -a n
-    wipefs -a /dev/bcache0
+    wipefs -a /dev/md/cache
+  elif [ "${flash_disk_nr}" -eq 1 ] ; then
+    for part in ${cache_devs} ; do
+      ready_part "${part}" "bcache" "bcache0"
+      stop_bcache
+      wipefs -a "${part}"
+    done
   fi
-  # this is where we trick anaconda by replacing pv.1
-  if [ ! -z "${KS_INCLUDE}" ] ; then
-    sed -i -e 's/.* pv.1 .*/part pv.1 --fstype="lvmpv" --onpart="bcache0"/' "${KS_INCLUDE}"
+
+  # create bcache device if we have flash disks
+  bcache_backing=""
+  bcache_cache=""
+
+  if [ "${candidate_disk_nr}" -gt 1 ] ; then
+    bcache_backing=/dev/md/data
+  else
+    for part in ${data_devs} ; do bcache_backing="${part}" ; done
+  fi
+
+  if [ "${flash_disk_nr}" -eq 1 ] ; then
+    for part in ${cache_devs} ; do bcache_cache="${part}" ; done
+  elif [ "${flash_disk_nr}" -gt 1 ] ; then
+    bcache_cache=/dev/md/cache
+  fi
+
+  if [ ! -z "${bcache_cache}" ] ; then
+    make-bcache --data-offset 161280k --block 4k --bucket 4M -B "${bcache_backing}"
+    make-bcache                       --block 4k --bucket 4M -C "${bcache_cache}"
+    if [ "${NOOP}" -eq 0 ] ; then
+      cacheuuid=$(bcache-super-show "${bcache_cache}" | awk '$1 ~ "cset.uuid" { print $2 }')
+      while [ ! -f /sys/block/bcache0/bcache/attach ] ; do sleep 1 ; done
+      echo "${cacheuuid}" > /sys/block/bcache0/bcache/attach
+      echo writeback > /sys/block/bcache0/bcache/cache_mode
+      vgchange -a n
+      wipefs -a /dev/bcache0
+    fi
+    # this is where we trick anaconda by replacing pv.1
+    if [ ! -z "${KS_INCLUDE}" ] ; then
+      sed -i -e 's/.* pv.1 .*/part pv.1 --fstype="lvmpv" --onpart="bcache0"/' "${KS_INCLUDE}"
+    fi
   fi
 fi
 
 # if we're asked to encrypt do that here...
 data_luks_source=""
 sys_luks_source=""
-if [ -b /dev/bcache0 ] ; then
-  data_luks_source="/dev/bcache0"
-elif [ -e /dev/md/data ] ; then
-  data_luks_source=$(readlink /dev/md/data)
-  data_luks_source="/dev/md/${data_luks_source}"
-else
-  for part in ${data_devs} ; do data_luks_source="${part}" ; done
+if [ "${DATA_PARTITION}" == "yes" ] ; then
+  if [ -b /dev/bcache0 ] ; then
+    data_luks_source="/dev/bcache0"
+  elif [ -e /dev/md/data ] ; then
+    data_luks_source=$(readlink /dev/md/data)
+    data_luks_source="/dev/md/${data_luks_source}"
+  else
+    for part in ${data_devs} ; do data_luks_source="${part}" ; done
+  fi
 fi
 
 if [ -e /dev/md/system ] ; then
@@ -800,7 +819,7 @@ fi
 
 if [ ! -z "${LUKS_PASSWORD}" ] ; then
   if [ ! -z "${KS_INCLUDE}" ] ; then
-    # rewrite ks-include pv.0, pv.1 devices
+    # rewrite ks-include pv.0, pv.1 devices - we can get away with system and data pvs because sed REs fall through
     sed -i -re 's/^(.* pv.0 .*)$/\1 --encrypted --passphrase="'"${LUKS_PASSWORD}"'"/' \
            -re 's/^(.* pv.1 .*)$/\1 --encrypted --passphrase="'"${LUKS_PASSWORD}"'"/' "${KS_INCLUDE}"
   else
@@ -810,7 +829,9 @@ if [ ! -z "${LUKS_PASSWORD}" ] ; then
     # shellcheck disable=SC2086
     {
       printf '%s' "${LUKS_PASSWORD}" | cryptsetup luksFormat ${luksopts} "${sys_luks_source}"
-      printf '%s' "${LUKS_PASSWORD}" | cryptsetup luksFormat ${luksopts} "${data_luks_source}"
+      if [ ! -z "${data_luks_source}" ] ; then
+        printf '%s' "${LUKS_PASSWORD}" | cryptsetup luksFormat ${luksopts} "${data_luks_source}"
+      fi
     }
   fi
 fi
@@ -819,8 +840,10 @@ if [ ! -z "${KS_INCLUDE}" ] ; then
   # write LVM volgroup config for kickstart here for handoff
   {
     printf '%s\n' 'volgroup system pv.0'
-    printf '%s\n' 'volgroup data pv.1'
-    printf '%s\n'  'logvol none --vgname=data --thinpool --name=thinpool --size=18432 --grow'
+    if [ "${DATA_PARTITION}" == "yes" ] ; then
+      printf '%s\n' 'volgroup data pv.1'
+      printf '%s\n'  'logvol none --vgname=data --thinpool --name=thinpool --size=18432 --grow'
+    fi
   } >> "${KS_INCLUDE}"
 else
   # we're *making* LVM volume groups here
@@ -839,23 +862,25 @@ else
   fi
   lvm_create system "${system_pv}"
 
-  # data
-  data_pv=""
-  if [ -z "${LUKS_PASSWORD}" ] ; then
-    if [ -e /dev/bcache0 ] ; then
-      data_pv=/dev/bcache0
-    elif [ -e /dev/md/data ] ; then
-      data_pv=/dev/md/data
+  if [ "${DATA_PARTITION}" == "yes" ] ; then
+    # data
+    data_pv=""
+    if [ -z "${LUKS_PASSWORD}" ] ; then
+      if [ -e /dev/bcache0 ] ; then
+        data_pv=/dev/bcache0
+      elif [ -e /dev/md/data ] ; then
+        data_pv=/dev/md/data
+      else
+        for part in ${data_devs} ; do data_pv="${part}" ; done
+      fi
     else
-      for part in ${data_devs} ; do data_pv="${part}" ; done
+      data_pv=$(luks_open "${data_luks_source}")
     fi
-  else
-    data_pv=$(luks_open "${data_luks_source}")
-  fi
-  lvm_create data "${data_pv}"
+    lvm_create data "${data_pv}"
 
-  lvcreate -l100%FREE --type thin-pool --thinpool thinpool data
-  sleep 1
+    lvcreate -l100%FREE --type thin-pool --thinpool thinpool data
+    sleep 1
+  fi
 
 fi
 
@@ -865,9 +890,11 @@ fi
 ready_lv root system ext4 18432 /
 ready_lv swap system swap 512
 
-ready_thin libvirt        data thinpool ext4 18432 /var/lib/libvirt
-ready_thin http_sys       data thinpool ext4 512   /usr/share/nginx/html
-ready_thin http_bootstrap data thinpool ext4 8192  /usr/share/nginx/html/bootstrap
+if [ "${DATA_PARTITION}" == "yes" ] ; then
+  ready_thin libvirt        data thinpool ext4 18432 /var/lib/libvirt
+  ready_thin http_sys       data thinpool ext4 512   /usr/share/nginx/html
+  ready_thin http_bootstrap data thinpool ext4 8192  /usr/share/nginx/html/bootstrap
+fi
 
 if [ ! -z "${KS_INCLUDE}" ] ; then
   # install bootloader
@@ -888,21 +915,23 @@ else
   fi
 
   if [ ! -z "${LUKS_PASSWORD}" ] ; then
-    # if we set up luks, rekey the data pv now.
-    mkdir "${TARGETPATH}/etc/keys"
-    dd if=/dev/random of="${TARGETPATH}/etc/keys/datavol.luks" bs=1 count=32
-    printf '%s' "${LUKS_PASSWORD}" | cryptsetup luksAddKey "${data_luks_source}" "${TARGETPATH}/etc/keys/datavol.luks" -
-    printf '%s' "${LUKS_PASSWORD}" | cryptsetup luksRemoveKey "${data_luks_source}"
+    if [ "${DATA_PARTITION}" == "yes" ] ; then
+      # if we set up luks, rekey the data pv now.
+      mkdir "${TARGETPATH}/etc/keys"
+      dd if=/dev/random of="${TARGETPATH}/etc/keys/datavol.luks" bs=1 count=32
+      printf '%s' "${LUKS_PASSWORD}" | cryptsetup luksAddKey "${data_luks_source}" "${TARGETPATH}/etc/keys/datavol.luks" -
+      printf '%s' "${LUKS_PASSWORD}" | cryptsetup luksRemoveKey "${data_luks_source}"
+      dataluks=$(pvs -S vg_name=data --noheadings -o pv_name)
+      dataluks="${dataluks##*/luks-}"
+      printf 'luks-%s UUID=%s /etc/keys/datavol.luks luks\n' "${dataluks}" "${dataluks}" >> "${TARGETPATH}/etc/crypttab"
+    fi
 
     # configure crypttab
     sysluks=$(pvs -S vg_name=system --noheadings -o pv_name)
     sysluks="${sysluks##*/luks-}"
-    dataluks=$(pvs -S vg_name=data --noheadings -o pv_name)
-    dataluks="${dataluks##*/luks-}"
 
     {
       printf 'luks-%s UUID=%s none luks\n'                   "${sysluks}"  "${sysluks}"
-      printf 'luks-%s UUID=%s /etc/keys/datavol.luks luks\n' "${dataluks}" "${dataluks}"
-    } > "${TARGETPATH}/etc/crypttab"
+    } >> "${TARGETPATH}/etc/crypttab"
   fi
 fi

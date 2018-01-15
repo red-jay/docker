@@ -144,30 +144,6 @@ set -x
 # on with nullglub
 shopt -s nullglob
 
-# functions
-partition_all_drives() {
-  # partition drives
-  for d in /dev/[sv]d*[^0-9] /dev/xvd*[^0-9] ; do
-    if [ "${d}" == "${repodisk}" ] ; then continue ; fi
-    parted "${d}" mklabel gpt
-    parted "${d}" mkpart biosboot 1m 5m
-    parted "${d}" toggle 1 bios_grub
-    parted "${d}" toggle 1 legacy_boot
-    biosboot_dev="${biosboot_dev} ${d}1"
-
-    parted "${d}" mkpart '"EFI System Partition"' 5m 300m
-    parted "${d}" toggle 2 boot
-    efi_sp_dev="${efi_sp_dev} ${d}2"
-
-    parted "${d}" mkpart boot 300m 800m
-    boot_dev="${boot_dev} ${d}3"
-
-    parted "${d}" mkpart primart 800m 100%
-    sys_dev="${sys_dev} ${d}4"
-  done
-
-}
-
 # parts that can be _reset_ by system config but have a default
 reboot_flag="reboot"
 inst_fqdn="netmgmt"
@@ -188,67 +164,81 @@ for ent in $cmdline ; do
   esac
 done
 
-# get whatever diskdev we're running on
-repodisk=$(awk '$2 == "/run/install/repo" { print $1 }' < /proc/mounts)
-repodisk=${repodisk%[1-9]*}
 
-# always stop lvm
-vgchange -an
 
-# always stop md devices
-for md in /dev/md[0-9]* ; do
-  mdadm -S "${md}"
-done
 
-# always erase disks, write a new gpt
-for d in /dev/[sv]d*[^0-9] /dev/xvd*[^0-9] ; do
-  # skip where we booted
-  if [ "${d}" == "${repodisk}" ] ; then continue ; fi
 
-  # partitions...
-  for part in ${d}[0-9]* ; do
-    wipefs -a "${part}"
-  done
 
-  # label
-  wipefs -a "${d}"
-done
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# configure disks via magic script ;)
+bash -x /run/install/repo/fs-layout.sh -W -S -m 8589934592
 
 # this holds any needed conditional package statements
 touch /tmp/package-include
 
-# disk setup globals
-biosboot_dev=''
-efi_sp_dev=''
-boot_dev=''
-sys_dev=''
 
-  partition_all_drives
 
-  {
-    for part in ${biosboot_dev} ; do
-      p=$(basename "${part}")
-      printf 'part biosboot --fstype=biosboot --onpart=%s\n' "${p}"
-    done
-    for part in ${efi_sp_dev} ; do
-      p=$(basename "${part}")
-      printf 'part /boot/efi --fstype="efi" --onpart=%s\n' "${p}"
-    done
-    for part in ${boot_dev} ; do
-      p=$(basename "${part}")
-      printf 'part /boot --fstype="ext2" --onpart=%s\n' "${p}"
-    done
-    for part in ${sys_dev} ; do
-      p=$(basename "${part}")
-      printf 'part pv.0 --fstype="lvmpv" --onpart=%s\n' "${p}"
-    done
-    # LVM
-    printf 'volgroup centos_system pv.0\n'
-    printf 'logvol / --vgname=centos_system --fstype=ext4 --name=root --size=8192\n'
-    printf 'logvol swap --vgname=centos_system --name=swap --size=512\n'
 
-    printf 'bootloader --append=" net.ifnames=0 biosdevname=0 crashkernel auto" --location=mbr\n'
-  } > /tmp/part-include
+
+
+
+
 
 # hang the hostname up
 printf 'network --hostname="%s"\n' "${inst_fqdn}" >> /tmp/net-include
