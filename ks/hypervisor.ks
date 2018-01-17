@@ -457,6 +457,7 @@ if [ -d /run/install/repo/bootstrap-scripts ] ; then
   cp -R /run/install/repo/intca-pub /mnt/sysimage/usr/share/nginx/html/bootstrap
   cp -R /run/install/repo/certs /mnt/sysimage/usr/share/nginx/html/bootstrap
   cp -R /run/install/repo/bootstrap-scripts /mnt/sysimage/root
+  cp -R /run/install/repo/fs-layout.sh /mnt/sysimage/usr/share/nginx/html/bootstrap
   cp -R /run/install/repo/ipxe-binaries.tgz /mnt/sysimage/usr/share/nginx/html/bootstrap
   cp -R /run/install/repo/openbsd-dist /mnt/sysimage/usr/share/nginx/html/bootstrap/openbsd
   find /run/install/repo/usr/share/nginx/html -type d -exec chmod a+rx {} \;

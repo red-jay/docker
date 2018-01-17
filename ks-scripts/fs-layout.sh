@@ -368,7 +368,14 @@ ready_lv () {
   devpath="/dev/${vgname}/${lvname}"
   printf '%s %s %s %s %s\n' "${devpath}" "${mpath}" "${fstyp}" "${fs_opts}" "${fs_nos}" >> "${FSTAB}"
   if [ ! -z "${KS_INCLUDE}" ] ; then
-    printf 'logvol %s --vgname=%s --fstype=%s --name=%s --size=%s\n' "${lmount}" "${vgname}" "${fstyp}" "${lvname}" "${sizeM}" >> "${KS_INCLUDE}"
+    if [ "${DATA_PARTITION}" == "yes" ] ; then
+      printf 'logvol %s --vgname=%s --fstype=%s --name=%s --size=%s\n' "${lmount}" "${vgname}" "${fstyp}" "${lvname}" "${sizeM}" >> "${KS_INCLUDE}"
+    else
+      case "${lvname}" in
+       root) printf 'logvol %s --vgname=%s --fstype=%s --name=%s --size=%s --grow\n' "${lmount}" "${vgname}" "${fstyp}" "${lvname}" "1024" >> "${KS_INCLUDE}";;
+       *)    printf 'logvol %s --vgname=%s --fstype=%s --name=%s --size=%s\n'    "${lmount}" "${vgname}" "${fstyp}" "${lvname}" "${sizeM}" >> "${KS_INCLUDE}";;
+      esac
+    fi
   else
     lvcreate -Wy "-L${sizeM}M" "-n${lvname}" "${vgname}"
     wipefs -a "${devpath}"
@@ -887,8 +894,8 @@ fi
 # at this point we've virtualized away block devices :) go forth and create logical volumes!
 
 # lvname vgname fstype sizeM (lmount)
-ready_lv root system ext4 18432 /
 ready_lv swap system swap 512
+ready_lv root system ext4 18432 /
 
 if [ "${DATA_PARTITION}" == "yes" ] ; then
   ready_thin libvirt        data thinpool ext4 18432 /var/lib/libvirt

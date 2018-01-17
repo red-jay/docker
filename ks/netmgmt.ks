@@ -165,6 +165,14 @@ for ent in $cmdline ; do
 done
 
 
+if [ ! -z "${ks_method}" ] ; then
+  fs_layout="${ks_method}/../fs-layout.sh"
+elif [ -f /mnt/install/repo/fs-layout.sh ] ; then
+  fs_layout=file:///mnt/install/repo/fs-layout.sh
+fi
+
+curl -L -o /tmp/fs-layout.sh "${fs_layout}"
+chmod +x /tmp/fs-layout.sh
 
 
 
@@ -227,7 +235,7 @@ done
 
 
 # configure disks via magic script ;)
-bash -x /run/install/repo/fs-layout.sh -W -S -m 8589934592
+bash -x /tmp/fs-layout.sh -W -S -m 8589934592
 
 # this holds any needed conditional package statements
 touch /tmp/package-include
