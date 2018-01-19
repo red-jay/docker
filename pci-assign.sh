@@ -116,17 +116,17 @@ force_arg=${force_arg:0:-1}
   for driver in ${driver_list} ; do
     printf 'softdep %s pre: %s\n' "${driver}" "${pciback_mod}"
   done
-} > "/mnt/target/etc/modprobe.d/${pciback_mod}.conf"
+} > "/mnt/sysimage/etc/modprobe.d/${pciback_mod}.conf"
 
 # add to initrd
-printf '%s\n' "${pciback_mod}" >> /mnt/target/etc/initramfs-tools/modules
+printf '%s\n' "${pciback_mod}" >> /mnt/sysimage/etc/initramfs-tools/modules
 
-cp boot_pci_assign.sh /mnt/target/etc/initramfs-tools/scripts/init-top/pciback_force
+cp boot_pci_assign.sh /mnt/sysimage/etc/initramfs-tools/scripts/init-top/pciback_force
 
 # regnerate initrd
-target_kver=(/mnt/target/boot/vmlinuz-*-generic)
-target_kver=${target_kver#/mnt/target/boot/vmlinuz-}
-chroot /mnt/target env LC_ALL=C mkinitramfs -o "/boot/initrd.img-${target_kver}" "${target_kver}"
+target_kver=(/mnt/sysimage/boot/vmlinuz-*-generic)
+target_kver=${target_kver#/mnt/sysimage/boot/vmlinuz-}
+chroot /mnt/sysimage env LC_ALL=C mkinitramfs -o "/boot/initrd.img-${target_kver}" "${target_kver}"
 
 # generate grub argument
 case ${pciback_mod} in
@@ -137,17 +137,17 @@ esac
 pcif_arg="pciback_force=${bootname}:${force_arg}"
 
 # update grub - try just the Xen specific version first, then tinker with standard.
-grub_def_lx_xe_arg=$(augtool -r /mnt/target print /files/etc/default/grub/GRUB_CMDLINE_LINUX_XEN_REPLACE_DEFAULT)
+grub_def_lx_xe_arg=$(augtool -r /mnt/sysimage print /files/etc/default/grub/GRUB_CMDLINE_LINUX_XEN_REPLACE_DEFAULT)
 if [ ! -z "grub_def_lx_xe_arg" ] ; then
   grub_def_lx_xe_arg="${grub_def_lx_xe_arg#* = }"
   grub_def_lx_xe_arg="${grub_def_lx_xe_arg:0:-3} ${pcif_arg}${grub_def_lx_xe_arg: -3}"
-  augtool -r /mnt/target set /files/etc/default/grub/GRUB_CMDLINE_LINUX_XEN_REPLACE_DEFAULT "${grub_def_lx_xe_arg}"
+  augtool -r /mnt/sysimage set /files/etc/default/grub/GRUB_CMDLINE_LINUX_XEN_REPLACE_DEFAULT "${grub_def_lx_xe_arg}"
 else
-  grub_def_lx_arg=$(augtool -r /mnt/target print /files/etc/default/grub/GRUB_CMDLINE_LINUX_DEFAULT)
+  grub_def_lx_arg=$(augtool -r /mnt/sysimage print /files/etc/default/grub/GRUB_CMDLINE_LINUX_DEFAULT)
   grub_def_lx_arg="${grub_def_lx_arg#* = }"
   grub_def_lx_arg="${grub_def_lx_arg:0:-3} ${pcif_arg}${grub_def_lx_arg: -3}"
-  augtool -r /mnt/target set /files/etc/default/grub/GRUB_CMDLINE_LINUX_DEFAULT "${grub_def_lx_arg}"
+  augtool -r /mnt/sysimage set /files/etc/default/grub/GRUB_CMDLINE_LINUX_DEFAULT "${grub_def_lx_arg}"
 fi
 
 # and update the boot config
-chroot /mnt/target grub-mkconfig -o /boot/grub/grub.cfg
+chroot /mnt/sysimage grub-mkconfig -o /boot/grub/grub.cfg
