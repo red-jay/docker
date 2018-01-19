@@ -4,6 +4,7 @@ set -eux
 set -o pipefail
 shopt -s nullglob
 
+# what
 IN_KS="0"
 
 TARGETPATH=/mnt/sysimage
@@ -60,7 +61,7 @@ printf '[NetDev]\nName=vmm\nKind=bridge\n' > "${TARGETPATH}/etc/systemd/network/
 printf '[Match]\nName=vmm\n[Network]\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\nAddress=192.168.128.129/25\n' > "${TARGETPATH}/etc/systemd/network/vmm.network"
 
 # update firewalld for vmm
-mkdir "${TARGETPATH}/run/firewalld"
+mkdir -p "${TARGETPATH}/run/firewalld"
 chroot /usr/bin/firewall-offline-cmd --new-zone vmm
 chroot /usr/bin/firewall-offline-cmd --zone vmm --add-interface vmm
 chroot /usr/bin/firewall-offline-cmd --direct --add-rule eb filter FORWARD 0 --logical-in vmm -j DROP
@@ -93,12 +94,12 @@ printf '[Service]\nRestartSec=1s\nRestart=on-failure\n' > "${TARGETPATH}/etc/sys
 remap_addr=""
 
 # check to see if we have a ethernet interface to plumb vlans against
-for hwaddr_file in /sys/devices/pci*/*/net/*/address /sys/devices/pci*/*/*/net/*/address ; do
+for hwaddr_file in /sys/devices/pci*/*/net/*/address /sys/devices/pci*/*/*/net/*/address /sys/devices/pci*/*/*/*/net/*/address; do
  if [ ! -z "${remap_addr}" ] ; then break ; fi
  hwaddr=""
  read -r hwaddr < "${hwaddr_file}"
  hwaddr="${hwaddr//:/}"
- remap_addr=$(bash "${SELFDIR}/intmac-remap.sh" "${hwaddr}")
+ remap_addr=$(bash "${SELFDIR}./intmac-remap.sh" "${hwaddr}")
 done
 
 # load vlan data, then create bridges, vlans
@@ -147,20 +148,20 @@ if [ ! -z "${remap_addr}" ] ; then
     printf 'ENV{DEVTYPE}=="wlan", GOTO="autobr_end"\n'
     printf 'ENV{ID_NET_DRIVER}=="tun", GOTO="autobr_end"\n'
     printf 'ENV{ID_NET_NAME_MAC}!="enx%s", GOTO="autobr_end"\n' "${hwaddr}"
-    printf 'RUN+="/usr/sbin/ip link set dev %%k down"\n'
-    printf 'RUN+="/usr/sbin/ip link set dev %%k address %s"\n' "${lladdr}"
-    printf 'RUN+="/usr/sbin/ip link set dev %%k up"\n'
+    printf 'RUN+="/sbin/ip link set dev %%k down"\n'
+    printf 'RUN+="/sbin/ip link set dev %%k address %s"\n' "${lladdr}"
+    printf 'RUN+="/sbin/ip link set dev %%k up"\n'
     printf 'ENV{NM_UNMANAGED}="1"\n'
     printf 'LABEL="autobr_end"\n'
   } > "${TARGETPATH}/etc/udev/rules.d/81-remap-${hwaddr}.rules"
 
   # and a systemd-networkd config to drop in carrier mode...
-  printf '[Match]\nMACAddress=%s\n[Network]\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\n' "${lladdr}" > "/mnt/sysimage/etc/systemd/network/${remap_addr}.network"
+  printf '[Match]\nMACAddress=%s\n[Network]\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\n' "${lladdr}" > "${TARGETPATH}/etc/systemd/network/${remap_addr}.network"
 
   # then glue the VLANs to the card en-masse.
   for vid in "${!vlan[@]}" ; do
-     printf '[NetDev]\nName=vl-%s\nKind=vlan\n[VLAN]\nId=%s\n' "${vlan[$vid]}" "${vid}" > "/mnt/sysimage/etc/systemd/network/vl-${vlan[$vid]}.netdev"
-     printf '[Match]\nName=vl-%s\n[Network]\nBridge=%s\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\n' "${vlan[$vid]}" "${vlan[$vid]}" > "/mnt/sysimage/etc/systemd/network/vl-${vlan[$vid]}.network"
+     printf '[NetDev]\nName=vl-%s\nKind=vlan\n[VLAN]\nId=%s\n' "${vlan[$vid]}" "${vid}" > "${TARGETPATH}/etc/systemd/network/vl-${vlan[$vid]}.netdev"
+     printf '[Match]\nName=vl-%s\n[Network]\nBridge=%s\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\n' "${vlan[$vid]}" "${vlan[$vid]}" > "${TARGETPATH}/etc/systemd/network/vl-${vlan[$vid]}.network"
      printf 'VLAN=vl-%s\n' "${vlan[$vid]}" >> "${TARGETPATH}/etc/systemd/network/${remap_addr}.network"
   done
 
@@ -183,9 +184,9 @@ for hwaddr in $pln ; do
     printf 'ENV{DEVTYPE}=="wlan", GOTO="rebridge_end"\n'
     printf 'ENV{ID_NET_DRIVER}=="tun", GOTO="rebridge_end"\n'
     printf 'ENV{ID_NET_NAME_MAC}!="enx%s", GOTO="rebridge_end"\n' "${hwaddr}"
-    printf 'RUN+="/usr/sbin/ip link set dev %%k down"\n'
-    printf 'RUN+="/usr/sbin/ip link set dev %%k address %s"\n' "${oraddr}"
-    printf 'RUN+="/usr/sbin/ip link set dev %%k up"\n'
+    printf 'RUN+="/sbin/ip link set dev %%k down"\n'
+    printf 'RUN+="/sbin/ip link set dev %%k address %s"\n' "${oraddr}"
+    printf 'RUN+="/sbin/ip link set dev %%k up"\n'
     printf 'ENV{NM_UNMANAGED}="1"\n'
     printf 'LABEL="rebridge_end"\n'
   } > "${TARGETPATH}/etc/udev/rules.d/82-map-pln-${hwaddr}.rules"
@@ -208,9 +209,9 @@ for hwaddr in $external ; do
     printf 'ENV{DEVTYPE}=="wlan", GOTO="rebridge_end"\n'
     printf 'ENV{ID_NET_DRIVER}=="tun", GOTO="rebridge_end"\n'
     printf 'ENV{ID_NET_NAME_MAC}!="enx%s", GOTO="rebridge_end"\n' "${hwaddr}"
-    printf 'RUN+="/usr/sbin/ip link set dev %%k down"\n'
-    printf 'RUN+="/usr/sbin/ip link set dev %%k address %s"\n' "${oraddr}"
-    printf 'RUN+="/usr/sbin/ip link set dev %%k up"\n'
+    printf 'RUN+="/sbin/ip link set dev %%k down"\n'
+    printf 'RUN+="/sbin/ip link set dev %%k address %s"\n' "${oraddr}"
+    printf 'RUN+="/sbin/ip link set dev %%k up"\n'
     printf 'ENV{NM_UNMANAGED}="1"\n'
     printf 'LABEL="rebridge_end"\n'
   } > "${TARGETPATH}/etc/udev/rules.d/82-map-external-${hwaddr}.rules"
@@ -233,9 +234,9 @@ for hwaddr in $netm ; do
     printf 'ENV{DEVTYPE}=="wlan", GOTO="rebridge_end"\n'
     printf 'ENV{ID_NET_DRIVER}=="tun", GOTO="rebridge_end"\n'
     printf 'ENV{ID_NET_NAME_MAC}!="enx%s", GOTO="rebridge_end"\n' "${hwaddr}"
-    printf 'RUN+="/usr/sbin/ip link set dev %%k down"\n'
-    printf 'RUN+="/usr/sbin/ip link set dev %%k address %s"\n' "${oraddr}"
-    printf 'RUN+="/usr/sbin/ip link set dev %%k up"\n'
+    printf 'RUN+="/sbin/ip link set dev %%k down"\n'
+    printf 'RUN+="/sbin/ip link set dev %%k address %s"\n' "${oraddr}"
+    printf 'RUN+="/sbin/ip link set dev %%k up"\n'
     printf 'ENV{NM_UNMANAGED}="1"\n'
     printf 'LABEL="rebridge_end"\n'
   } > "${TARGETPATH}/etc/udev/rules.d/82-map-netm-${hwaddr}.rules"
