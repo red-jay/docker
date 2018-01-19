@@ -916,7 +916,7 @@ else
 
   # do we have arrays?
   mds_defined=( /dev/md/* )
-  if [ ! -z "${mds_defined[@]}" ] ; then
+  if [ ! -z "${mds_defined[*]}" ] ; then
     mkdir  "${TARGETPATH}/etc/mdadm"
     mdadm --examine --scan > "${TARGETPATH}/etc/mdadm/mdadm.conf"
   fi
