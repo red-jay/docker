@@ -144,12 +144,15 @@ set -x
 # on with nullglub
 shopt -s nullglob
 
+# start writing KSPRE_ENV
+printf '#!/usr/bin/env bash\n' > /tmp/KSPRE_ENV
+
 # parts that can be _reset_ by system config but have a default
 reboot_flag="reboot"
 inst_fqdn="netmgmt"
 
 # first get if we have a syscfg on cmdline
-read cmdline < /proc/cmdline
+read -r cmdline < /proc/cmdline
 for ent in $cmdline ; do
   case $ent in
     syscfg=*)
@@ -164,15 +167,28 @@ for ent in $cmdline ; do
   esac
 done
 
-
+SOURCEURI=""
 if [ ! -z "${ks_method}" ] ; then
-  fs_layout="${ks_method}/../fs-layout.sh"
-elif [ -f /mnt/install/repo/fs-layout.sh ] ; then
-  fs_layout=file:///mnt/install/repo/fs-layout.sh
+  SOURCEURI="${ks_method}/../"
+elif [ -f /mnt/install/repo/.discinfo ] ; then
+  SOURCEURI="file:///mnt/install/repo/"
 fi
 
-curl -L -o /tmp/fs-layout.sh "${fs_layout}"
-chmod +x /tmp/fs-layout.sh
+{
+  printf 'SOURCEURI="%s"\n' "${SOURCEURI}"
+  printf 'export SOURCEURI\n'
+  printf 'load_n_run () {\n'
+  printf ' local realfile sourcefile\n'
+  printf ' realfile="$(mktemp)"\n'
+  printf ' sourcefile="${1}"\n'
+  printf ' curl -L -o "${realfile}" "${SOURCEURI}${sourcefile}"\n'
+  printf ' chmod +x "${realfile}"\n'
+  printf ' "${realfile}" "${@:2}"\n'
+  printf '}\n'
+} >> /tmp/KSPRE_ENV
+
+. /tmp/KSPRE_ENV
+
 
 
 
@@ -235,7 +251,7 @@ chmod +x /tmp/fs-layout.sh
 
 
 # configure disks via magic script ;)
-bash -x /tmp/fs-layout.sh -W -S -m 8589934592
+load_n_run fs-layout.sh -W -S -m 8589934592
 
 # this holds any needed conditional package statements
 touch /tmp/package-include
