@@ -1,7 +1,7 @@
 locals {
   range-keys = "${keys(var.ranges)}"
   host-keys  = "${keys(var.host-map)}"
-  classes    = "${formatlist("class \"%s\" { match hardware };",local.range-keys)}"
+  classes    = "${formatlist("class \"%s\" { match hardware; }",local.range-keys)}"
 }
 
 data "template_file" "subnet" {
