@@ -1,0 +1,5 @@
+[Unit]
+Description=tftpd vhosts
+Requires=tftpd@${tftp}.service
+Requires=tftpd@${com1}.service
+Requires=tftpd@${com2}.service
