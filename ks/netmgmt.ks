@@ -297,11 +297,13 @@ shopt -s nullglob
 # pick up env vars from %pre
 . /tmp/KSPRE_ENV
 
+cp /tmp/KSPRE_ENV ${TARGETPATH}/tmp
 cp /tmp/KSPRE_ENV ${TARGETPATH}/root
 
 # load config from terraform
 get_file config-zips/netmgmt.${SITE}.bbxn.us.zip /tmp/config.zip
 unzip -o /tmp/config.zip -d "${TARGETPATH}"
+rm /tmp/config.zip
 
 # install grub cross-bootably
 if [ -d /sys/firmware/efi/efivars ] ; then
@@ -363,6 +365,8 @@ printf 'nameserver 8.8.8.8\n' > "${TARGETPATH}/etc/resolv.conf"
   printf '[Service]\nExecStart=/sbin/in.tftpd -L --address %%i -s -P /run/tftpd-%%i.pid /var/lib/tftpboot/vh-%%i\n'
 } > /mnt/sysimage/etc/systemd/system/tftpd@.service
 
+get_file ipxe-binaries.tgz "${TARGETPATH}/tmp/ipxe-binaries.tgz"
+get_file ipxe-cfg.zip "${TARGETPATH}/tmp/ipxe-cfg.zip"
 chroot "${TARGETPATH}" bash /usr/local/sbin/tftp-vhosts.sh
 
 ln -s /usr/lib/systemd/system/dhcpd.service /mnt/sysimage/etc/systemd/system/multi-user.target.wants/dhcpd.service
@@ -378,11 +382,8 @@ chroot /mnt/sysimage /bin/firewall-offline-cmd --zone internal --add-service tft
 chroot /mnt/sysimage /bin/firewall-offline-cmd --zone internal --add-service http
 
 # copy ipxe binaries about
-mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe
-curl "${SOURCEURI}/ipxe-binaries.tgz" | tar xz -C /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe
 
 # grub
-chroot /mnt/sysimage grub2-mknetdir --net-directory=/var/lib/tftpboot/vh-${tftp_std}/ --subdir _grub
 for sc in com1 com2 ; do
   cp=${sc#com}
   gs=$cp
@@ -405,11 +406,6 @@ for sc in com1 com2 ; do
   chroot /mnt/sysimage grub2-editenv /var/lib/tftpboot/vh-${tftp_std}/grub.d/${sc}/grubenv set buildarch=i386
   chroot /mnt/sysimage grub2-editenv /var/lib/tftpboot/vh-${tftp_std}/grub.d/${sc}/grubenv set platform=pcbios
 done
-
-pushd /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/_grub/
- ln -s i386-pc i386-pcbios
-popd
-
 
 obsd_toplev="${SOURCEURI}/openbsd"
 obsd_uri="${SOURCEURI}/openbsd/${ob_ver}/amd64"

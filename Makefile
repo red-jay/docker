@@ -28,6 +28,9 @@ ipxe-cfgs/.git:
 ipxe-cfgs/ipxe-binaries.tgz: ipxe-cfgs/.git
 	cd ipxe-cfgs && ./build.sh
 
+ipxe-cfgs/ipxe-cfg.zip: ipxe-cfgs/.git ipxe-cfgs/ipxe.d
+	cd ipxe-cfgs && zip -r ipxe-cfg.zip ipxe.d
+
 # intCA
 intca-pub/.git:
 	git submodule update --init
@@ -136,6 +139,7 @@ distclean:
 	-rm -rf archice/centos7/repodata
 	-rm -rf ipxe-cfgs/ipxe
 	-rm -rf ipxe-cfgs/ipxe-binaries.tgz
+	-rm -rf ipxe-cfgs/ipxe-cfg.zip
 
 clean:
 	-rm -rf *.iso
@@ -145,7 +149,7 @@ clean:
 
 ISOFILES = $(REPOFILES) $(BOOTFILES)
 ifneq ($(MINIMAL),1)
-ISOFILES += archive/openbsd/6.2/amd64/index.txt archive/openbsd-syspatch/6.2/amd64/.all ipxe-cfgs/ipxe-binaries.tgz
+ISOFILES += archive/openbsd/6.2/amd64/index.txt archive/openbsd-syspatch/6.2/amd64/.all ipxe-cfgs/ipxe-binaries.tgz ipxe-cfgs/ipxe-cfg.zip
 ISOFILES += archive/openbsd-packages/6.2/amd64/index.txt
 ifeq ($(findstring hypervisor,$(MAKECMDGOALS)),hypervisor)
 ifeq ($(INCLUDE_PRIVATE),true)
@@ -191,6 +195,7 @@ endif
 	cp -r archive/openbsd-syspatch $(tmpdir)/openbsd-dist/syspatch
 	cp -r archive/openbsd-packages/6.2 $(tmpdir)/openbsd-dist/6.2/packages
 	cp ipxe-cfgs/ipxe-binaries.tgz $(tmpdir)
+	cp ipxe-cfgs/ipxe-cfg.zip $(tmpdir)
 endif
 endif
 ifeq ($(findstring netmgmt,$(MAKECMDGOALS)),netmgmt)
@@ -198,6 +203,7 @@ ifeq ($(findstring netmgmt,$(MAKECMDGOALS)),netmgmt)
 	cp -r archive/openbsd-syspatch $(tmpdir)/openbsd-dist/syspatch
 	cp -r archive/openbsd-packages/6.2 $(tmpdir)/openbsd-dist/6.2/packages
 	cp ipxe-cfgs/ipxe-binaries.tgz $(tmpdir)
+	cp ipxe-cfgs/ipxe-cfg.zip $(tmpdir)
 endif
 	cp ks-scripts/fs-layout.sh $(tmpdir)
 	cp ks-scripts/install-stack.sh $(tmpdir)
@@ -249,6 +255,7 @@ endif
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/openbsd-syspatch ::openbsd-dist/syspatch
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/openbsd-packages/6.2 ::openbsd-dist/6.2/packages
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s ipxe-cfgs/ipxe-binaries.tgz ::
+	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s ipxe-cfgs/ipxe-cfg.zip ::
 endif
 endif
 
