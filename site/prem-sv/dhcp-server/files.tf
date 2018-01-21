@@ -60,3 +60,34 @@ resource "local_file" "dhcpd_hostclass" {
   filename = "tf-output/${var.fqdn}/etc/dhcp/hwaddr-access.conf"
   content  = "${join("\n",data.template_file.host_mapping.*.rendered)}"
 }
+
+data "template_file" "tftp_systemd_requires" {
+  template = "${file("${path.module}/tftpd.systemd.template")}"
+
+  vars {
+    tftp = "${cidrhost(var.addr,0)}"
+    com1 = "${cidrhost(var.addr,1)}"
+    com2 = "${cidrhost(var.addr,2)}"
+  }
+}
+
+resource "local_file" "tftp_systemd" {
+  filename = "tf-output/${var.fqdn}/etc/systemd/system/tftpd-vhosts.service"
+  content  = "${data.template_file.tftp_systemd_requires.rendered}"
+}
+
+data "template_file" "networkd_config" {
+  template = "${file("${path.module}/eth0.network.template")}"
+
+  vars {
+    tftp     = "${cidrhost(var.addr,0)}"
+    com1     = "${cidrhost(var.addr,1)}"
+    com2     = "${cidrhost(var.addr,2)}"
+    cidrmask = "${element(split("/",lookup(var.ranges,"netmgmt")),1)}"
+  }
+}
+
+resource "local_file" "eth0_networkd" {
+  filename = "tf-output/${var.fqdn}/etc/systemd/network/eth0.network"
+  content  = "${data.template_file.networkd_config.rendered}"
+}
