@@ -363,6 +363,8 @@ printf 'nameserver 8.8.8.8\n' > "${TARGETPATH}/etc/resolv.conf"
   printf '[Service]\nExecStart=/sbin/in.tftpd -L --address %%i -s -P /run/tftpd-%%i.pid /var/lib/tftpboot/vh-%%i\n'
 } > /mnt/sysimage/etc/systemd/system/tftpd@.service
 
+chroot "${TARGETPATH}" bash /usr/local/sbin/tftp-vhosts.sh
+
 ln -s /usr/lib/systemd/system/dhcpd.service /mnt/sysimage/etc/systemd/system/multi-user.target.wants/dhcpd.service
 
 # enable nginx

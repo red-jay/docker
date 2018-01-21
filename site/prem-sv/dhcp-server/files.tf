@@ -63,6 +63,16 @@ data "template_file" "networkd_config" {
   }
 }
 
+data "template_file" "tftp_vh_init" {
+  template = "${file("${path.module}/tftp-vh.sh.template")}"
+
+  vars {
+    tftp     = "${cidrhost(var.addr,0)}"
+    com1     = "${cidrhost(var.addr,1)}"
+    com2     = "${cidrhost(var.addr,2)}"
+  }
+}
+
 data "archive_file" "config_layer" {
   type = "zip"
   output_path = "tf-output/${var.fqdn}.zip"
@@ -97,4 +107,8 @@ data "archive_file" "config_layer" {
     content  = "${data.template_file.dhcpd_conf.rendered}"
   }
 
+  source {
+    filename = "usr/local/sbin/tftp-vhosts.sh"
+    content  = "${data.template_file.tftp_vh_init.rendered}"
+  }
 }

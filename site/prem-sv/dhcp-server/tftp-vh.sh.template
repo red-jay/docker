@@ -1,0 +1,7 @@
+#!/usr/bin/bash
+
+for d in ${com1} ${com2} ${tftp} ; do
+  mkdir -p "/var/lib/tftpboot/vh-$${d}"
+done
+
+ln -s /etc/systemd/system/tftpd-vhosts.service /etc/systemd/system/multi-user.target.wants/tftpd-vhosts.service
