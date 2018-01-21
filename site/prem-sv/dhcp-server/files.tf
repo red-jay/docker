@@ -41,26 +41,6 @@ data "template_file" "dhcpd_conf" {
   }
 }
 
-resource "local_file" "dhcpd_conf" {
-  filename = "tf-output/${var.fqdn}/etc/dhcp/dhcpd.conf"
-  content  = "${data.template_file.dhcpd_conf.rendered}"
-}
-
-resource "local_file" "ipxe_option_space" {
-  filename = "tf-output/${var.fqdn}/etc/dhcp/ipxe-option-space.conf"
-  content  = "${file("${path.module}/ipxe-option-space.conf")}"
-}
-
-resource "local_file" "dhcpd_bootfile_conf" {
-  filename = "tf-output/${var.fqdn}/etc/dhcp/bootfile.conf"
-  content  = "${file("${path.module}/dhcp-bootfile.conf")}"
-}
-
-resource "local_file" "dhcpd_hostclass" {
-  filename = "tf-output/${var.fqdn}/etc/dhcp/hwaddr-access.conf"
-  content  = "${join("\n",data.template_file.host_mapping.*.rendered)}"
-}
-
 data "template_file" "tftp_systemd_requires" {
   template = "${file("${path.module}/tftpd.systemd.template")}"
 
@@ -71,10 +51,6 @@ data "template_file" "tftp_systemd_requires" {
   }
 }
 
-resource "local_file" "tftp_systemd" {
-  filename = "tf-output/${var.fqdn}/etc/systemd/system/tftpd-vhosts.service"
-  content  = "${data.template_file.tftp_systemd_requires.rendered}"
-}
 
 data "template_file" "networkd_config" {
   template = "${file("${path.module}/eth0.network.template")}"
@@ -87,7 +63,38 @@ data "template_file" "networkd_config" {
   }
 }
 
-resource "local_file" "eth0_networkd" {
-  filename = "tf-output/${var.fqdn}/etc/systemd/network/eth0.network"
-  content  = "${data.template_file.networkd_config.rendered}"
+data "archive_file" "config_layer" {
+  type = "zip"
+  output_path = "tf-output/${var.fqdn}.zip"
+
+  source {
+    filename = "etc/systemd/network/eth0.network"
+    content  = "${data.template_file.networkd_config.rendered}"
+  }
+
+  source {
+    filename = "etc/systemd/system/tftpd-vhosts.service"
+    content  = "${data.template_file.tftp_systemd_requires.rendered}"
+  }
+
+  source {
+    filename = "etc/dhcp/hwaddr-access.conf"
+    content  = "${join("\n",data.template_file.host_mapping.*.rendered)}"
+  }
+
+  source {
+    filename = "etc/dhcp/bootfile.conf"
+    content  = "${file("${path.module}/dhcp-bootfile.conf")}"
+  }
+
+  source {
+    filename = "etc/dhcp/ipxe-option-space.conf"
+    content  = "${file("${path.module}/ipxe-option-space.conf")}"
+  }
+
+  source {
+    filename = "etc/dhcp/dhcpd.conf"
+    content  = "${data.template_file.dhcpd_conf.rendered}"
+  }
+
 }
