@@ -297,12 +297,11 @@ shopt -s nullglob
 # pick up env vars from %pre
 . /tmp/KSPRE_ENV
 
-# pick up authorized_keys
-mkdir -p /mnt/sysimage/root/.ssh
-get_file authorized_keys "${TARGETPATH}/root/.ssh/authorized_keys"
-chmod 0700               "${TARGETPATH}/root/.ssh"
-chmod 0600               "${TARGETPATH}/root/.ssh/authorized_keys"
-printf 'PermitRootLogin without-password\n' >> "${TARGETPATH}/etc/ssh/sshd_config"
+cp /tmp/KSPRE_ENV ${TARGETPATH}/root
+
+# load config from terraform
+get_file config-zips/netmgmt.${SITE}.bbxn.us.zip /tmp/config.zip
+unzip -o /tmp/config.zip -d "${TARGETPATH}"
 
 # install grub cross-bootably
 if [ -d /sys/firmware/efi/efivars ] ; then

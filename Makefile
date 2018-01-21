@@ -176,6 +176,8 @@ endif
 	mkdir -p $(tmpdir)/isolinux/images/pxeboot
 	ln $(tmpdir)/images/pxeboot/vmlinuz $(tmpdir)/isolinux/images/pxeboot/vmlinuz
 	ln $(tmpdir)/images/pxeboot/initrd.img $(tmpdir)/isolinux/images/pxeboot/initrd.img
+	mkdir -p $(tmpdir)/config-zips
+	cp -r tf-output/*.zip $(tmpdir)/config-zips
 	find $(tmpdir) -exec chmod a+r {} \;
 	find $(tmpdir) -type d -exec chmod a+rx {} \;
 ifneq ($(MINIMAL),1)
@@ -234,6 +236,8 @@ endif
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s tf-output/common/hv-bridge-map.sh ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s tf-output/common/intmac-remap.sh ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s tf-output/common/intmac-bridge.sh ::
+	env MTOOLS_SKIP_CHECK=1 mmd   -i $(basename $(notdir $@)).img@@$$(cat usb.offset)    ::config-zips
+	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s tf-output/*.zip ::config-zips/
 ifneq ($(MINIMAL),1)
 ifeq ($(findstring hypervisor,$(MAKECMDGOALS)),hypervisor)
 ifeq ($(INCLUDE_PRIVATE),true)
