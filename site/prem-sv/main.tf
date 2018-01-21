@@ -77,7 +77,7 @@ resource "local_file" "bridge_mapping" {
 module "dhcp-1" {
   source          = "./dhcp-server"
   addr            = "${local.tftp-1-subrange}"
-  fqdn            = "dhcp-1.${var.domainname}"
+  fqdn            = "netmgmt.sv1.${var.domainname}"
   ranges          = "${local.dhcp-1-range}"
   restricted_nets = "${module.node-1.restricted-nets}"
   host-map        = "${local.host-map}"
@@ -86,7 +86,7 @@ module "dhcp-1" {
 module "dhcp-2" {
   source          = "./dhcp-server"
   addr            = "${local.tftp-2-subrange}"
-  fqdn            = "dhcp-2.${var.domainname}"
+  fqdn            = "netmgmt.sv2.${var.domainname}"
   ranges          = "${module.node-2.networks}"
   restricted_nets = "${module.node-2.restricted-nets}"
   host-map        = "${local.host-map}"
@@ -95,7 +95,7 @@ module "dhcp-2" {
 module "dhcp-1a" {
   source          = "./dhcp-server"
   addr            = "${local.tftp-1a-subrange}"
-  fqdn            = "dhcp-1a.${var.domainname}"
+  fqdn            = "netmgmt.sv1a.${var.domainname}"
   ranges          = "${module.node-1a.networks}"
   restricted_nets = "${module.node-1a.restricted-nets}"
   host-map        = "${local.host-map}"
