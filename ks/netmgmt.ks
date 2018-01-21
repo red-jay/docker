@@ -145,7 +145,7 @@ set -x
 shopt -s nullglob
 
 # start writing KSPRE_ENV
-printf '#!/usr/bin/env bash\n' > /tmp/KSPRE_ENV
+printf '#!/usr/bin/env bash\nTARGETPATH=/mnt/sysimage\nexport TARGETPATH\n' > /tmp/KSPRE_ENV
 
 # parts that can be _reset_ by system config but have a default
 reboot_flag="reboot"
@@ -167,16 +167,24 @@ for ent in $cmdline ; do
   esac
 done
 
-SOURCEURI=""
+sourceuri=""
 if [ ! -z "${ks_method}" ] ; then
-  SOURCEURI="${ks_method}/../"
+  sourceuri="${ks_method}/../"
 elif [ -f /mnt/install/repo/.discinfo ] ; then
-  SOURCEURI="file:///mnt/install/repo/"
+  sourceuri="file:///mnt/install/repo/"
 fi
 
 {
-  printf 'SOURCEURI="%s"\n' "${SOURCEURI}"
+  printf 'SOURCEURI="%s"\n' "${sourceuri}"
   printf 'export SOURCEURI\n'
+  if [ ! -z "${site}" ] ; then
+    printf 'SITE="%s"\n' "${site}"
+    printf 'export SITE\n'
+  fi
+  if [ ! -z "${syscfg}" ] ; then
+    printf 'SYSCFG="%s"\n' "${syscfg}"
+    printf 'export SYSCFG\n'
+  fi
   printf 'load_n_run () {\n'
   printf ' local realfile sourcefile\n'
   printf ' realfile="$(mktemp)"\n'
@@ -184,6 +192,11 @@ fi
   printf ' curl -L -o "${realfile}" "${SOURCEURI}${sourcefile}"\n'
   printf ' chmod +x "${realfile}"\n'
   printf ' "${realfile}" "${@:2}"\n'
+  printf '}\n'
+  printf 'get_file () {\n'
+  printf ' local source dest\n'
+  printf ' source="${1}" ; dest="${2}"\n'
+  printf ' curl -L -o "${dest}" "${SOURCEURI}${source}"\n'
   printf '}\n'
 } >> /tmp/KSPRE_ENV
 
@@ -270,21 +283,7 @@ printf 'network --hostname="%s"\n' "${inst_fqdn}" >> /tmp/net-include
 # we always create reboot-flag
 printf '%s\n' "${reboot_flag}" > /tmp/reboot-flag
 
-# we always create post-vars.
-touch /tmp/post-vars
 
-# write out the syscfg for %post
-if [ ! -z "${syscfg}" ] ; then
-  printf 'syscfg="%s"\n' "${syscfg}" >> /tmp/post-vars
-fi
-
-if [ ! -z "${site}" ] ; then
-  printf 'site="%s"\n' "${site}" >> /tmp/post-vars
-fi
-
-if [ ! -z "${ks_method}" ] ; then
-  printf 'ks_method="%s"\n' "${ks_method}" >> /tmp/post-vars
-fi
 
 %end
 
@@ -296,22 +295,14 @@ set -x
 shopt -s nullglob
 
 # pick up env vars from %pre
-. /tmp/post-vars
+. /tmp/KSPRE_ENV
 
 # pick up authorized_keys
-if [ ! -z "${ks_method}" ] ; then
-  mkdir -p /mnt/sysimage/root/.ssh
-  curl -L -o /mnt/sysimage/root/.ssh/authorized_keys "${ks_method}/../authorized_keys"
-  chmod 0700 /mnt/sysimage/root/.ssh
-  chmod 0600 /mnt/sysimage/root/.ssh/authorized_keys
-  printf 'PermitRootLogin without-password\n' >> /mnt/sysimage/etc/ssh/sshd_config
-elif [ -f /run/install/repo/authorized_keys ] ; then
-  mkdir -p /mnt/sysimage/root/.ssh
-  cp /run/install/repo/authorized_keys /mnt/sysimage/root/.ssh
-  chmod 0700 /mnt/sysimage/root/.ssh
-  chmod 0600 /mnt/sysimage/root/.ssh/authorized_keys
-  printf 'PermitRootLogin without-password\n' >> /mnt/sysimage/etc/ssh/sshd_config
-fi
+mkdir -p /mnt/sysimage/root/.ssh
+get_file authorized_keys "${TARGETPATH}/root/.ssh/authorized_keys"
+chmod 0700               "${TARGETPATH}/root/.ssh"
+chmod 0600               "${TARGETPATH}/root/.ssh/authorized_keys"
+printf 'PermitRootLogin without-password\n' >> "${TARGETPATH}/etc/ssh/sshd_config"
 
 # install grub cross-bootably
 if [ -d /sys/firmware/efi/efivars ] ; then
@@ -328,16 +319,16 @@ fi
   for r in os updates extras ; do
     printf '[%s]\nbaseurl=%s/$releasever/%s/$basearch/\ngpgcheck=1\n' "${r}" "http://wcs.bbxn.us/centos" "${r}"
   done
-} > /mnt/sysimage/etc/yum.repos.d/CentOS-Base.repo
+} > "${TARGETPATH}/etc/yum.repos.d/CentOS-Base.repo"
 
 printf '[%s]\nbaseurl=%s/$releasever/$basearch/\ngpgcheck=1\n' "epel" "http://wcs.bbxn.us/epel" > /mnt/sysimage/etc/yum.repos.d/epel.repo
 
-for f in /mnt/sysimage/etc/pki/rpm-gpg/* ; do
+for f in "${TARGETPATH}/etc/pki/rpm-gpg"/* ; do
   k=${f##*/}
-  chroot /mnt/sysimage rpm --import "/etc/pki/rpm-gpg/${k}"
+  chroot "${TARGETPATH}" rpm --import "/etc/pki/rpm-gpg/${k}"
 done
 
-case "${site}" in
+case "${SITE}" in
   sv1)
     # used for ip address assignment
     netm_range="172.16.16.72/29"
@@ -432,7 +423,7 @@ for octet in $(seq ${first_loctet} ${last_loctet}) ; do
 done
 
 # configure the network using systemd-networkd here.
-mkdir -p /mnt/sysimage/etc/systemd/network/
+mkdir -p "${TARGETPATH}/etc/systemd/network/"
 
 {
   printf '[Match]\nName=eth0\n[Network]\nDHCP=no\nLinkLocalAddressing=no\nLLMNR=no\nMulticastDNS=no\n'
@@ -442,26 +433,27 @@ mkdir -p /mnt/sysimage/etc/systemd/network/
     printf 'Address=%s\n' "${nm_addr[2]}"
   fi
   printf 'Gateway=%s\n' "${gateway}"
-} > /mnt/sysimage/etc/systemd/network/eth0.network
+} > "${TARGETPATH}/etc/systemd/network/eth0.network"
 
 {
   printf '[Match]\nName=eth1\n[Network]\nDHCP=yes\nLinkLocalAddressing=no\LLMNR=no\nMulticastDNS=no\n'
-} > /mnt/sysimage/etc/systemd/network/eth1.network
+} > "${TARGETPATH}/etc/systemd/network/eth1.network"
 
 # shoot NetworkManager in the face
-ln -s /dev/null /mnt/sysimage/etc/systemd/system/NetworkManager.service
-ln -s /dev/null /mnt/sysimage/etc/systemd/system/NetworkManager-wait-online.service
-rm -f /mnt/sysimage/etc/systemd/system/dbus-org.freedesktop.NetworkManager.service.
-rm -f /mnt/sysimage/etc/systemd/system/multi-user.target.wants/NetworkManager.service.
-rm -f /mnt/sysimage/etc/systemd/system/dbus-org.freedesktop.nm-dispatcher.service.
-ln -s /usr/lib/systemd/system/systemd-networkd-wait-online.service /etc/systemd/system/network-online.target.wants/systemd-networkd-wait-online.service
-rm -f /etc/udev/rules.d/70-persistent-net.rules
+ln -s /dev/null "${TARGETPATH}/etc/systemd/system/NetworkManager.service"
+ln -s /dev/null "${TARGETPATH}/etc/systemd/system/NetworkManager-wait-online.service"
+rm -f           "${TARGETPATH}/etc/systemd/system/dbus-org.freedesktop.NetworkManager.service"
+rm -f           "${TARGETPATH}/etc/systemd/system/multi-user.target.wants/NetworkManager.service"
+rm -f           "${TARGETPATH}/etc/systemd/system/dbus-org.freedesktop.nm-dispatcher.service"
+ln -s /usr/lib/systemd/system/systemd-networkd-wait-online.service \
+                "${TARGETPATH}/etc/systemd/system/network-online.target.wants/systemd-networkd-wait-online.service"
+rm -f "${TARGETPATH}/etc/udev/rules.d/70-persistent-net.rules"
 
 # disable ipv6 for most things
-printf 'net.ipv6.conf.default.disable_ipv6 = 1\nnet.ipv6.conf.lo.disable_ipv6 = 0\n' > /mnt/sysimage/etc/sysctl.d/40-ipv6.conf
+printf 'net.ipv6.conf.default.disable_ipv6 = 1\nnet.ipv6.conf.lo.disable_ipv6 = 0\n' > "${TARGETPATH}/etc/sysctl.d/40-ipv6.conf"
 
 # configure last-ditch DNS here too.
-printf 'nameserver 8.8.8.8\n' > /mnt/sysimage/etc/resolv.conf
+printf 'nameserver 8.8.8.8\n' > "${TARGETPATH}/etc/resolv.conf"
 
 # configure dhcpd
 
@@ -713,15 +705,7 @@ chroot /mnt/sysimage /bin/firewall-offline-cmd --zone internal --add-service htt
 
 # copy ipxe binaries about
 mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe
-if [ ! -z "${ks_method}" ] ; then
-  ipxe_tgz="${ks_method}/../ipxe-binaries.tgz"
-elif [ -f /mnt/install/repo/ipxe-binaries.tgz ] ; then
-  ipxe_tgz=file:///mnt/install/repo/ipxe-binaries.tgz
-fi
-
-if [ ! -z "${ipxe_tgz}" ] ; then
-  curl "${ipxe_tgz}" | tar xz -C /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe
-fi
+curl "${SOURCEURI}/ipxe-binaries.tgz" | tar xz -C /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe
 
 # create ipxe configs
 mkdir -p /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/ipxe.d/{plat,mfr,sys,com}
@@ -782,12 +766,8 @@ pushd /mnt/sysimage/var/lib/tftpboot/vh-${tftp_std}/_grub/
 popd
 
 
-if [ ! -z "${ks_method}" ] ; then
-  obsd_toplev="${ks_method}../openbsd"
-  obsd_uri="${ks_method}../openbsd/${ob_ver}/amd64"
-elif [ -d /mnt/install/repo/openbsd-dist/ ] ; then
-  obsd_toplev="/mnt/install/repo/openbsd-dist"
-fi
+obsd_toplev="${SOURCEURI}/openbsd"
+obsd_uri="${SOURCEURI}/openbsd/${ob_ver}/amd64"
 
 case $obsd_toplev in
   /*)
@@ -926,16 +906,11 @@ find /mnt/sysimage/var/lib/tftpboot -type d -exec chmod a+x {} \;
 find /mnt/sysimage/var/lib/tftpboot -exec chmod a+r {} \;
 
 # get vpn ca cert
-if [ ! -z "${ks_method}" ] ; then
-  curl -L -o /mnt/sysimage/usr/share/nginx/html/pub/BBXN_INT_SV1.pem "${ks_method}../intca-pub/BBXN_INT_SV1.pem"
-  cert_idx="${ks_method}../certs/index.txt"
-elif [ -f /mnt/install/repo/intca-pub/BBXN_INT_SV1.pem ] ; then
-  cp /mnt/install/repo/intca-pub/BBXN_INT_SV1.pem /mnt/sysimage/usr/share/nginx/html/pub/BBXN_INT_SV1.pem
-  cert_idx="file:///mnt/install/repo/certs/index.txt"
-fi
+curl -L -o "${TARGETPATH}"/usr/share/nginx/html/pub/BBXN_INT_SV1.pem "${SOURCEURI}"
+cert_idx="${SOURCEURI}/certs/index.txt"
 
 # create openbsd site tree
-mkdir -p /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc
+mkdir -p "${TARGETPATH}/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc"
 
 # vio0 - netmgmt
 printf 'rtlabel dist\ninet 172.16.16.65 255.255.255.192\n-inet6\ngroup netmgmt\n' > /mnt/sysimage/usr/share/nginx/html/pub/OpenBSD-site/ifw/etc/hostname.vio0.sv1
