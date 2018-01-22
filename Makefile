@@ -29,7 +29,7 @@ ipxe-cfgs/ipxe-binaries.tgz: ipxe-cfgs/.git
 	cd ipxe-cfgs && ./build.sh
 
 ipxe-cfgs/ipxe-cfg.zip: ipxe-cfgs/.git ipxe-cfgs/ipxe.d
-	cd ipxe-cfgs && zip -r ipxe-cfg.zip ipxe.d
+	cd ipxe-cfgs && zip --symlinks -r ipxe-cfg.zip ipxe.d
 
 # intCA
 intca-pub/.git:
