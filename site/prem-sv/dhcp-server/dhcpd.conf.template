@@ -10,6 +10,7 @@ ${classes}
 # now we do includes, since the host ones require classes to exist first
 include "/etc/dhcp/ipxe-option-space.conf";
 include "/etc/dhcp/bootfile.conf";
+include "/etc/dhcp/hwaddr-access.conf";
 
 # subnets
 ${subnets}
