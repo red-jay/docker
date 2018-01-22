@@ -29,6 +29,9 @@ DATA_PARTITION="yes"
 # counter for making sure calls to ready_md are unique
 MD_COUNTER=0
 
+# file to record disks used for later grub shenanigans
+ENV_OUTPUT_FILE="/tmp/fs-layout.env"
+
 cleanup () {
   rm -f "${FSTAB}"
 }
@@ -942,3 +945,6 @@ else
     } >> "${TARGETPATH}/etc/crypttab"
   fi
 fi
+
+# write down the bios_bootdevs for grub handoff later
+printf 'BIOS_BOOTDEVS="%s"\n' "${bios_bootdevs}" >> "${ENV_OUTPUT_FILE}"

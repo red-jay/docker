@@ -35,8 +35,8 @@ services --enabled="lldpad,chronyd"
 %packages
 @core
 @base
-kernel-ml
 -kernel
+kernel-ml
 
 @virtualization-hypervisor
 @virtualization-tools
@@ -144,12 +144,15 @@ set -x
 # on with nullglub
 shopt -s nullglob
 
+# start writing KSPRE_ENV
+printf '#!/usr/bin/env bash\nTARGETPATH=/mnt/sysimage\nexport TARGETPATH\n' > /tmp/KSPRE_ENV
+
 # parts that can be _reset_ by system config but have a default
 reboot_flag="reboot"
 inst_fqdn="localhost.localdomain"
 
 # first get if we have a syscfg on cmdline
-read cmdline < /proc/cmdline
+read -r cmdline < /proc/cmdline
 for ent in $cmdline ; do
   case $ent in
     syscfg=*)
@@ -163,6 +166,13 @@ for ent in $cmdline ; do
       ;;
   esac
 done
+
+sourceuri=""
+if [ ! -z "${ks_method}" ] ; then
+  sourceuri="${ks_method}/../"
+elif [ -f /mnt/install/repo/.discinfo ] ; then
+  sourceuri="file:///mnt/install/repo/"
+fi
 
 # well... let's try to find one
 if [ -z "${syscfg}" ] ; then
@@ -226,8 +236,36 @@ if [ -z "${syscfg}" ] ; then
   fi
 fi
 
+{
+  printf 'SOURCEURI="%s"\n' "${sourceuri}"
+  printf 'export SOURCEURI\n'
+  if [ ! -z "${site}" ] ; then
+    printf 'SITE="%s"\n' "${site}"
+    printf 'export SITE\n'
+  fi
+  if [ ! -z "${syscfg}" ] ; then
+    printf 'SYSCFG="%s"\n' "${syscfg}"
+    printf 'export SYSCFG\n'
+  fi
+  printf 'load_n_run () {\n'
+  printf ' local realfile sourcefile\n'
+  printf ' realfile="$(mktemp)"\n'
+  printf ' sourcefile="${1}"\n'
+  printf ' curl -L -o "${realfile}" "${SOURCEURI}${sourcefile}"\n'
+  printf ' chmod +x "${realfile}"\n'
+  printf ' "${realfile}" "${@:2}"\n'
+  printf '}\n'
+  printf 'get_file () {\n'
+  printf ' local source dest\n'
+  printf ' source="${1}" ; dest="${2}"\n'
+  printf ' curl -L -o "${dest}" "${SOURCEURI}${source}"\n'
+  printf '}\n'
+} >> /tmp/KSPRE_ENV
+
+. /tmp/KSPRE_ENV
+
 # configure disks via magic script ;)
-bash -x /run/install/repo/ks-scripts/fs-layout.sh -W
+load_n_run ks-scripts/fs-layout.sh -W
 
 # this holds any needed conditional package statements
 touch /tmp/package-include
@@ -272,7 +310,14 @@ set -x
 shopt -s nullglob
 
 # pick up env vars from %pre
+. /tmp/KSPRE_ENV
 . /tmp/post-vars
+
+cp /tmp/KSPRE_ENV "${TARGETPATH}/tmp"
+cp /tmp/fs-layout.env "${TARGETPATH}/tmp"
+
+get_file ks-scripts/install-grub.sh /mnt/sysimage/tmp/install-grub.sh
+chroot "${TARGETPATH}" /usr/bin/env bash /tmp/install-grub.sh
 
 # pick up authorized_keys
 if [ -f /run/install/repo/authorized_keys ] ; then
@@ -281,21 +326,6 @@ if [ -f /run/install/repo/authorized_keys ] ; then
   chmod 0700 /mnt/sysimage/root/.ssh
   chmod 0600 /mnt/sysimage/root/.ssh/authorized_keys
   printf 'PermitRootLogin without-password\n' >> /mnt/sysimage/etc/ssh/sshd_config
-fi
-
-# install grub cross-bootably
-if [ -d /sys/firmware/efi/efivars ] ; then
-  # install i386 grub in efi
-  chroot /mnt/sysimage grub2-install --target=i386-pc /dev/${disk}
-  chroot /mnt/sysimage grub2-mkconfig | sed 's@linuxefi@linux16@g' | sed 's@initrdefi@initrd16@g' > /mnt/sysimage/boot/grub2/grub.cfg
-else
-  # install efi grub in i386
-  chroot /mnt/sysimage grub2-mkconfig | sed 's@linux16@linuxefi@g' | sed 's@initrd16@initrdefi@g' > /mnt/sysimage/boot/efi/EFI/centos/grub.cfg
-fi
-
-# strontium is...slightly perplexed
-if [[ " strontium " =~ " ${syscfg} " ]] ; then
-  cp /mnt/sysimage/boot/efi/EFI/centos/grubx64.efi /mnt/sysimage/boot/efi/EFI/BOOT/grubx64.efi
 fi
 
 # rewire the repo files :)

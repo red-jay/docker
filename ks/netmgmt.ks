@@ -174,6 +174,68 @@ elif [ -f /mnt/install/repo/.discinfo ] ; then
   sourceuri="file:///mnt/install/repo/"
 fi
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 {
   printf 'SOURCEURI="%s"\n' "${sourceuri}"
   printf 'export SOURCEURI\n'
@@ -201,67 +263,6 @@ fi
 } >> /tmp/KSPRE_ENV
 
 . /tmp/KSPRE_ENV
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # configure disks via magic script ;)
 load_n_run ks-scripts/fs-layout.sh -W -S -m 8589934592
@@ -299,21 +300,15 @@ shopt -s nullglob
 
 cp /tmp/KSPRE_ENV ${TARGETPATH}/tmp
 cp /tmp/KSPRE_ENV ${TARGETPATH}/root
+cp /tmp/fs-layout.env ${TARGETPATH}/tmp
+
+get_file ks-scripts/install-grub.sh /mnt/sysimage/tmp/install-grub.sh
+chroot "${TARGETPATH}" /usr/bin/env bash /tmp/install-grub.sh
 
 # load config from terraform
 get_file config-zips/netmgmt.${SITE}.bbxn.us.zip /tmp/config.zip
 unzip -o /tmp/config.zip -d "${TARGETPATH}"
 rm /tmp/config.zip
-
-# install grub cross-bootably
-if [ -d /sys/firmware/efi/efivars ] ; then
-  # install i386 grub in efi
-  chroot /mnt/sysimage grub2-install --target=i386-pc /dev/${disk}
-  chroot /mnt/sysimage grub2-mkconfig | sed 's@linuxefi@linux16@g' | sed 's@initrdefi@initrd16@g' > /mnt/sysimage/boot/grub2/grub.cfg
-else
-  # install efi grub in i386
-  chroot /mnt/sysimage grub2-mkconfig | sed 's@linux16@linuxefi@g' | sed 's@initrd16@initrdefi@g' > /mnt/sysimage/boot/efi/EFI/centos/grub.cfg
-fi
 
 # rewire the repo files :)
 {
