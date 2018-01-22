@@ -17,4 +17,4 @@ fi
 sudo virsh undefine hvtest
 sudo rm /var/lib/libvirt/images/hvtest.qcow2
 
-sudo virt-install --name hvtest --memory 3072 --vcpus 2 --cdrom /tmp/cdrom.iso --os-variant "${os_variant}" --disk size=72${diskflags} --network network=alternative${nicflags} --graphics none --cpu host-passthrough
+sudo virt-install --name hvtest --memory 3072 --vcpus 2 --cdrom /tmp/cdrom.iso --os-variant "${os_variant}" --disk size=72${diskflags} --network network=alternative${nicflags},mac=00:e0:6f:11:ac:20 --graphics none --cpu host-passthrough

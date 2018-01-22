@@ -1,1 +1,14 @@
 Jon: going to guess the IoT at RJ's house is really the IoWTF
+
+The Hypervisors
+---------------
+
+tungsten  - Intel i5-3210M     (2c*2t) @ 2.5 GHz,  8GB RAM, 512 GB SSD
+radon     - Intel i5-3317U     (2c*2t) @ 1.7 GHz,  8GB RAM, 256 GB SSD
+strontium - Intel Celeron B840 (2c*1t) @ 1.9 GHz,  4GB RAM, 256 GB SSD
+
+palladium - Intel i7-3615QM    (4c*2t) @ 2.3 GHz, 16GB RAM, 512 GB SSD
+mercury   - Intel i5-3317U     (2c*2t) @ 1.7 GHz,  8GB RAM, 256 GB SSD
+
+chromium  - Intel i7-3720QM    (4c*2t) @ 2.6 GHz,  8GB RAM, 512 GB SSD
+nickel    - Intel i7-3615QM    (4c*2t) @ 2.3 GHz,  8GB RAM, 480 GB SSD

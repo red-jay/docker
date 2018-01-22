@@ -227,7 +227,7 @@ if [ -z "${syscfg}" ] ; then
 fi
 
 # configure disks via magic script ;)
-bash -x /run/install/repo/fs-layout.sh -W
+bash -x /run/install/repo/ks-scripts/fs-layout.sh -W
 
 # this holds any needed conditional package statements
 touch /tmp/package-include
@@ -339,7 +339,7 @@ case "${syscfg}" in
     ;;
 esac
 
-bash -x /run/install/repo/install-stack.sh
+bash -x /run/install/repo/ks-scripts/install-stack.sh
 
 # configure nut if we find a ups...
 for hiddev in /sys/class/hidraw/* ; do
@@ -457,11 +457,12 @@ if [ -d /run/install/repo/bootstrap-scripts ] ; then
   cp -R /run/install/repo/intca-pub /mnt/sysimage/usr/share/nginx/html/bootstrap
   cp -R /run/install/repo/certs /mnt/sysimage/usr/share/nginx/html/bootstrap
   cp -R /run/install/repo/bootstrap-scripts /mnt/sysimage/root
-  cp -R /run/install/repo/fs-layout.sh /mnt/sysimage/usr/share/nginx/html/bootstrap
-  cp -R /run/install/repo/ipxe-binaries.tgz /mnt/sysimage/usr/share/nginx/html/bootstrap
-  cp -R /run/install/repo/openbsd-dist /mnt/sysimage/usr/share/nginx/html/bootstrap/openbsd
-  find /run/install/repo/usr/share/nginx/html -type d -exec chmod a+rx {} \;
-  find /run/install/repo/usr/share/nginx/html -type f -exec chmod a+r {} \;
+  cp -R /run/install/repo/ks-scripts /mnt/sysimage/usr/share/nginx/html/bootstrap/ks-scripts
+  cp -R /run/install/repo/ipxe /mnt/sysimage/usr/share/nginx/html/bootstrap/ipxe
+  cp -R /run/install/repo/openbsd /mnt/sysimage/usr/share/nginx/html/bootstrap/openbsd
+  cp -R /run/install/repo/config-zips /mnt/sysimage/usr/share/nginx/html/bootstrap/config-zips
+  find /mnt/sysimage/usr/share/nginx/html -type d -exec chmod a+rx {} \;
+  find /mnt/sysimage/usr/share/nginx/html -type f -exec chmod a+r {} \;
 fi
 
 # copy private-isos to /var/lib/libvirt

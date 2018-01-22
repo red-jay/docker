@@ -191,25 +191,26 @@ ifeq ($(INCLUDE_PRIVATE),true)
 endif
 	cp -r bootstrap-scripts $(tmpdir)/
 	cp -r ks $(tmpdir)/
-	cp -r archive/openbsd $(tmpdir)/openbsd-dist
-	cp -r archive/openbsd-syspatch $(tmpdir)/openbsd-dist/syspatch
-	cp -r archive/openbsd-packages/6.2 $(tmpdir)/openbsd-dist/6.2/packages
-	cp ipxe-cfgs/ipxe-binaries.tgz $(tmpdir)
-	cp ipxe-cfgs/ipxe-cfg.zip $(tmpdir)
+	cp -r archive/openbsd $(tmpdir)/openbsd
+	cp -r archive/openbsd-syspatch $(tmpdir)/openbsd/syspatch
+	cp -r archive/openbsd-packages/6.2 $(tmpdir)/openbsd/6.2/packages
+	mkdir -p $(tmpdir)/ipxe
+	cp ipxe-cfgs/ipxe-binaries.tgz $(tmpdir)/ipxe/binaries.tgz
+	cp ipxe-cfgs/ipxe-cfg.zip $(tmpdir)/ipxe/config.zip
 endif
 endif
 ifeq ($(findstring netmgmt,$(MAKECMDGOALS)),netmgmt)
-	cp -r archive/openbsd $(tmpdir)/openbsd-dist
-	cp -r archive/openbsd-syspatch $(tmpdir)/openbsd-dist/syspatch
-	cp -r archive/openbsd-packages/6.2 $(tmpdir)/openbsd-dist/6.2/packages
-	cp ipxe-cfgs/ipxe-binaries.tgz $(tmpdir)
-	cp ipxe-cfgs/ipxe-cfg.zip $(tmpdir)
+	cp -r archive/openbsd $(tmpdir)/openbsd
+	cp -r archive/openbsd-syspatch $(tmpdir)/openbsd/syspatch
+	cp -r archive/openbsd-packages/6.2 $(tmpdir)/openbsd/6.2/packages
+	mkdir -p $(tmpdir)/ipxe
+	cp ipxe-cfgs/ipxe-binaries.tgz $(tmpdir)/ipxe/binaries.tgz
+	cp ipxe-cfgs/ipxe-cfg.zip $(tmpdir)/ipxe/config.zip
 endif
-	cp ks-scripts/fs-layout.sh $(tmpdir)
-	cp ks-scripts/install-stack.sh $(tmpdir)
-	cp tf-output/common/hv-bridge-map.sh $(tmpdir)
-	cp tf-output/common/intmac-remap.sh $(tmpdir)
-	cp tf-output/common/intmac-bridge.sh $(tmpdir)
+	cp -r ks-scripts $(tmpdir)/ks-scripts
+	cp tf-output/common/hv-bridge-map.sh $(tmpdir)/ks-scripts
+	cp tf-output/common/intmac-remap.sh $(tmpdir)/ks-scripts
+	cp tf-output/common/intmac-bridge.sh $(tmpdir)/ks-scripts
 	mkisofs -quiet -o $@ -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -rational-rock -J -V KICKSTART -hide-joliet-trans-tbl -hide-rr-moved $(tmpdir)
 
 %.img: $(ISOFILES) syslinux/%.cfg grub/%.cfg ks/%.ks
@@ -237,11 +238,10 @@ endif
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s grub/$(basename $(notdir $@)).cfg ::EFI/BOOT/grub.cfg
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/centos7/LiveOS ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/centos7/images ::
-	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s ks-scripts/fs-layout.sh ::
-	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s ks-scripts/install-stack.sh ::
-	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s tf-output/common/hv-bridge-map.sh ::
-	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s tf-output/common/intmac-remap.sh ::
-	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s tf-output/common/intmac-bridge.sh ::
+	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s ks-scripts ::
+	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s tf-output/common/hv-bridge-map.sh ::ks-scripts/
+	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s tf-output/common/intmac-remap.sh ::ks-scripts/
+	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s tf-output/common/intmac-bridge.sh ::ks-scripts/
 	env MTOOLS_SKIP_CHECK=1 mmd   -i $(basename $(notdir $@)).img@@$$(cat usb.offset)    ::config-zips
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s tf-output/*.zip ::config-zips/
 ifneq ($(MINIMAL),1)
@@ -251,11 +251,12 @@ ifeq ($(INCLUDE_PRIVATE),true)
 endif
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s bootstrap-scripts ::
 	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s ks ::
-	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/openbsd ::openbsd-dist
-	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/openbsd-syspatch ::openbsd-dist/syspatch
-	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/openbsd-packages/6.2 ::openbsd-dist/6.2/packages
-	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s ipxe-cfgs/ipxe-binaries.tgz ::
-	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s ipxe-cfgs/ipxe-cfg.zip ::
+	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/openbsd ::openbsd
+	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/openbsd-syspatch ::openbsd/syspatch
+	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s archive/openbsd-packages/6.2 ::openbsd/6.2/packages
+	env MTOOLS_SKIP_CHECK=1 mmd   -i $(basename $(notdir $@)).img@@$$(cat usb.offset)    ::ipxe
+	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s ipxe-cfgs/ipxe-binaries.tgz ::ipxe/binaries.tgz
+	env MTOOLS_SKIP_CHECK=1 mcopy -i $(basename $(notdir $@)).img@@$$(cat usb.offset) -s ipxe-cfgs/ipxe-cfg.zip ::ipxe/config.zip
 endif
 endif
 

@@ -99,7 +99,7 @@ for hwaddr_file in /sys/devices/pci*/*/net/*/address /sys/devices/pci*/*/*/net/*
  hwaddr=""
  read -r hwaddr < "${hwaddr_file}"
  hwaddr="${hwaddr//:/}"
- remap_addr=$(bash "${SELFDIR}./intmac-remap.sh" "${hwaddr}")
+ remap_addr=$(bash "${SELFDIR}/intmac-remap.sh" "${hwaddr}")
 done
 
 # load vlan data, then create bridges, vlans

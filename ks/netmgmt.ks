@@ -264,7 +264,7 @@ fi
 
 
 # configure disks via magic script ;)
-load_n_run fs-layout.sh -W -S -m 8589934592
+load_n_run ks-scripts/fs-layout.sh -W -S -m 8589934592
 
 # this holds any needed conditional package statements
 touch /tmp/package-include
@@ -380,8 +380,6 @@ for srcset in ${internal_sources} ; do
 done
 chroot /mnt/sysimage /bin/firewall-offline-cmd --zone internal --add-service tftp
 chroot /mnt/sysimage /bin/firewall-offline-cmd --zone internal --add-service http
-
-# copy ipxe binaries about
 
 # grub
 for sc in com1 com2 ; do
