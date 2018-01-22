@@ -2,7 +2,8 @@
 
 . /tmp/fs-layout.env
 
-read -r board_name < /sys/class/dmi/id/board_name
+board_name=""
+[ -f /sys/class/dmi/id/board_name ] && read -r board_name < /sys/class/dmi/id/board_name
 
 # install grub cross-bootably
 if [ -d /sys/firmware/efi/efivars ] ; then
