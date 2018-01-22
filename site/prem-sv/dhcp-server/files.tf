@@ -60,6 +60,7 @@ data "template_file" "networkd_config" {
     com1     = "${cidrhost(var.addr,1)}"
     com2     = "${cidrhost(var.addr,2)}"
     cidrmask = "${element(split("/",lookup(var.ranges,"netmgmt")),1)}"
+    gw       = "${cidrhost(lookup(var.ranges,"netmgmt"),1)}"
   }
 }
 

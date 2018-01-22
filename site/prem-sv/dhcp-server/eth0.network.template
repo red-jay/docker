@@ -8,3 +8,4 @@ MulticaseDNS=no
 Address=${tftp}/${cidrmask}
 Address=${com1}/${cidrmask}
 Address=${com2}/${cidrmask}
+Gateway=${gw}
