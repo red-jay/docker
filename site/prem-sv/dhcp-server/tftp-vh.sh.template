@@ -14,6 +14,9 @@ cd "/var/lib/tftpboot/vh-vc"
   # ipxe
   mkdir ipxe
   tar xzf /tmp/ipxe-binaries.tgz -C ipxe
+  unzip /tmp/ipxe-cfg.zip
+  find . -type d -exec chmod a+rx {} \;
+  find . -type f -exec chmod a+r {} \;
 
   #grub
   grub2-mknetdir --net-directory=$${PWD}/ --subdir _grub

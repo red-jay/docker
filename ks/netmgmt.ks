@@ -94,6 +94,8 @@ shim-x64
 shim-ia32
 efibootmgr
 
+unzip
+
 dosfstools
 lvm2
 authconfig
@@ -319,8 +321,8 @@ printf 'net.ipv6.conf.default.disable_ipv6 = 1\nnet.ipv6.conf.lo.disable_ipv6 = 
 printf 'nameserver 8.8.8.8\n' > "${TARGETPATH}/etc/resolv.conf"
 
 # configure tftp/ipxe
-get_file ipxe-binaries.tgz "${TARGETPATH}/tmp/ipxe-binaries.tgz"
-get_file ipxe-cfg.zip "${TARGETPATH}/tmp/ipxe-cfg.zip"
+get_file ipxe/binaries.tgz "${TARGETPATH}/tmp/ipxe-binaries.tgz"
+get_file ipxe/config.zip "${TARGETPATH}/tmp/ipxe-cfg.zip"
 chroot "${TARGETPATH}" bash /usr/local/sbin/tftp-vhosts.sh
 
 ln -s /usr/lib/systemd/system/dhcpd.service /mnt/sysimage/etc/systemd/system/multi-user.target.wants/dhcpd.service
