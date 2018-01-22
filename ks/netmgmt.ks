@@ -305,46 +305,12 @@ cp /tmp/fs-layout.env ${TARGETPATH}/tmp
 get_file ks-scripts/install-grub.sh /mnt/sysimage/tmp/install-grub.sh
 chroot "${TARGETPATH}" /usr/bin/env bash /tmp/install-grub.sh
 
+load_n_run ks-scripts/centos-common.sh
+
 # load config from terraform
 get_file config-zips/netmgmt.${SITE}.bbxn.us.zip /tmp/config.zip
 unzip -o /tmp/config.zip -d "${TARGETPATH}"
 rm /tmp/config.zip
-
-# rewire the repo files :)
-{
-  for r in os updates extras ; do
-    printf '[%s]\nbaseurl=%s/$releasever/%s/$basearch/\ngpgcheck=1\n' "${r}" "http://wcs.bbxn.us/centos" "${r}"
-  done
-} > "${TARGETPATH}/etc/yum.repos.d/CentOS-Base.repo"
-
-printf '[%s]\nbaseurl=%s/$releasever/$basearch/\ngpgcheck=1\n' "epel" "http://wcs.bbxn.us/epel" > /mnt/sysimage/etc/yum.repos.d/epel.repo
-
-for f in "${TARGETPATH}/etc/pki/rpm-gpg"/* ; do
-  k=${f##*/}
-  chroot "${TARGETPATH}" rpm --import "/etc/pki/rpm-gpg/${k}"
-done
-
-declare -a nm_addr
-i=0
-for octet in $(seq ${first_loctet} ${last_loctet}) ; do
-  nm_addr[i]="${prefix}.${octet}/${netm_suffx}"
-  scratch=$((i++))
-done
-
-# configure the network using systemd-networkd here.
-{
-  printf '[Match]\nName=eth1\n[Network]\nDHCP=yes\nLinkLocalAddressing=no\LLMNR=no\nMulticastDNS=no\n'
-} > "${TARGETPATH}/etc/systemd/network/eth1.network"
-
-# shoot NetworkManager in the face
-ln -s /dev/null "${TARGETPATH}/etc/systemd/system/NetworkManager.service"
-ln -s /dev/null "${TARGETPATH}/etc/systemd/system/NetworkManager-wait-online.service"
-rm -f           "${TARGETPATH}/etc/systemd/system/dbus-org.freedesktop.NetworkManager.service"
-rm -f           "${TARGETPATH}/etc/systemd/system/multi-user.target.wants/NetworkManager.service"
-rm -f           "${TARGETPATH}/etc/systemd/system/dbus-org.freedesktop.nm-dispatcher.service"
-ln -s /usr/lib/systemd/system/systemd-networkd-wait-online.service \
-                "${TARGETPATH}/etc/systemd/system/network-online.target.wants/systemd-networkd-wait-online.service"
-rm -f "${TARGETPATH}/etc/udev/rules.d/70-persistent-net.rules"
 
 # disable ipv6 for most things
 printf 'net.ipv6.conf.default.disable_ipv6 = 1\nnet.ipv6.conf.lo.disable_ipv6 = 0\n' > "${TARGETPATH}/etc/sysctl.d/40-ipv6.conf"
@@ -352,14 +318,7 @@ printf 'net.ipv6.conf.default.disable_ipv6 = 1\nnet.ipv6.conf.lo.disable_ipv6 = 
 # configure last-ditch DNS here too.
 printf 'nameserver 8.8.8.8\n' > "${TARGETPATH}/etc/resolv.conf"
 
-# configure dhcpd
-
-# enable dhcpd, tftpd
-{
-  printf '[Unit]\nDescription=tftpd vhost on %%I\nWants=network-online.target\nAfter=network-online.target\n'
-  printf '[Service]\nExecStart=/sbin/in.tftpd -L --address %%i -s -P /run/tftpd-%%i.pid /var/lib/tftpboot/vh-%%i\n'
-} > /mnt/sysimage/etc/systemd/system/tftpd@.service
-
+# configure tftp/ipxe
 get_file ipxe-binaries.tgz "${TARGETPATH}/tmp/ipxe-binaries.tgz"
 get_file ipxe-cfg.zip "${TARGETPATH}/tmp/ipxe-cfg.zip"
 chroot "${TARGETPATH}" bash /usr/local/sbin/tftp-vhosts.sh

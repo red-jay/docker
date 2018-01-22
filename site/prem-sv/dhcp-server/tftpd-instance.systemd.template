@@ -1,0 +1,6 @@
+[Unit]
+Description=tftpd vhost on %%I
+Wants=network-online.target
+After=network-online.target
+[Service]
+ExecStart=/sbin/in.tftpd -L --address %%i -s -P /run/tftpd-%%i.pid /var/lib/tftpboot/vh-%%i

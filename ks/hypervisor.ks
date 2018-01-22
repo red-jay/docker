@@ -319,6 +319,8 @@ cp /tmp/fs-layout.env "${TARGETPATH}/tmp"
 get_file ks-scripts/install-grub.sh /mnt/sysimage/tmp/install-grub.sh
 chroot "${TARGETPATH}" /usr/bin/env bash /tmp/install-grub.sh
 
+load_n_run ks-scripts/centos-common.sh
+
 # pick up authorized_keys
 if [ -f /run/install/repo/authorized_keys ] ; then
   mkdir -p /mnt/sysimage/root/.ssh
@@ -327,20 +329,6 @@ if [ -f /run/install/repo/authorized_keys ] ; then
   chmod 0600 /mnt/sysimage/root/.ssh/authorized_keys
   printf 'PermitRootLogin without-password\n' >> /mnt/sysimage/etc/ssh/sshd_config
 fi
-
-# rewire the repo files :)
-{
-  for r in os updates extras ; do
-    printf '[%s]\nbaseurl=%s/$releasever/%s/$basearch/\ngpgcheck=1\n' "${r}" "http://wcs.bbxn.us/centos" "${r}"
-  done
-} > /mnt/sysimage/etc/yum.repos.d/CentOS-Base.repo
-
-printf '[%s]\nbaseurl=%s/$releasever/$basearch/\ngpgcheck=1\n' "epel" "http://wcs.bbxn.us/epel" > /mnt/sysimage/etc/yum.repos.d/epel.repo
-
-for f in /mnt/sysimage/etc/pki/rpm-gpg/* ; do
-  k=${f##*/}
-  chroot /mnt/sysimage rpm --import "/etc/pki/rpm-gpg/${k}"
-done
 
 ln -s /usr/lib/systemd/system/nginx.service /mnt/sysimage/etc/systemd/system/multi-user.target.wants/nginx.service
 printf 'location /bootstrap/openbsd {\n autoindex on;\n}\n' > /mnt/sysimage/etc/nginx/default.d/openbsd.conf

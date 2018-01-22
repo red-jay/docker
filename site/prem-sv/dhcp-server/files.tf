@@ -41,6 +41,10 @@ data "template_file" "dhcpd_conf" {
   }
 }
 
+data "template_file" "tftp_systemd_template" {
+  template = "${file("${path.module}/tftpd-instance.systemd.template")}"
+}
+
 data "template_file" "tftp_systemd_requires" {
   template = "${file("${path.module}/tftpd.systemd.template")}"
 
@@ -81,6 +85,11 @@ data "archive_file" "config_layer" {
   source {
     filename = "etc/systemd/network/eth0.network"
     content  = "${data.template_file.networkd_config.rendered}"
+  }
+
+  source {
+    filename = "etc/systemd/system/tftpd@.service"
+    content  = "${data.template_file.tftp_systemd_template.rendered}"
   }
 
   source {
