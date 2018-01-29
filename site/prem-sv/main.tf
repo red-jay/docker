@@ -50,6 +50,30 @@ locals {
   vlan-keys = "${keys(local.vlan-map)}"
 }
 
+# capture generated macs for bootstrap-scripts
+data "template_file" "ifw_macs" {
+  template = "sv1) echo $${sv1} ;;\nsv1a) $${sv1a} ;;\nsv2) $${sv2} ;;\n"
+
+  vars {
+    sv1  = "${lookup(local.host-map["ifw.sv1.bbxn.us"],"hwaddr")}"
+    sv1a = "${lookup(local.host-map["ifw.sv1a.bbxn.us"],"hwaddr")}"
+    sv2  = "${lookup(local.host-map["ifw.sv2.bbxn.us"],"hwaddr")}"
+  }
+}
+
+data "template_file" "ifwmapper" {
+  template = "${file("${path.module}/macmapper.sh.tpl")}"
+
+  vars {
+    macdata = "${data.template_file.ifw_macs.rendered}"
+  }
+}
+
+resource "local_file" "ifw_mapping" {
+  filename = "tf-output/common/ifw-mac-addrs.sh"
+  content  = "${data.template_file.ifwmapper.rendered}"
+}
+
 data "template_file" "bridge_mapping" {
   template = "vlan[$${vlan_nr}]=$${br_name}\n"
   count    = "${length(local.vlan-keys)}"

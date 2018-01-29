@@ -36,6 +36,6 @@ output "restricted-nets" {
 
 output "host-map" {
   value = "${map(
-                 "ifw.sv1.${var.domainname}", "${map("class","netmgmt","hwaddr","${random_id.ifw_hwaddr.hex}")}"
+                 "ifw.sv${var.series}.${var.domainname}", "${map("class","netmgmt","hwaddr","${random_id.ifw_hwaddr.hex}")}"
                 )}"
 }

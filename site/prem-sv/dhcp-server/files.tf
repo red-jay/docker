@@ -55,7 +55,6 @@ data "template_file" "tftp_systemd_requires" {
   }
 }
 
-
 data "template_file" "networkd_config" {
   template = "${file("${path.module}/eth0.network.template")}"
 
@@ -72,14 +71,14 @@ data "template_file" "tftp_vh_init" {
   template = "${file("${path.module}/tftp-vh.sh.template")}"
 
   vars {
-    tftp     = "${cidrhost(var.addr,0)}"
-    com1     = "${cidrhost(var.addr,1)}"
-    com2     = "${cidrhost(var.addr,2)}"
+    tftp = "${cidrhost(var.addr,0)}"
+    com1 = "${cidrhost(var.addr,1)}"
+    com2 = "${cidrhost(var.addr,2)}"
   }
 }
 
 data "archive_file" "config_layer" {
-  type = "zip"
+  type        = "zip"
   output_path = "tf-output/${var.fqdn}.zip"
 
   source {
