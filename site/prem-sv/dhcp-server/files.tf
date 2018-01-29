@@ -55,6 +55,16 @@ data "template_file" "tftp_systemd_requires" {
   }
 }
 
+data "template_file" "ipxe_pserver" {
+  template = "${file("${path.module}/pserver.pxe.tpl")}"
+
+  vars {
+    tftp = "${cidrhost(var.addr,0)}"
+    com1 = "${cidrhost(var.addr,1)}"
+    com2 = "${cidrhost(var.addr,2)}"
+  }
+}
+
 data "template_file" "networkd_config" {
   template = "${file("${path.module}/eth0.network.template")}"
 
@@ -119,5 +129,10 @@ data "archive_file" "config_layer" {
   source {
     filename = "usr/local/sbin/tftp-vhosts.sh"
     content  = "${data.template_file.tftp_vh_init.rendered}"
+  }
+
+  source {
+    filename = "usr/share/nginx/html/pserver.ipxe"
+    content  = "${data.template_file.ipxe_pserver.rendered}"
   }
 }
