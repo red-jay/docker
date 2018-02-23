@@ -10,7 +10,7 @@ for pkg in xen-system-amd64 libvirt-bin debootstrap virtinst libguestfs-tools sy
   # the very ugly grep filter removes virtual packages
   # we want word splitting in the below line
   # shellcheck disable=SC2046
-  apt-get -q download $(apt-rdepends "${pkg}" | grep -v "^ " | grep -vE 'debconf-2.0|file-rc|perlapi-*|linux-initramfs-tool|awk|cron-daemon|sysvinit|pinentry')
+  apt-get -q download $(apt-rdepends "${pkg}" | grep -v "^ " | grep -vE 'debconf-2.0|file-rc|perlapi-*|linux-initramfs-tool|awk|cron-daemon|sysvinit|pinentry|default-mta|mail-transport-agent|inet-superserver|mailx|libfile-temp-perl')
 done
 
 # clean duplicate packages - adapted from
