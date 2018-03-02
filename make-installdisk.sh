@@ -67,6 +67,13 @@ if [ -d "fio-files" ] ; then
   sudo chroot "${IMGDIR}" env LC_ALL=C dkms autoinstall -k "${target_kver}"
 fi
 
+if [ -d "xen-files" ] ; then
+  sudo mkdir "${IMGDIR}/xen-pkgs"
+  for f in "xen-files/"*.deb ; do
+    sudo cp "${f}" "${IMGDIR}/xen-pkgs"
+  done
+fi
+
 # get packages to install next phase
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y apt-rdepends dpkg-dev
 sudo chroot "${IMGDIR}" env LC_ALL=C chown _apt /var/cache/apt/archives

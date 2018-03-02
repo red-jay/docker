@@ -13,6 +13,11 @@ for pkg in xen-system-amd64 libvirt-bin debootstrap virtinst libguestfs-tools sy
   apt-get -q download $(apt-rdepends "${pkg}" | grep -v "^ " | grep -vE 'debconf-2.0|file-rc|perlapi-*|linux-initramfs-tool|awk|cron-daemon|sysvinit|pinentry|default-mta|mail-transport-agent|inet-superserver|mailx|libfile-temp-perl')
 done
 
+# if I have _repalcement_ xen packages, handle this now
+if [ -d /xen-pkgs ] ; then
+  cp /xen-pkgs/*.deb /var/cache/apt/archives
+fi
+
 # clean duplicate packages - adapted from
 # https://askubuntu.com/questions/96580/how-to-clean-var-cache-apt-in-a-way-that-it-leaves-only-the-latest-versions-of-e
 
