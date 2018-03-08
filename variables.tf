@@ -16,3 +16,8 @@ variable "pln_systems" {
   type    = "map"
   default = {}
 }
+
+variable "external_maddrs" {
+  type    = "list"
+  default = []
+}

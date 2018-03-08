@@ -1,13 +1,15 @@
 locals {
-  mac-keys = "${concat(keys(var.hv_systems),keys(var.netm_systems),keys(var.pln_systems))}"
+  hv_maddrs = "${keys(var.hv_systems)}"
+  netm_maddrs = "${keys(var.netm_systems)}"
+  pln_maddrs = "${keys(var.pln_systems)}"
 }
 
 data "template_file" "macmapper_data" {
   template = "$${source}) exit 0 ;;"
-  count    = "${length(keys(var.hv_systems))}"
+  count    = "${length(local.hv_maddrs)}"
 
   vars {
-    source = "${replace(element(keys(var.hv_systems),count.index),"/[.:]/","")}"
+    source = "${replace(element(local.hv_maddrs,count.index),"/[.:]/","")}"
   }
 }
 
@@ -26,11 +28,11 @@ resource "local_file" "macmapper" {
 
 data "template_file" "mac2bridge_pln_data" {
   template = "$${source} "
-  count    = "${length(var.pln_maddrs)}"
+  count    = "${length(local.pln_maddrs)}"
 
   vars {
     bridge = "pln"
-    source = "${replace(element(var.pln_maddrs,count.index),"/[.:]/","")}"
+    source = "${replace(element(local.pln_maddrs,count.index),"/[.:]/","")}"
   }
 }
 
@@ -46,11 +48,11 @@ data "template_file" "mac2bridge_external_data" {
 
 data "template_file" "mac2bridge_netm_data" {
   template = "$${source} "
-  count    = "${length(var.netm_maddrs)}"
+  count    = "${length(local.netm_maddrs)}"
 
   vars {
     bridge = "external"
-    source = "${replace(element(var.netm_maddrs,count.index),"/[.:]/","")}"
+    source = "${replace(element(local.netm_maddrs,count.index),"/[.:]/","")}"
   }
 }
 
