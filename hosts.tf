@@ -1,70 +1,13 @@
 locals {
-  host-mac-net-mapping = "${map(
-    "lr-kallax-sw", "${map("class","netmgmt",   "hwaddr","${lookup(var.kallax_hwid,"ether")}")}",
-    "nickel-hw",    "${map("class","hypervisor","hwaddr","${lookup(var.nickel_hwid,"ether")}")}",
-    "radon-hw",     "${map("class","hypervisor","hwaddr","${lookup(var.radon_hwid,"ether")}")}",
-    "tungsten-hw",  "${map("class","hypervisor","hwaddr","${lookup(var.tungsten_hwid,"ether")}")}",
-    "strontium-hw", "${map("class","hypervisor","hwaddr","${lookup(var.strontium_hwid,"ether")}")}",
-    "nickel",       "${map("class","hypervisor","hwaddr",random_id.nickel_mac.hex)}",
-    "radon",        "${map("class","hypervisor","hwaddr",random_id.radon_mac.hex)}",
-    "tungsten",     "${map("class","hypervisor","hwaddr",random_id.tungsten_mac.hex)}",
-    "strontium",    "${map("class","hypervisor","hwaddr",random_id.strontium_mac.hex)}",
-  )}"
-
-  mac-remapping = "${map(
-    lookup(var.radon_hwid,"ether"),random_id.radon_mac.hex,
-    lookup(var.tungsten_hwid,"ether"),random_id.tungsten_mac.hex,
-    lookup(var.strontium_hwid,"ether"),random_id.strontium_mac.hex,
-  )}"
-
-  #  mac-remapping = "${map()}"
-
-  mac-keys = "${keys(local.mac-remapping)}"
-}
-
-resource "random_id" "nickel_mac" {
-  keepers = {
-    sysmac = "${lookup(var.nickel_hwid,"ether")}"
-  }
-
-  byte_length = 3
-  prefix      = "${var.mac-prefix}"
-}
-
-resource "random_id" "radon_mac" {
-  keepers = {
-    sysmac = "${lookup(var.radon_hwid,"ether")}"
-  }
-
-  byte_length = 3
-  prefix      = "${var.mac-prefix}"
-}
-
-resource "random_id" "tungsten_mac" {
-  keepers = {
-    sysmac = "${lookup(var.tungsten_hwid,"ether")}"
-  }
-
-  byte_length = 3
-  prefix      = "${var.mac-prefix}"
-}
-
-resource "random_id" "strontium_mac" {
-  keepers = {
-    sysmac = "${lookup(var.strontium_hwid,"ether")}"
-  }
-
-  byte_length = 3
-  prefix      = "${var.mac-prefix}"
+  mac-keys = "${concat(keys(var.hv_systems),keys(var.netm_systems),keys(var.pln_systems))}"
 }
 
 data "template_file" "macmapper_data" {
-  template = "$${source}) echo $${dest} ;;"
-  count    = "${length(local.mac-keys)}"
+  template = "$${source}) exit 0 ;;"
+  count    = "${length(keys(var.hv_systems))}"
 
   vars {
-    dest   = "${replace(lookup(local.mac-remapping,element(local.mac-keys,count.index)),"/[.:]/","")}"
-    source = "${replace(element(local.mac-keys,count.index),"/[.:]/","")}"
+    source = "${replace(element(keys(var.hv_systems),count.index),"/[.:]/","")}"
   }
 }
 
