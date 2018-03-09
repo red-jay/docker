@@ -4,35 +4,34 @@ set -eux
 set -o pipefail
 shopt -s nullglob
 
-# what
-IN_KS="0"
+IN_KS=""
 
 TARGETPATH=/mnt/sysimage
 
 SELFDIR="${BASH_SOURCE%/*}"
 
-if [ -z "${IN_KS}" ] ; then
-  ppid=$(cut -d' ' -f4 < /proc/$$/stat)
-  gpid=$(cut -d' ' -f4 < "/proc/${ppid}/stat")
-  # parsing /proc/pid/cmdline sucks.
-  while read -r -d $'\0' cmdl ; do
-    case $cmdl in
-      /sbin/anaconda) IN_KS=1 ;;
+parse_opts () {
+  local switch
+  whle getopts "k" switch ; do
+    case "${switch}" in
+      k) IN_KS="1"
     esac
-  done < "/proc/${gpid}/cmdline"
-fi
+  done
+}
 
 chroot () {
   command chroot "${TARGETPATH}" env LC_ALL=C TERM=dumb DEBIAN_FRONTEND=noninteractive "${@}"
 }
 
 chroot_ag() {
-  if [ "${IN_KS}" != 0 ] ; then
+  if [ -z "${IN_KS}" ] ; then
     chroot apt-get "${@}"
   else
     true
   fi
 }
+
+parse_opts "${@}"
 
 # install libvirt, firewalld
 chroot_ag install -y libvirt-bin firewalld dnsmasq dhcpcd5 virtinst vncsnapshot
