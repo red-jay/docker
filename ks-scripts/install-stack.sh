@@ -12,7 +12,7 @@ SELFDIR="${BASH_SOURCE%/*}"
 
 parse_opts () {
   local switch
-  whle getopts "k" switch ; do
+  while getopts "k" switch ; do
     case "${switch}" in
       k) IN_KS="1"
     esac
