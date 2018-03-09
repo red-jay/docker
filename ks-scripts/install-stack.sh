@@ -90,15 +90,15 @@ mkdir -p "${TARGETPATH}/etc/systemd/system/dnsmasq.service.d"
 printf '[Service]\nRestartSec=1s\nRestart=on-failure\n' > "${TARGETPATH}/etc/systemd/system/dnsmasq.service.d/local.conf"
 
 # placeholder for if we have an address to remap
-remap_addr=""
+remap_ok="1"
 
 # check to see if we have a ethernet interface to plumb vlans against
 for hwaddr_file in /sys/devices/pci*/*/net/*/address /sys/devices/pci*/*/*/net/*/address /sys/devices/pci*/*/*/*/net/*/address; do
- if [ ! -z "${remap_addr}" ] ; then break ; fi
+ if [ "${remap_ok}" -eq 0 ] ; then break ; fi
  hwaddr=""
  read -r hwaddr < "${hwaddr_file}"
  hwaddr="${hwaddr//:/}"
- remap_addr=$(bash "${SELFDIR}/intmac-remap.sh" "${hwaddr}")
+ remap_ok=$(bash "${SELFDIR}/intmac-remap.sh" "${hwaddr}" ; echo $?)
 done
 
 # load vlan data, then create bridges, vlans
@@ -134,8 +134,9 @@ done
     printf '%s\n' 'LABEL="nostp_end"'
 } > "${TARGETPATH}/etc/udev/rules.d/65-br-external-nostp.rules"
 
-if [ ! -z "${remap_addr}" ] ; then
+if [ "${remap_ok}" -eq 0 ] ; then
   # create udev rule to remap an interface
+  remap_addr=$(printf '5a'; dd bs=1 count=5 if=/dev/random 2>/dev/null | hexdump -v -e '/1 "%02x"')
   lladdr="${remap_addr:0:2}:${remap_addr:2:2}:${remap_addr:4:2}:${remap_addr:6:2}:${remap_addr:8:2}:${remap_addr:10:2}"
   oladdr="${hwaddr:0:2}:${hwaddr:2:2}:${hwaddr:4:2}:${hwaddr:6:2}:${hwaddr:8:2}:${hwaddr:10:2}"
   {

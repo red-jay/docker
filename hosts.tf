@@ -5,7 +5,7 @@ locals {
 }
 
 data "template_file" "macmapper_data" {
-  template = "$${source}) exit 0 ;;"
+  template = "$${source}) rc=0 ;;"
   count    = "${length(local.hv_maddrs)}"
 
   vars {

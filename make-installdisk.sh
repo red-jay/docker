@@ -113,6 +113,14 @@ sudo cp boot_pci_assign.sh "${IMGDIR}/root/boot_pci_assign.sh"
 sudo cp pci-assign.sh "${IMGDIR}/root/pci-assign.sh"
 sudo cp ks-scripts/install-stack.sh "${IMGDIR}/root/install-stack.sh"
 
+# we require the terraform outputs here..
+chmod +x tf-output/common/intmac-remap.sh
+sudo cp tf-output/common/intmac-remap.sh "${IMGDIR}/root/intmac-remap.sh"
+chmod +x tf-output/common/hv-bridge-map.sh
+sudo cp tf-output/common/hv-bridge-map.sh "${IMGDIR}/root/hv-bridge-map.sh"
+chmod +x tf-output/common/intmac-bridge.sh
+sudo cp tf-output/common/intmac-bridge.sh "${IMGDIR}/root/intmac-bridge.sh"
+
 # if we have the netmgmt iso, bring it along now.
 if [ -f netmgmt.iso ] ; then
   sudo cp netmgmt.iso "${IMGDIR}/root/netmgmt-inst.iso"
