@@ -34,7 +34,7 @@ chroot_ag() {
 parse_opts "${@}"
 
 # install libvirt, firewalld
-chroot_ag install -y libvirt-bin firewalld dnsmasq dhcpcd5 virtinst vncsnapshot
+chroot_ag install -y libvirt-clients libvirt-daemon firewalld dnsmasq dhcpcd5 virtinst vncsnapshot
 
 # enable systemd-networkd
 ln -sf /lib/systemd/system/systemd-networkd.service "${TARGETPATH}/etc/systemd/system/multi-user.target.wants/systemd-networkd.service"
