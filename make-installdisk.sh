@@ -45,7 +45,7 @@ sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get inst
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y discover laptop-detect os-prober
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y linux-generic
 printf 'GRUB_DISABLE_OS_PROBER=true\n' sudo tee -a "${IMGDIR}/etc/default/grub"
-sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y lvm2 thin-provisioning-tools cryptsetup mdadm debootstrap xfsprogs bcache-tools dkms syslinux extlinux isolinux memtest86+
+sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y lvm2 thin-provisioning-tools cryptsetup mdadm debootstrap xfsprogs bcache-tools dkms syslinux extlinux isolinux memtest86+ nwipe
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y smartmontools lm-sensors ethtool
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y openssh-server augeas-tools smartmontools fio
 sudo chroot "${IMGDIR}" env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y dbus
@@ -101,12 +101,9 @@ sudo cp debootstrap-archive "${IMGDIR}/usr/share/debootstrap/scripts/archive"
 
 # copy over the fancy blockdev initscript
 sudo cp ks-scripts/fs-layout.sh "${IMGDIR}/root/fs-layout.sh"
-sudo cp blockdev-init.sh  "${IMGDIR}/root/blockdev-init.sh"
-sudo cp simpledev-init.sh "${IMGDIR}/root/simpledev-init.sh"
 
 # and the install-to-target scripts
 sudo cp minsys-install.sh "${IMGDIR}/root/minsys-install.sh"
-sudo cp luksdev-reformat.sh "${IMGDIR}/root/luksdev-reformat.sh"
 sudo cp iomemory_md.sh "${IMGDIR}/root/iomemory_md.sh"
 sudo cp xen-install.sh "${IMGDIR}/root/xen-install.sh"
 sudo cp boot_pci_assign.sh "${IMGDIR}/root/boot_pci_assign.sh"
