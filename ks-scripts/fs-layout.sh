@@ -672,6 +672,9 @@ flash_disks=""
 if [ "${disknr}" -eq "1" ] ; then
   # if we only have one disk do this
   candidate_disks="${all_disks}"
+elif [ "${disknr}" -eq "2" ] ; then
+  # we're going to guess raid1...
+  candidate_disks="${all_disks}"
 elif [ "${disknr}" -gt "2" ] ; then
   # do we have flash or spinny disks?
   candidate_disks=$(get_baseblocks queue/rotational=1)
