@@ -26,6 +26,7 @@ chroot () {
 chroot_ag() {
   if [ -z "${IN_KS}" ] ; then
     chroot apt-get "${@}"
+    cp -f /root/libvirtd-apparmor /etc/apparmor.d/usr.sbin.libvirtd
   else
     true
   fi

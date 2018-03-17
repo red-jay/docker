@@ -72,6 +72,7 @@ if [ -d "xen-files" ] ; then
   for f in "xen-files/"*.deb ; do
     sudo cp "${f}" "${IMGDIR}/xen-pkgs"
   done
+  cp xen-files/libvirtd-apparmor "${IMGDIR}/root"
 fi
 
 # get packages to install next phase
