@@ -151,9 +151,9 @@ if [ "${remap_ok}" -eq 0 ] ; then
   done
 
   # configure just the hypervisor bridge with the old mac, dhcp on it.
-  printf 'MACAddress=%s\n' "${oladdr}" >> "${TARGETPATH}/etc/systemd/network/hv.netdev"
-
   printf 'DHCP=ipv4\n[Link]\nRequiredForOnline=no\n' >> "${TARGETPATH}/etc/systemd/network/hv.network"
+  printf 'MACAddress=%s\n' "${oladdr}" >> "${TARGETPATH}/etc/systemd/network/hv.network"
+
 fi
 
 for hwaddr in $pln ; do
