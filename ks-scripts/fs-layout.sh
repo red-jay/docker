@@ -321,6 +321,7 @@ partition_disk () {
     } > /dev/null 2>&1
     echo "data=${disk}${partition}"
   fi
+  sleep 1
 }
 
 # this does partitioning for cache disks. same sort of deal, but only returns 'cache' value.
@@ -504,6 +505,9 @@ ready_part () {
         "mkfs.${fstyp}" "${partition}"
       ;;
     esac
+    # handle efi for the next bit..
+    case "${fstyp}" in efi) fstyp="vfat" ;; esac
+    # rewrite fstab with UUID now.
     # shellcheck disable=SC2015
     grep -q "${partition}" "${FSTAB}" && {
       fsuuid="$(blkid -s UUID "${partition}")"
