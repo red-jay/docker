@@ -14,7 +14,7 @@ jobs:
           command: yum -y install gcc libcap-devel
       - run:
           name: building capability hack
-          command: gcc -Wall -shared -onoop_cap_set_file.so hacks/cap_set_file.c
+          command: gcc -Wall -shared -onoop_cap_set_file.so hacks/cap_set_file.c && install -m755 ./noop_cap_set_file.so /usr/local/lib64/noop_cap_set_file.so
       - setup_remote_docker
       - run:
           name: chroot build centos 7

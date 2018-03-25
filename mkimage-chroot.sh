@@ -83,12 +83,15 @@ case "${packagemanager}" in
       rpm --import "${gpg}"
     done
     rpm -iv --nodeps "config/${distribution}/*release*.rpm"
+    # install our hack with the same in-chroot path ;)
+    mkdir -p --mode=0755 "${rootdir}"/usr/local/lib64
+    install -m755 ./noop_cap_set_file.so "${rootdir}/usr/local/lib64/noop_cap_set_file.so"
     # let yum do the rest of the lifting
-    sudo LD_PRELOAD=$(pwd)/noop_cap_set_file.so yum --installroot "${rootdir}" install -y @Base yum yum-plugin-ovl centos-release
+    sudo LD_PRELOAD=/usr/local/lib64/noop_cap_set_file.so yum --installroot "${rootdir}" install -y @Base yum yum-plugin-ovl centos-release
   ;;
 esac
 
-sudo tar cp -C "${rootdir}" . > "${distribution}.tar"
+sudo tar cp '--exclude=./dev*' -C "${rootdir}" . > "${distribution}.tar"
 
 # create config tar
 scratch=$(mktemp -d --tmpdir $(basename $0).XXXXXX)
@@ -100,8 +103,6 @@ mkdir -p --mode=0755 "${scratch}"/var/cache/yum
   ;;
 esac
 cp       startup.sh  "${scratch}"/startup
-mkdir -p --mode=0755 "${scratch}"/usr/local/lib
-cp noop_cap_set_file.so "${scratch}"/usr/local/lib
 mkdir -p --mode=0755 "${scratch}"/var/cache/ldconfig
 printf 'NETWORKING=yes\nHOSTNAME=localhost.localdomain\n' > "${scratch}"/etc/sysconfig/network
 printf '127.0.0.1   localhost localhost.localdomain\n'    > "${scratch}"/etc/hosts
