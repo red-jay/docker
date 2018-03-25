@@ -1,21 +1,57 @@
 version: 2
-jobs:
-  build:
-    docker:
-      - image: centos:7
-    working_directory: /project
+
+references:
+  rpm_cap_hack_steps: &rpm_cap_hack_steps
     steps:
       - checkout
-      - run:
-          name: installing docker prereqs
-          command: yum -y install docker
       - run:
           name: installing capability hack prereqs
           command: yum -y install gcc libcap-devel
       - run:
           name: building capability hack
-          command: gcc -Wall -shared -onoop_cap_set_file.so hacks/cap_set_file.c && install -m755 ./noop_cap_set_file.so /usr/local/lib64/noop_cap_set_file.so
+          command: bash -c 'mkdir -p hack_artifact/$plat && gcc -Wall -shared -ohack_artifact/$plat/noop_cap_set_file.so hacks/cap_set_file.c'
+      - persist_to_workspace:
+          root: hack_artifact
+          paths: .
+
+jobs:
+  capset-centos-7:
+    docker:
+      - image: centos:5
+    working_directory: /project
+    environment:
+      plat: centos-5
+    <<: *rpm_cap_hack_steps
+  capset-centos-7:
+    docker:
+      - image: centos:7
+    working_directory: /project
+    environment:
+      plat: centos-7
+    <<: *rpm_cap_hack_steps
+  build-centos-7:
+    docker:
+      - image: centos:7
+    working_directory: /project
+    environment:
+      DNAME: redjays/c7
+    steps:
+      - checkout
+      - run:
+          name: installing docker prereqs
+          command: yum -y install docker
+      - attach_workspace:
+          at: /tmp/LIBCAP_HACKS
       - setup_remote_docker
       - run:
           name: chroot build centos 7
           command: ./mkimage-chroot.sh -p yum -d centos-7
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - capset-centos-7
+      - build-centos-7:
+          requires:
+              - capset-centos-7
