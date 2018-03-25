@@ -4,7 +4,7 @@ export PATH="$PATH:/usr/sbin"
 
 # you might want to change these?
 MOCKCFGS="mockcfgs"
-DEVTAR="devs.tar"
+DEVTGZ="devs.tar.gz"
 MOCK_CACHEDIR="/var/cache/mock"
 
 # you probably won't want to change this.
@@ -31,9 +31,12 @@ if [ $res != 0 ] ; then
 fi
 
 # check for device file archive
-if [ ! -f "${DEVTAR}" ] ; then
+if [ ! -f "${DEVTGZ}" ] ; then
   printf 'missing the /dev tar archive (run sudo mkdev.sh)\n' 1>&2
   exit 2
+else
+  gunzip "${DEVTGZ}"
+  export "DEVTAR=${DEVTGZ%.gz}"
 fi
 
 # check for mock config dir
