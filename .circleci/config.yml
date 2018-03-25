@@ -7,7 +7,7 @@ jobs:
       - checkout
       - run:
           name: install system prereqs
-          command: sudo yum -y install mock
+          command: yum -y install mock
       - run:
           name: mock build c7
           command: ./mkimage-mock.sh c7
