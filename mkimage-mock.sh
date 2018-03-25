@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+export PATH="$PATH:/usr/sbin"
+
 # you might want to change these?
 MOCKCFGS="mockcfgs"
 DEVTAR="devs.tar"
