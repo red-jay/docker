@@ -198,7 +198,7 @@ if [ $? -eq 0 ] ; then
   reltime=$(date +%s)
   # tag as 'latest' - TODO: branching on version, not just build.
   docker tag  "${DNAME}:latest" "${distribution}"
-  docker tag  "${DNAME}:${reltime}" ${distribution}"
+  docker tag  "${DNAME}:${reltime}" "${distribution}"
   docker push "${DNAME}:latest"
   docker push "${DNAME}:${reltime}"
 fi
