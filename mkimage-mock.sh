@@ -11,7 +11,7 @@ MOCK_CACHEDIR="/var/cache/mock"
 CONFTAR="conf.tar"
 
 # check for binaries
-which mock &> /dev/null
+type mock &> /dev/null
 res=$?
 
 # reset umask
