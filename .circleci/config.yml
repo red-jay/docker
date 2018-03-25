@@ -1,0 +1,10 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: centos:7
+    steps:
+      - checkout
+      - run:
+          name: mock build c7
+          command: ./mkimage-mock.sh c7
