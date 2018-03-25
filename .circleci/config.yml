@@ -47,6 +47,10 @@ jobs:
           command: install -m755 "/tmp/LIBCAP_HACKS/centos-7/noop_cap_set_file.so" "/usr/local/lib64/noop_cap_set_file.so"
       - setup_remote_docker
       - run:
+          name: docker login
+          command: |
+              docker login -u $DOCKER_USER -p $DOCKER_PASS
+      - run:
           name: chroot build centos 7
           command: ./mkimage-chroot.sh -p yum -d centos-7
 
