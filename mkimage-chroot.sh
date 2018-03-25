@@ -85,7 +85,7 @@ case "${packagemanager}" in
     rpm -iv --nodeps "config/${distribution}/*release*.rpm"
     # install our hack with the same in-chroot path ;)
     mkdir -p --mode=0755 "${rootdir}"/usr/local/lib64
-    install -m755 ./noop_cap_set_file.so "${rootdir}/usr/local/lib64/noop_cap_set_file.so"
+    install -m755 "/tmp/LIBCAP_HACKS/${distribution}/noop_cap_set_file.so" "${rootdir}/usr/local/lib64/noop_cap_set_file.so"
     # let yum do the rest of the lifting
     sudo LD_PRELOAD=/usr/local/lib64/noop_cap_set_file.so yum --installroot "${rootdir}" install -y @Base yum yum-plugin-ovl centos-release
   ;;

@@ -42,6 +42,9 @@ jobs:
           command: yum -y install docker
       - attach_workspace:
           at: /tmp/LIBCAP_HACKS
+      - run:
+          name: local capability hack install
+          command: install -m755 "/tmp/LIBCAP_HACKS/centos-7/noop_cap_set_file.so" "/usr/local/lib64/noop_cap_set_file.so"
       - setup_remote_docker
       - run:
           name: chroot build centos 7
