@@ -197,8 +197,8 @@ docker run --rm=true "${distribution}" yum check-update
 if [ $? -eq 0 ] ; then
   reltime=$(date +%s)
   # tag as 'latest' - TODO: branching on version, not just build.
-  docker tag  "${DNAME}:latest" "${distribution}"
-  docker tag  "${DNAME}:${reltime}" "${distribution}"
+  docker tag  "${distribution}" "${DNAME}:latest"
+  docker tag  "${distribution}" "${DNAME}:${reltime}"
   docker push "${DNAME}:latest"
   docker push "${DNAME}:${reltime}"
 fi
