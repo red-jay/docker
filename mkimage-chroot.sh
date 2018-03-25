@@ -14,6 +14,10 @@ if [ ! -f "${devtgz}" ] ; then
   exit 2
 fi
 
+sudo () { env "$@"; }
+# if we're not root, bring sudo to $sudo
+[ $(id -u) != "0" ] && sudo () { command sudo env "$@"; }
+
 # help message
 usage () {
   cat << EOM 1>&2
