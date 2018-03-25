@@ -7,14 +7,5 @@ jobs:
     steps:
       - checkout
       - run:
-          name: install system prereqs
-          command: yum -y install mock usermode
-      - run:
-          name: create mock user
-          command: useradd -G mock builder
-      - run:
-          name: change project permissions to mock user
-          command: chown -R builder /project
-      - run:
-          name: mock build c7
-          command: runuser -u builder ./mkimage-mock.sh c7
+          name: chroot build centos 7
+          command: ./mkimage-chroot.sh -p yum -d centos-7
