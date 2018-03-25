@@ -194,9 +194,8 @@ docker rmi "pre-${distribution}"
 # make sure image works
 docker run --rm=true "${distribution}" yum check-update
 
-set -x
-
 if [ $? -eq 0 ] ; then
+  docker login -u $DOCKER_USER -p $DOCKER_PASS
   reltime=$(date +%s)
   # tag as 'latest' - TODO: branching on version, not just build.
   docker tag  "${distribution}" "${DNAME}:latest"
