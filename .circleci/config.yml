@@ -3,6 +3,7 @@ jobs:
   build:
     docker:
       - image: centos:7
+    working_directory: /project
     steps:
       - checkout
       - run:
@@ -11,6 +12,9 @@ jobs:
       - run:
           name: create mock user
           command: useradd -G mock builder
+      - run:
+          name: change project permissions to mock user
+          command: chown -R builder /project
       - run:
           name: mock build c7
           command: runuser -u builder ./mkimage-mock.sh c7
