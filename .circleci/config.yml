@@ -8,7 +8,7 @@ jobs:
       - checkout
       - run:
           name: install system prereqs
-          command: yum -y install mock
+          command: yum -y install mock usermode
       - run:
           name: create mock user
           command: useradd -G mock builder
