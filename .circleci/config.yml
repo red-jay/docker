@@ -34,7 +34,7 @@ jobs:
       - image: centos:7
     working_directory: /project
     environment:
-      DNAME: redjays/c7
+      DNAME: docker.io/redjays/c7
     steps:
       - checkout
       - run:
