@@ -84,7 +84,7 @@ case "${packagemanager}" in
     done
     rpm -iv --nodeps "config/${distribution}/*release*.rpm"
     # let yum do the rest of the lifting
-    sudo LD_PRELOAD=$(pwd)/cap_set_file.so yum --installroot "${rootdir}" install -y @Base yum yum-plugin-ovl centos-release
+    sudo LD_PRELOAD=$(pwd)/noop_cap_set_file.so yum --installroot "${rootdir}" install -y @Base yum yum-plugin-ovl centos-release
   ;;
 esac
 
@@ -100,6 +100,8 @@ mkdir -p --mode=0755 "${scratch}"/var/cache/yum
   ;;
 esac
 cp       startup.sh  "${scratch}"/startup
+mkdir -p --mode=0755 "${scratch}"/usr/local/lib
+cp noop_cap_set_file.so "${scratch}"/usr/local/lib
 mkdir -p --mode=0755 "${scratch}"/var/cache/ldconfig
 printf 'NETWORKING=yes\nHOSTNAME=localhost.localdomain\n' > "${scratch}"/etc/sysconfig/network
 printf '127.0.0.1   localhost localhost.localdomain\n'    > "${scratch}"/etc/hosts
@@ -176,20 +178,20 @@ tar --concatenate --file="${distribution}".tar "${conftar}"
 tar --concatenate --file="${distribution}".tar "${distribution}"-rpmdb.tar
 
 # feed to docker
-docker import "${distribution}".tar "${DNAME}":"pre-${distribution}"
+docker import "${distribution}".tar "pre-${distribution}"
 
 # kick docker
-docker run -i --name "${distribution}" -t "${DNAME}":"pre-${distribution}" /startup
+docker run -i --name "setup-${distribution}" -t "pre-${distribution}" /startup
 
 # export that as a new image
-docker export "${r}-${version}" | docker import - "${DNAME}":"${distribution}"
+docker export "setup-${distribution}" | docker import - "${distribution}"
 
 # clean up scratch instance, image
-docker rm "${distribution}-${build}"
-docker rmi "${DNAME}":"pre-${distribution}-${build}"
+docker rm "setup-${distribution}"
+docker rmi "pre-${distribution}"
 
 # make sure image works
-docker run --rm=true "${DNAME}":"${distribution}-${build}" yum check-update
+docker run --rm=true "${distribution}" yum check-update
 
 if [ $? -eq 0 ] ; then
   # tag as 'latest' - TODO: branching on version, not just build.
