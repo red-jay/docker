@@ -47,7 +47,7 @@ jobs:
           command: install -m755 "/tmp/LIBCAP_HACKS/centos-7/noop_cap_set_file.so" "/usr/local/lib64/noop_cap_set_file.so"
       - setup_remote_docker
       - run:
-          name: docker login
+          name: docker login docker.io
           command: |
               docker login -u $DOCKER_USER -p $DOCKER_PASS
       - run:
