@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# make sure user paths are first
+export PATH="/usr/bin:/bin:$PATH"
+
 # you might want to change these?
 MOCKCFGS="mockcfgs"
 DEVTGZ="devs.tar.gz"
