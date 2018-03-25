@@ -195,8 +195,10 @@ docker rmi "pre-${distribution}"
 docker run --rm=true "${distribution}" yum check-update
 
 if [ $? -eq 0 ] ; then
+  reltime=$(date +%s)
   # tag as 'latest' - TODO: branching on version, not just build.
-  docker tag  "${DNAME}":"${distribution}-${build}" "${DNAME}":"${r}-latest"
-  docker push "${DNAME}":"${r}-${version}-${build}"
-  docker push "${DNAME}":"${r}-latest"
+  docker tag  "${DNAME}:latest" "${distribution}"
+  docker tag  "${DNAME}:${reltime}" ${distribution}"
+  docker push "${DNAME}:latest"
+  docker push "${DNAME}:${reltime}"
 fi
