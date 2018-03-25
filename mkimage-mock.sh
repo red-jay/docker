@@ -28,6 +28,7 @@ res=$?
 
 if [ $res != 0 ] ; then
   printf 'user probably cannot run mock\n' 1>&2
+  exit 2
 fi
 
 # check for device file archive

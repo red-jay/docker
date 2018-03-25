@@ -9,5 +9,8 @@ jobs:
           name: install system prereqs
           command: yum -y install mock
       - run:
+          name: create mock user
+          command: useradd -G mock builder
+      - run:
           name: mock build c7
-          command: ./mkimage-mock.sh c7
+          command: runuser -u builder ./mkimage-mock.sh c7
