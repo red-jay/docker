@@ -84,7 +84,7 @@ case "${packagemanager}" in
     done
     rpm -iv --nodeps "config/${distribution}/*release*.rpm"
     # let yum do the rest of the lifting
-    sudo yum --installroot "${rootdir}" install -y @Base yum yum-plugin-ovl centos-release
+    sudo LD_PRELOAD=$(pwd)/cap_set_file.so yum --installroot "${rootdir}" install -y @Base yum yum-plugin-ovl centos-release
   ;;
 esac
 

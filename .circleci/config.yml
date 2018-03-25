@@ -7,5 +7,11 @@ jobs:
     steps:
       - checkout
       - run:
+          name: installing capability hack prereqs
+          command: yum -y install gcc libcap-devel
+      - run:
+          name: building capability hack
+          command: gcc -Wall -shared -ocap_set_file.so hacks/cap_set_file.c
+      - run:
           name: chroot build centos 7
           command: ./mkimage-chroot.sh -p yum -d centos-7
