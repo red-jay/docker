@@ -13,7 +13,7 @@ references:
           command: yum -y install gcc libcap-devel
       - run:
           name: building capability hack
-          command: bash -c 'mkdir -p hack_artifact/$plat && gcc -Wall -shared -ohack_artifact/$plat/noop_cap_set_file.so hacks/cap_set_file.c'
+          command: bash -c 'mkdir -p hack_artifact/$plat && gcc -fPIC -Wall -shared -ohack_artifact/$plat/noop_cap_set_file.so hacks/cap_set_file.c'
       - persist_to_workspace:
           root: hack_artifact
           paths: .
