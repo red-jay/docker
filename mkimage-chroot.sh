@@ -90,7 +90,7 @@ case "${packagemanager}" in
     for gpg in "${gpg_keydir}"/* ; do
       rpm --import "${gpg}"
     done
-    rpm -iv --nodeps "config/${distribution}/*release*.rpm"
+    rpm -iv --nodeps "config/${distribution}/*{release,repos}*.rpm"
     centos_ver=$(rpm -q --qf "%{VERSION}" centos-release || true)
     case "${centos_ver}" in
       5) sudo sed -i -e '/^mirrorlist.*/d' \
@@ -112,8 +112,8 @@ case "${packagemanager}" in
     # let yum do the rest of the lifting
     sudo rm -rf /var/tmp/yum-* /var/cache/yum/*
     yumconf=$(mktemp --tmpdir yum.XXXX.conf)
-    cp "${rootdir}/etc/yum.conf" "${yumconf}"
-    printf 'reposdir=%s\n' "${rootdir}" >> "${yumconf}"
+    sudo cp "${rootdir}/etc/yum.conf" "${yumconf}"
+    printf 'reposdir=%s\n' "${rootdir}/etc/yum.repos.d" >> "${yumconf}"
     case "${distribution}" in
       centos*) yum -c "${yumconf}" install -y @Base yum yum-plugin-ovl yum-utils centos-release centos-release-notes ;;
       fedora*) yum -c "${yumconf}" install -y '@Minimal Install' yum yum-plugin-ovl yum-utils fedora-release fedora-release-notes ;;
