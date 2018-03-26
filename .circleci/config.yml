@@ -35,14 +35,11 @@ jobs:
     <<: *rpm_cap_hack_steps
   build-centos-7:
     docker:
-      - image: redjays/c7:latest
+      - image: redjays/c7:docker-ce
     working_directory: /project
     environment:
     steps:
       - checkout
-      - run:
-          name: installing docker prereqs
-          command: yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo && yum -y install docker-ce
       - attach_workspace:
           at: /tmp/LIBCAP_HACKS
       - run:
