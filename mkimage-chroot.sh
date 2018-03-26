@@ -110,6 +110,7 @@ case "${packagemanager}" in
       install -m755 "/tmp/LIBCAP_HACKS/${distribution}/noop_cap_set_file.so" "${rootdir}/usr/local/lib64/noop_cap_set_file.so"
     fi
     # let yum do the rest of the lifting
+    sudo rm -rf /var/tmp/yum-* /var/cache/yum/*
     yum install -y @Base yum yum-plugin-ovl centos-release
   ;;
 esac
