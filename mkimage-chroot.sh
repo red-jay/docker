@@ -111,7 +111,7 @@ case "${packagemanager}" in
     fi
     # let yum do the rest of the lifting
     sudo rm -rf /var/tmp/yum-* /var/cache/yum/*
-    yum install -y @Base yum yum-plugin-ovl centos-release centos-release-notes
+    yum install -y @Base yum yum-plugin-ovl yum-utils centos-release centos-release-notes
   ;;
 esac
 
