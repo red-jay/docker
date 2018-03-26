@@ -21,21 +21,21 @@ references:
 jobs:
   capset-centos-5:
     docker:
-      - image: centos:5
+      - image: redjays/c5:latest
     working_directory: /project
     environment:
       plat: centos-5
     <<: *rpm_cap_hack_steps
   capset-centos-7:
     docker:
-      - image: centos:7
+      - image: redjays/c7:latest
     working_directory: /project
     environment:
       plat: centos-7
     <<: *rpm_cap_hack_steps
   build-centos-7:
     docker:
-      - image: centos:7
+      - image: redjays/c7:latest
     working_directory: /project
     environment:
     steps:
