@@ -13,7 +13,12 @@ done
 
 cd -
 
-rpm --rebuilddb -vv
+rpm --rebuilddb
+
+if [ -d /var/lib/rpmrebuilddb.* ] ; then
+  mv /var/lib/rpmrebuilddb.*/* /var/lib/rpm
+  rmdir /var/lib/rpmrebuilddb.*
+fi
 
 yum clean all
 
