@@ -10,7 +10,7 @@ references:
             bash -c 'v=$(rpm -q --qf "%{VERSION}" centos-release);case $v in 5) sed -i -e "/^mirrorlist.*/d" -e "s/^#baseurl/baseurl/g" -e "s/mirror/vault/g" -e "s@centos/\$releasever@5.11@g" /etc/yum.repos.d/CentOS-Base.repo ; rm -f /etc/yum.repos.d/libselinux.repo ;; esac'
       - run:
           name: installing capability hack prereqs
-          command: yum -y install gcc libcap-devel
+          command: yum -y install gcc libcap-devel || true
       - run:
           name: building capability hack
           command: bash -c 'mkdir -p hack_artifact/$plat && gcc -fPIC -Wall -shared -ohack_artifact/$plat/noop_cap_set_file.so hacks/cap_set_file.c'
