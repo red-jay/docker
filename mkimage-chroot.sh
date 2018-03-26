@@ -85,6 +85,7 @@ fi
 # create chroot
 case "${packagemanager}" in
   yum)
+    releasever=${distribution#*-}
     # init rpm, add gpg keys and release rpm
     rpm --initdb
     for gpg in "${gpg_keydir}"/* ; do
@@ -114,10 +115,9 @@ case "${packagemanager}" in
     yumconf=$(mktemp --tmpdir yum.XXXX.conf)
     sudo cp "${rootdir}/etc/yum.conf" "${yumconf}"
     printf 'reposdir=%s\n' "${rootdir}/etc/yum.repos.d" >> "${yumconf}"
-    cat "${yumconf}"
     case "${distribution}" in
-      centos*) yum -c "${yumconf}" install -y @Base yum yum-plugin-ovl yum-utils centos-release centos-release-notes ;;
-      fedora*) yum -c "${yumconf}" install -y '@Minimal Install' yum yum-plugin-ovl yum-utils fedora-release fedora-release-notes ;;
+      centos*) yum --releasever="${releasever}" -c "${yumconf}" install -y @Base yum yum-plugin-ovl yum-utils centos-release centos-release-notes ;;
+      fedora*) yum --releasever="${releasever}" -c "${yumconf}" install -y '@Minimal Install' yum yum-plugin-ovl yum-utils fedora-release fedora-release-notes ;;
     esac
   ;;
 esac
