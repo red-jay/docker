@@ -15,7 +15,7 @@ references:
           paths: .
 
 jobs:
-  capset-centos-7:
+  capset-centos-5:
     docker:
       - image: centos:5
     working_directory: /project
@@ -51,6 +51,9 @@ jobs:
           command: |
               docker login -u $DOCKER_USER -p $DOCKER_PASS docker.io
       - run:
+          name: chroot build centos 5
+          command: ./mkimage-chroot.sh -p yum -d centos-5 -c
+      - run:
           name: chroot build centos 7
           command: ./mkimage-chroot.sh -p yum -d centos-7 -c
 
@@ -58,7 +61,9 @@ workflows:
   version: 2
   build:
     jobs:
+      - capset-centos-5
       - capset-centos-7
       - build-centos-7:
           requires:
               - capset-centos-7
+              - capset-centos-5
