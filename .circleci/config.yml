@@ -59,6 +59,9 @@ jobs:
       - run:
           name: chroot build centos 7
           command: env DNAME=docker.io/redjays/c7 ./mkimage-chroot.sh -p yum -d centos-7 -c
+      - run:
+          name: docker build c7:docker-ce
+          command: cd docker/c7/docker-ce && docker build -t docker.io/redjays/c7:docker-ce . && docker push docker.io/redjays/c7:docker-ce
 
 workflows:
   version: 2
