@@ -111,9 +111,12 @@ case "${packagemanager}" in
     fi
     # let yum do the rest of the lifting
     sudo rm -rf /var/tmp/yum-* /var/cache/yum/*
+    yumconf=$(mktemp --tmpdir yum.XXXX.conf)
+    cp "${rootdir}/etc/yum.conf" "${yumconf}"
+    printf 'reposdir=%s\n' "${rootdir}" >> "${yumconf}"
     case "${distribution}" in
-      centos*) yum install -y @Base yum yum-plugin-ovl yum-utils centos-release centos-release-notes ;;
-      fedora*) yum install -y '@Minimal Install' yum yum-plugin-ovl yum-utils fedora-release fedora-release-notes ;;
+      centos*) yum -c "${yumconf}" install -y @Base yum yum-plugin-ovl yum-utils centos-release centos-release-notes ;;
+      fedora*) yum -c "${yumconf}" install -y '@Minimal Install' yum yum-plugin-ovl yum-utils fedora-release fedora-release-notes ;;
     esac
   ;;
 esac
