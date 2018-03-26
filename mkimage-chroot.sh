@@ -90,7 +90,7 @@ case "${packagemanager}" in
     for gpg in "${gpg_keydir}"/* ; do
       rpm --import "${gpg}"
     done
-    rpm -iv --nodeps "config/${distribution}/*{release,repos}*.rpm"
+    rpm -iv --nodeps "config/${distribution}/*.rpm"
     centos_ver=$(rpm -q --qf "%{VERSION}" centos-release || true)
     case "${centos_ver}" in
       5) sudo sed -i -e '/^mirrorlist.*/d' \
