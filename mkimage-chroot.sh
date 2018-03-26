@@ -117,7 +117,7 @@ case "${packagemanager}" in
     printf 'reposdir=%s\n' "${rootdir}/etc/yum.repos.d" >> "${yumconf}"
     case "${distribution}" in
       centos*) yum --releasever="${releasever}" -c "${yumconf}" install -y @Base yum yum-plugin-ovl yum-utils centos-release centos-release-notes ;;
-      fedora*) yum --releasever="${releasever}" -c "${yumconf}" install -y '@Minimal Install' yum yum-plugin-ovl yum-utils fedora-release fedora-release-notes ;;
+      fedora*) yum --releasever="${releasever}" -c "${yumconf}" install -y '@Minimal Install' yum yum-plugin-ovl yum-utils fedora-release fedora-release-notes fedora-gpg-keys ;;
     esac
   ;;
 esac
