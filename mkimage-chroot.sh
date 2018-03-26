@@ -91,6 +91,15 @@ case "${packagemanager}" in
       rpm --import "${gpg}"
     done
     rpm -iv --nodeps "config/${distribution}/*release*.rpm"
+    centos_ver=$(rpm -q --qf "%{VERSION}" centos-release)
+    case "${centos_ver}" in
+      5) sed -i -e '/^mirrorlist.*/d' \
+                -e 's/^#baseurl/baseurl/g' \
+                -e 's/mirror/vault/g' \
+                -e 's@centos/$releasever@5.11@g' \
+         "${rootdir}/etc/yum.repos.d/CentOS-Base.repo"
+      ;;
+    esac
     if [ "${caphack}" == "true" ] ; then
       # install our hack with the same in-chroot path ;)
       mkdir -p --mode=0755 "${rootdir}"/usr/local/lib64
