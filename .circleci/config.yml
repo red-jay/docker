@@ -21,7 +21,7 @@ references:
 jobs:
   capset-centos-5:
     docker:
-      - image: centos:5
+      - image: redjays/c5:latest
     working_directory: /project
     environment:
       plat: centos-5
