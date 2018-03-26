@@ -38,7 +38,6 @@ jobs:
       - image: centos:7
     working_directory: /project
     environment:
-      DNAME: docker.io/redjays/c7
     steps:
       - checkout
       - run:
@@ -56,10 +55,10 @@ jobs:
               docker login -u $DOCKER_USER -p $DOCKER_PASS docker.io
       - run:
           name: chroot build centos 5
-          command: ./mkimage-chroot.sh -p yum -d centos-5 -c
+          command: env DNAME=docker.io/redjays/c5 ./mkimage-chroot.sh -p yum -d centos-5 -c
       - run:
           name: chroot build centos 7
-          command: ./mkimage-chroot.sh -p yum -d centos-7 -c
+          command: env DNAME=docker.io/redjays/c7 ./mkimage-chroot.sh -p yum -d centos-7 -c
 
 workflows:
   version: 2
