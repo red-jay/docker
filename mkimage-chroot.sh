@@ -98,6 +98,10 @@ case "${packagemanager}" in
                 -e 's/mirror/vault/g' \
                 -e 's@centos/$releasever@5.11@g' \
          "${rootdir}/etc/yum.repos.d/CentOS-Base.repo"
+         sed -e 's/,nocontexts//' < config/yum-common/yum.conf > "${rootdir}/etc/yum.conf"
+      ;;
+      *)
+        cp config/yum-common/yum.conf "${rootdir}/etc/yum.conf"
       ;;
     esac
     if [ "${caphack}" == "true" ] ; then
@@ -117,7 +121,6 @@ scratch=$(mktemp -d --tmpdir $(basename $0).XXXXXX)
 mkdir -p             "${scratch}"/etc/sysconfig
 case "${packagemanager}" in
   yum)
-cp       config/yum-common/yum.conf    "${scratch}"/etc/yum.conf
 mkdir -p --mode=0755 "${scratch}"/var/cache/yum
   ;;
 esac
