@@ -91,17 +91,17 @@ case "${packagemanager}" in
       rpm --import "${gpg}"
     done
     rpm -iv --nodeps "config/${distribution}/*release*.rpm"
-    centos_ver=$(rpm -q --qf "%{VERSION}" centos-release)
+    centos_ver=$(rpm -q --qf "%{VERSION}" centos-release || true)
     case "${centos_ver}" in
-      5) sed -i -e '/^mirrorlist.*/d' \
+      5) sudo sed -i -e '/^mirrorlist.*/d' \
                 -e 's/^#baseurl/baseurl/g' \
                 -e 's/mirror/vault/g' \
                 -e 's@centos/$releasever@5.11@g' \
          "${rootdir}/etc/yum.repos.d/CentOS-Base.repo"
-         sed -e 's/,nocontexts//' < config/yum-common/yum.conf > "${rootdir}/etc/yum.conf"
+         sed -e 's/,nocontexts//' < config/yum-common/yum.conf | sudo tee "${rootdir}/etc/yum.conf" > /dev/null
       ;;
       *)
-        cp config/yum-common/yum.conf "${rootdir}/etc/yum.conf"
+        sudo cp config/yum-common/yum.conf "${rootdir}/etc/yum.conf"
       ;;
     esac
     if [ "${caphack}" == "true" ] ; then
@@ -111,7 +111,10 @@ case "${packagemanager}" in
     fi
     # let yum do the rest of the lifting
     sudo rm -rf /var/tmp/yum-* /var/cache/yum/*
-    yum install -y @Base yum yum-plugin-ovl yum-utils centos-release centos-release-notes
+    case "${distribution}" in
+      centos*) yum install -y @Base yum yum-plugin-ovl yum-utils centos-release centos-release-notes ;;
+      fedora*) yum install -y '@Minimal Install' yum yum-plugin-ovl yum-utils fedora-release fedora-release-notes ;;
+    esac
   ;;
 esac
 
