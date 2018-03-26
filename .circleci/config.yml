@@ -33,6 +33,13 @@ jobs:
     environment:
       plat: centos-7
     <<: *rpm_cap_hack_steps
+  capset-fedora-27:
+    docker:
+      - image: fedora:27
+    working_directory: /project
+    environment:
+      plat: fedora-27
+    <<: *rpm_cap_hack_steps
   build-centos-7:
     docker:
       - image: redjays/c7:docker-ce
@@ -51,6 +58,9 @@ jobs:
           command: |
               docker login -u $DOCKER_USER -p $DOCKER_PASS docker.io
       - run:
+          name: chroot build fedora 27
+          command: env DNAME=docker.io/redjays/fedora ./mkimage-chroot.sh -p yum -d fedora-27 -c
+      - run:
           name: chroot build centos 5
           command: env DNAME=docker.io/redjays/c5 ./mkimage-chroot.sh -p yum -d centos-5 -c
       - run:
@@ -66,7 +76,9 @@ workflows:
     jobs:
       - capset-centos-5
       - capset-centos-7
+      - capset-fedora-27
       - build-centos-7:
           requires:
               - capset-centos-7
               - capset-centos-5
+              - capset-fedora-27
