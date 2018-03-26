@@ -114,6 +114,7 @@ case "${packagemanager}" in
     yumconf=$(mktemp --tmpdir yum.XXXX.conf)
     sudo cp "${rootdir}/etc/yum.conf" "${yumconf}"
     printf 'reposdir=%s\n' "${rootdir}/etc/yum.repos.d" >> "${yumconf}"
+    cat "${yumconf}"
     case "${distribution}" in
       centos*) yum -c "${yumconf}" install -y @Base yum yum-plugin-ovl yum-utils centos-release centos-release-notes ;;
       fedora*) yum -c "${yumconf}" install -y '@Minimal Install' yum yum-plugin-ovl yum-utils fedora-release fedora-release-notes ;;
