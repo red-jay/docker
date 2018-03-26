@@ -21,14 +21,14 @@ references:
 jobs:
   capset-centos-5:
     docker:
-      - image: redjays/c5:latest
+      - image: centos:5
     working_directory: /project
     environment:
       plat: centos-5
     <<: *rpm_cap_hack_steps
   capset-centos-7:
     docker:
-      - image: redjays/c7:latest
+      - image: centos:7
     working_directory: /project
     environment:
       plat: centos-7
@@ -42,7 +42,7 @@ jobs:
     <<: *rpm_cap_hack_steps
   build-centos-7:
     docker:
-      - image: redjays/c7:docker-ce
+      - image: centos:7
     working_directory: /project
     environment:
     steps:
@@ -52,6 +52,9 @@ jobs:
       - run:
           name: local capability hack install
           command: install -m755 "/tmp/LIBCAP_HACKS/centos-7/noop_cap_set_file.so" "/usr/local/lib64/noop_cap_set_file.so"
+      - run:
+          name: install docker prereqs
+          command: yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo && yum -y install docker-ce
       - setup_remote_docker
       - run:
           name: docker login docker.io
