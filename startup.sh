@@ -11,7 +11,9 @@ for x in *.dump ; do
   rm "${x}"
 done
 
-rpm --rebuilddb
+cd -
+
+rpm --rebuilddb -vv
 
 yum clean all
 
