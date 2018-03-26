@@ -111,7 +111,7 @@ case "${packagemanager}" in
     fi
     # let yum do the rest of the lifting
     sudo rm -rf /var/tmp/yum-* /var/cache/yum/*
-    yum install -y @Base yum yum-plugin-ovl centos-release
+    yum install -y @Base yum yum-plugin-ovl centos-release centos-release-notes
   ;;
 esac
 
@@ -130,7 +130,6 @@ mkdir -p --mode=0755 "${scratch}"/var/cache/ldconfig
 printf 'NETWORKING=yes\nHOSTNAME=localhost.localdomain\n' > "${scratch}"/etc/sysconfig/network
 printf '127.0.0.1   localhost localhost.localdomain\n'    > "${scratch}"/etc/hosts
 tar --numeric-owner --group=0 --owner=0 -c -C "${scratch}" --files-from=- -f "${conftar}" << EOA
-./etc/yum.conf
 ./etc/hosts
 ./etc/sysconfig/network
 ./var/cache/yum
@@ -189,7 +188,6 @@ tar --delete --file="${distribution}".tar --files-from=- << EOA || true
 ./etc/sysconfig/network
 ./etc/hosts
 ./etc/hosts.rpmnew
-./etc/yum.conf
 ./etc/yum.conf.rpmnew
 ./etc/yum/yum.conf
 ./builddir
