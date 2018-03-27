@@ -54,7 +54,7 @@ jobs:
           command: install -m755 "/tmp/LIBCAP_HACKS/centos-7/noop_cap_set_file.so" "/usr/local/lib64/noop_cap_set_file.so"
       - run:
           name: install docker prereqs
-          command: yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo && yum -y install docker-ce
+          command: yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo && yum -y install docker-ce && yum -y install epel-release && yum -y install debootstrap
       - setup_remote_docker
       - run:
           name: docker login docker.io
