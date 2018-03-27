@@ -61,6 +61,12 @@ jobs:
           command: |
               docker login -u $DOCKER_USER -p $DOCKER_PASS docker.io
       - run:
+          name: hacking debootstrap for circle
+          command: sed -i -e 's/container=lxc-libvirt/circle/g' /usr/share/debootstrap/functions
+      - run:
+          name: chroot build ubuntu xenial 7
+          command: cat /proc/1/environ && env TMPDIR=/var/tmp DNAME=docker.io/redjays/xenial ./mkimage-chroot.sh -p apt -d ubuntu-xenial
+      - run:
           name: chroot build fedora 27
           command: env DNAME=docker.io/redjays/fedora ./mkimage-chroot.sh -p yum -d fedora-27 -c
       - run:
@@ -69,9 +75,6 @@ jobs:
       - run:
           name: chroot build centos 7
           command: env DNAME=docker.io/redjays/c7 ./mkimage-chroot.sh -p yum -d centos-7 -c
-      - run:
-          name: chroot build ubuntu xenial 7
-          command: cat /proc/1/environ && env TMPDIR=/var/tmp DNAME=docker.io/redjays/xenial ./mkimage-chroot.sh -p apt -d ubuntu-xenial
       - run:
           name: docker build c7:docker-ce
           command: cd docker/c7/docker-ce && docker build -t docker.io/redjays/c7:docker-ce . && docker push docker.io/redjays/c7:docker-ce
