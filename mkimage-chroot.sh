@@ -75,7 +75,7 @@ rootdir=$(mktemp -d)
 conftar=$(mktemp --tmpdir conf.XXX.tar)
 
 rpm() { sudo rpm --root "${rootdir}" "${@}"; }
-debootstrap() { sudo debootstrap --verbose --arch=amd64 "${@}" "${rootdir}" ; }
+debootstrap() { sudo bash -x $(which debootstrap) --verbose --arch=amd64 "${@}" "${rootdir}" ; }
 
 if [ "${caphack}" == "true" ] ; then
   yum() { sudo LD_PRELOAD=/usr/local/lib64/noop_cap_set_file.so yum --installroot="${rootdir}" "${@}" ; }
