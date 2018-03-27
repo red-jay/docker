@@ -75,6 +75,7 @@ rootdir=$(mktemp -d)
 conftar=$(mktemp --tmpdir conf.XXX.tar)
 
 rpm() { sudo rpm --root "${rootdir}" "${@}"; }
+debootstrap() { sudo debootstrap --verbose --arch=amd64 "${@}" "${rootdir}" ; }
 
 if [ "${caphack}" == "true" ] ; then
   yum() { sudo LD_PRELOAD=/usr/local/lib64/noop_cap_set_file.so yum --installroot="${rootdir}" "${@}" ; }
@@ -83,9 +84,9 @@ else
 fi
 
 # create chroot
+releasever=${distribution#*-}
 case "${packagemanager}" in
   yum)
-    releasever=${distribution#*-}
     # init rpm, add gpg keys and release rpm
     rpm --initdb
     for gpg in "${gpg_keydir}"/* ; do
@@ -120,6 +121,10 @@ case "${packagemanager}" in
       fedora*) yum --releasever="${releasever}" -c "${yumconf}" install -y '@Minimal Install' yum yum-plugin-ovl yum-utils fedora-release fedora-release-notes fedora-gpg-keys ;;
     esac
   ;;
+  apt)
+    keyring=( "config/${distribution}/gpg-keys"/*.gpg )
+    debootstrap --keyring="${keyring[0]}" "${releasever}"
+  ;;
 esac
 
 sudo tar cp '--exclude=./dev*' -C "${rootdir}" . > "${distribution}.tar"
@@ -136,7 +141,7 @@ cp       startup.sh  "${scratch}"/startup
 mkdir -p --mode=0755 "${scratch}"/var/cache/ldconfig
 printf 'NETWORKING=yes\nHOSTNAME=localhost.localdomain\n' > "${scratch}"/etc/sysconfig/network
 printf '127.0.0.1   localhost localhost.localdomain\n'    > "${scratch}"/etc/hosts
-tar --numeric-owner --group=0 --owner=0 -c -C "${scratch}" --files-from=- -f "${conftar}" << EOA
+tar --numeric-owner --group=0 --owner=0 -c -C "${scratch}" --files-from=- -f "${conftar}" << EOA || true
 ./etc/hosts
 ./etc/sysconfig/network
 ./var/cache/yum
@@ -148,9 +153,12 @@ EOA
 devtar=$(mktemp --tmpdir dev.XXX.tar)
 zcat "${devtgz}" > "${devtar}"
 
-# use this for rpmdb extraction
 rpmdbfiles=$(mktemp --tmpdir $(basename $0).XXXXXX)
-cat << EOA > "${rpmdbfiles}"
+
+case "${packagemanager}" in
+  yum)
+    # use this for rpmdb extraction
+    cat << EOA > "${rpmdbfiles}"
 ./var/lib/rpm/Packages
 ./var/lib/rpm/Name
 ./var/lib/rpm/Basenames
@@ -166,15 +174,19 @@ cat << EOA > "${rpmdbfiles}"
 ./var/lib/rpm/Sha1header
 EOA
 
-rpmdbdir=$(mktemp -d --tmpdir $(basename $0).XXXXXX)
-# first, pry the rpmdb out.
-tar -C "${rpmdbdir}" --extract --file="${distribution}".tar --files-from="${rpmdbfiles}"
-# conver db files to dump files
-for x in "${rpmdbdir}"/var/lib/rpm/* ; do
-  /usr/lib/rpm/rpmdb_dump "${x}" > "${x}.dump"
-  rm "${x}"
-done
-cat "${rpmdbfiles}" | awk '{printf "%s.dump\n",$0}' | tar --numeric-owner --group=0 --owner=0 -C "${rpmdbdir}" --create --file="${distribution}"-rpmdb.tar --files-from=-
+  rpmdbdir=$(mktemp -d --tmpdir $(basename $0).XXXXXX)
+  # first, pry the rpmdb out.
+  tar -C "${rpmdbdir}" --extract --file="${distribution}".tar --files-from="${rpmdbfiles}"
+  # conver db files to dump files
+  for x in "${rpmdbdir}"/var/lib/rpm/* ; do
+    /usr/lib/rpm/rpmdb_dump "${x}" > "${x}.dump"
+    rm "${x}"
+  done
+
+  cat "${rpmdbfiles}" | awk '{printf "%s.dump\n",$0}' | tar --numeric-owner --group=0 --owner=0 -C "${rpmdbdir}" --create --file="${distribution}"-rpmdb.tar --files-from=-
+  ;;
+esac
+
 tar --delete --file="${distribution}".tar --files-from=- << EOA || true
 ./usr/lib/locale
 ./usr/share/locale
@@ -204,7 +216,9 @@ EOA
 # bring it all together
 tar --concatenate --file="${distribution}".tar "${devtar}"
 tar --concatenate --file="${distribution}".tar "${conftar}"
-tar --concatenate --file="${distribution}".tar "${distribution}"-rpmdb.tar
+case "${packagemanager}" in
+  yum) tar --concatenate --file="${distribution}".tar "${distribution}"-rpmdb.tar ;;
+esac
 
 # feed to docker
 docker import "${distribution}".tar "pre-${distribution}"
