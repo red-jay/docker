@@ -62,7 +62,7 @@ jobs:
               docker login -u $DOCKER_USER -p $DOCKER_PASS docker.io
       - run:
           name: hacking debootstrap for circle
-          command: sed -i -e 's/container=lxc-libvirt/circle/g' /usr/share/debootstrap/functions
+          command: cp -f config/debootstrap-common/functions /usr/share/debootstrap
       - run:
           name: chroot build ubuntu xenial 7
           command: cat /proc/1/environ && env TMPDIR=/var/tmp DNAME=docker.io/redjays/xenial ./mkimage-chroot.sh -p apt -d ubuntu-xenial
