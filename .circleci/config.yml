@@ -54,7 +54,7 @@ jobs:
           command: install -m755 "/tmp/LIBCAP_HACKS/centos-7/noop_cap_set_file.so" "/usr/local/lib64/noop_cap_set_file.so"
       - run:
           name: install docker prereqs
-          command: yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo && yum -y install docker-ce && yum -y install epel-release && yum -y install debootstrap perl
+          command: yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo && yum -y install docker-ce && yum -y install epel-release && yum -y install debootstrap perl which
       - setup_remote_docker
       - run:
           name: docker login docker.io
@@ -65,7 +65,7 @@ jobs:
           command: cp -f config/debootstrap-common/functions /usr/share/debootstrap
       - run:
           name: chroot build ubuntu xenial 7
-          command: cat /proc/1/environ && env TMPDIR=/var/tmp DNAME=docker.io/redjays/xenial ./mkimage-chroot.sh -p apt -d ubuntu-xenial
+          command: env TMPDIR=/var/tmp DNAME=docker.io/redjays/xenial ./mkimage-chroot.sh -p apt -d ubuntu-xenial
       - run:
           name: chroot build fedora 27
           command: env DNAME=docker.io/redjays/fedora ./mkimage-chroot.sh -p yum -d fedora-27 -c
