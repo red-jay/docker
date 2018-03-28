@@ -60,6 +60,7 @@ wkdir=$(mktemp -d)
 export TMPDIR="${wkdir}"
 
 __cleanup () {
+  cat "${rootdir}/var/log/bootstrap.log" || true
   sudo rm -rf "${wkdir}"
 }
 
