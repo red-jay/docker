@@ -59,6 +59,7 @@ work_out_debs () {
 }
 
 first_stage_install () {
+	set -x
 	case "$CODENAME" in
 		etch|etch-m68k|jessie|jessie-kfreebsd|lenny|squeeze|wheezy) ;;
 		*)
@@ -67,7 +68,7 @@ first_stage_install () {
 			;;
 	esac
 
-	extract $required
+	extract $required || true
 
 	mkdir -p "$TARGET/var/lib/dpkg"
 	: >"$TARGET/var/lib/dpkg/status"
