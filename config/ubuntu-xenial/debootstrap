@@ -80,7 +80,7 @@ first_stage_install () {
 		chown 0:0 "$TARGET/etc/fstab"; chmod 644 "$TARGET/etc/fstab"
 	fi
 
-	setup_devices
+	#setup_devices
 }
 
 second_stage_install () {

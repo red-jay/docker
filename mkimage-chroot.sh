@@ -124,7 +124,7 @@ case "${packagemanager}" in
   ;;
   apt)
     keyring=( "config/${distribution}/gpg-keys"/*.gpg )
-    debootstrap --keyring="${keyring[0]}" "${releasever}"
+    debootstrap --foreign --keyring="${keyring[0]}" "${releasever}"
   ;;
 esac
 
