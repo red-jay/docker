@@ -115,7 +115,6 @@ Status: install ok installed" >> "$TARGET/var/lib/dpkg/status"
 	if doing_variant fakechroot; then
 		setup_proc_fakechroot
 	else
-		setup_proc
 		in_target /sbin/ldconfig
 	fi
 

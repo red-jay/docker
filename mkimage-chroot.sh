@@ -60,7 +60,6 @@ wkdir=$(mktemp -d)
 export TMPDIR="${wkdir}"
 
 __cleanup () {
-  cat "${rootdir}/var/log/bootstrap.log" || true
   sudo rm -rf "${wkdir}"
 }
 
@@ -76,7 +75,7 @@ rootdir=$(mktemp -d)
 conftar=$(mktemp --tmpdir conf.XXX.tar)
 
 rpm() { sudo rpm --root "${rootdir}" "${@}"; }
-debootstrap() { sudo bash -x $(which debootstrap) --verbose --arch=amd64 "${@}" "${rootdir}" ; }
+debootstrap() { sudo DEBOOTSTRAP_DIR="$(pwd)/debootstrap" bash -x "$(which debootstrap)" --verbose --arch=amd64 "${@}" "${rootdir}" ; }
 
 if [ "${caphack}" == "true" ] ; then
   yum() { sudo LD_PRELOAD=/usr/local/lib64/noop_cap_set_file.so yum --installroot="${rootdir}" "${@}" ; }
@@ -125,6 +124,10 @@ case "${packagemanager}" in
   apt)
     keyring=( "config/${distribution}/gpg-keys"/*.gpg )
     debootstrap --foreign --keyring="${keyring[0]}" "${releasever}"
+    sudo mkdir -p --mode=0755 "${rootdir}/var/lib/resolvconf" && sudo touch "${rootdir}/var/lib/resolvconf/linkified"
+    case "${distribution}" in
+      ubuntu*) sudo mkdir -p --mode=0755 "${rootdir}/usr/share/keyrings" && sudo install -m644 "${keyring[0]}" "${rootdir}/usr/share/keyrings/ubuntu-archive-keyring.gpg" ;;
+    esac
   ;;
 esac
 
@@ -235,7 +238,9 @@ docker rm "setup-${distribution}"
 docker rmi "pre-${distribution}"
 
 # make sure image works
-docker run --rm=true "${distribution}" yum check-update
+case "${packagemanager}" in
+  yum) docker run --rm=true "${distribution}" yum check-update
+esac
 
 if [ $? -eq 0 ] ; then
   reltime=$(date +%s)
