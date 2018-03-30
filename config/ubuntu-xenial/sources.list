@@ -1,0 +1,3 @@
+deb http://mirrors.kernel.org/ubuntu/ xenial main universe
+deb http://mirrors.kernel.org/ubuntu/ xenial-security main universe
+deb http://mirrors.kernel.org/ubuntu/ xenial-updates main universe
