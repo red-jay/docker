@@ -82,6 +82,9 @@ jobs:
           name: docker build xenial:lxcore
           command: cd docker/xenial/lxcore && docker build -t docker.io/redjays/xenial:lxcore . && docker push docker.io/redjays/xenial:lxcore
       - run:
+          name: docker build xenial:dkms-dev
+          command: cd docker/xenial/dkms-dev && docker build -t docker.io/redjays/xenial:dkms-dev . && docker push docker.io/redjays/xenial:dkms-dev
+      - run:
           name: docker build xenial:bootable
           command: cd docker/xenial/bootable && docker build -t docker.io/redjays/xenial:bootable . && docker push docker.io/redjays/xenial:bootable
 
