@@ -1,7 +1,7 @@
 #!/bin/bash
 set -ex
 
-mount
+export DEBIAN_FRONTEND=noninteractive
 
 platform="yum"
 type yum || platform=""
@@ -33,6 +33,11 @@ case "${platform}" in
   apt)
     /debootstrap/debootstrap --second-stage || { cat /debootstrap/debootstrap.log ; exit 1; }
     install -m644 /apt-sources.list /etc/apt/sources.list && rm /apt-sources.list
+    apt-get update
+    apt-get install -qy debsums
+    apt-get -qy upgrade
+    debsums_init
+    apt-get clean all
   ;;
 esac
 

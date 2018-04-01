@@ -64,7 +64,7 @@ jobs:
           name: hacking debootstrap for circle
           command: cp -f config/debootstrap-common/functions /usr/share/debootstrap && cp -f config/ubuntu-xenial/debootstrap    /usr/share/debootstrap/scripts/xenial
       - run:
-          name: chroot build ubuntu xenial 7
+          name: chroot build ubuntu xenial
           command: env TMPDIR=/var/tmp DNAME=docker.io/redjays/xenial ./mkimage-chroot.sh -p apt -d ubuntu-xenial
       - run:
           name: chroot build fedora 27
@@ -78,6 +78,9 @@ jobs:
       - run:
           name: docker build c7:docker-ce
           command: cd docker/c7/docker-ce && docker build -t docker.io/redjays/c7:docker-ce . && docker push docker.io/redjays/c7:docker-ce
+      - run:
+          name: docker build xenial:bootable
+          command: cd docker/xenial/bootable && docker build -t docker.io/redjays/xenial:bootable . && docker push docker.io/redjays/xenial:bootable
 
 workflows:
   version: 2
