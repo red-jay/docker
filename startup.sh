@@ -21,7 +21,7 @@ case "${platform}" in
 
     cd -
 
-    rpm --rebuilddb
+    rpm --rebuilddb || [ -d /var/lib/rpmrebuilddb.* ]
 
     if [ -d /var/lib/rpmrebuilddb.* ] ; then
       mv /var/lib/rpmrebuilddb.*/* /var/lib/rpm
