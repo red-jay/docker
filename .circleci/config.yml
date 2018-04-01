@@ -79,6 +79,9 @@ jobs:
           name: docker build c7:docker-ce
           command: cd docker/c7/docker-ce && docker build -t docker.io/redjays/c7:docker-ce . && docker push docker.io/redjays/c7:docker-ce
       - run:
+          name: docker build xenial:lxcore
+          command: cd docker/xenial/lxcore && docker build -t docker.io/redjays/xenial:lxcore . && docker push docker.io/redjays/xenial:lxcore
+      - run:
           name: docker build xenial:bootable
           command: cd docker/xenial/bootable && docker build -t docker.io/redjays/xenial:bootable . && docker push docker.io/redjays/xenial:bootable
 
