@@ -125,6 +125,7 @@ case "${packagemanager}" in
     keyring=( "config/${distribution}/gpg-keys"/*.gpg )
     debootstrap --foreign --keyring="${keyring[0]}" "${releasever}"
     sudo mkdir -p --mode=0755 "${rootdir}/var/lib/resolvconf" && sudo touch "${rootdir}/var/lib/resolvconf/linkified"
+    sudo install -m644 "config/${distribution}/sources.list" "${rootdir}/apt-sources.list"
     case "${distribution}" in
       ubuntu*) sudo mkdir -p --mode=0755 "${rootdir}/usr/share/keyrings" && sudo install -m644 "${keyring[0]}" "${rootdir}/usr/share/keyrings/ubuntu-archive-keyring.gpg" ;;
     esac
