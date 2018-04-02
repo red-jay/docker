@@ -42,7 +42,7 @@ jobs:
     <<: *rpm_cap_hack_steps
   build-centos-7:
     docker:
-      - image: centos:7
+      - image: docker.io/redjays/c7:docker-ce
     working_directory: /project
     environment:
     steps:
