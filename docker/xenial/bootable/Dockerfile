@@ -12,7 +12,7 @@ RUN env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y ubuntu-sta
                  dbus \
                  grub-efi-amd64-bin grub-efi-ia32-bin grub-efi-amd64-signed shim syslinux isolinux hfsprogs hfsplus && apt-get clean all
 
-RUN env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get -q -y install iomemory-vsl-dkms && \
+RUN apt-get update && env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get -q -y install iomemory-vsl-dkms && \
     bash -c 'i=(/usr/src/iomemory-vsl*) && k=(/boot/vmlinuz-*) && k=${k[0]#*-} && \
     dkms add "${i[0]}" && dkms autoinstall -k "${k}"' && apt-get -q -y clean all && \
     rm -f /boot/initrd.*.old-dkms
@@ -33,6 +33,6 @@ RUN truncate -s 12M /boot/efiboot.img && mkfs.vfat -F16 /boot/efiboot.img && \
       mmd -i /boot/efiboot.img efi/boot/i386-efi && mcopy -i /boot/efiboot.img /usr/lib/grub/i386-efi/*.mod ::efi/boot/i386-efi && \
       mkdir -p /EFI/BOOT/i386-efi && cp /usr/lib/grub/i386-efi/*.mod /EFI/BOOT/i386-efi
 
-RUN bash -c 'd="" ; c="/isolinux/syslinux.cfg.tpl" ; for i in /boot/initrd.img* ; do v=${i%-generic*} ; v=${v#*.img-) { [ -z "${d}" ] && d="${v}" ; echo "DEFAULT ${v}" >> "${c}" ; } ; echo "LABEL ${v}" >> "${c}" ; echo " KERNEL vmlinuz-${v}-generic" >> "${c}" ; echo " INITRD initrd.img-${v}-generic" >> "${c}" ; echo " APPEND console=tty0 root=UNSET rw" >> "${c}" ; done'
+RUN bash -c 'd="" ; c="/isolinux/syslinux.cfg.tpl" ; for i in /boot/initrd.img* ; do v="${i%-generic*}" ; v="${v#*.img-}" ; { [ ! -z "${d}" ] && d="${v}" ; echo "DEFAULT ${v}" >> "${c}" ; } ; echo "LABEL ${v}" >> "${c}" ; echo " KERNEL vmlinuz-${v}-generic" >> "${c}" ; echo " INITRD initrd.img-${v}-generic" >> "${c}" ; echo " APPEND console=tty0 root=UNSET rw" >> "${c}" ; done'
 
 RUN mktemp /.bootid.XXXXXX
