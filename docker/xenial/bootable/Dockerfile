@@ -9,8 +9,12 @@ RUN env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y ubuntu-sta
                  lvm2 thin-provisioning-tools cryptsetup mdadm xfsprogs bcache-tools \
                  memtest86+ nwipe smartmontools lm-sensors ethtool smartmontools fio \
                  openssh-server augeas-tools \
-                 dbus tboot \
+                 dbus \
                  grub-efi-amd64-bin grub-efi-ia32-bin grub-efi-amd64-signed shim syslinux isolinux hfsprogs hfsplus && apt-get clean all
+
+RUN dpkg-divert --rename /usr/sbin/update-grub && ln -s /bin/true /usr/sbin/update-grub && \
+    env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get -q -y install tboot && \
+    rm /usr/sbin/update-grub && dpkg-divert --rename --remove /usr/sbin/update-grub
 
 RUN apt-get update && env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get -q -y install iomemory-vsl-dkms && \
     bash -c 'i=(/usr/src/iomemory-vsl*) && k=(/boot/vmlinuz-*) && k=${k[0]#*-} && \
