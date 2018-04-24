@@ -87,6 +87,9 @@ jobs:
       - run:
           name: docker build xenial:bootable
           command: cd docker/xenial/bootable && docker build -t docker.io/redjays/xenial:bootable . && docker push docker.io/redjays/xenial:bootable
+      - run:
+          name: docker build xenial:xenhv
+          command: cd docker/xenial/xenhv && docker build -t docker.io/redjays/xenial:xenhv . && docker push docker.io/redjays/xenial:xenhv
 
 workflows:
   version: 2
