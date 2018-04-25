@@ -1,0 +1,2 @@
+subclass "${class}" 1:${m1}:${m2}:${m3}:${m4}:${m5}:${m6}; subclass "${class}" ${m1}:${m2}:${m3}:${m4}:${m5}:${m6};
+host ${name} { hardware ethernet ${m1}:${m2}:${m3}:${m4}:${m5}:${m6} ; option host-name "${name}"; }

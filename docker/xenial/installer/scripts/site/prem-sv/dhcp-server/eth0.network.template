@@ -1,0 +1,11 @@
+[Match]
+Name=eth0
+[Network]
+DHCP=no
+LinkLocalAddressing=no
+LLMNR=no
+MulticaseDNS=no
+Address=${tftp}/${cidrmask}
+Address=${com1}/${cidrmask}
+Address=${com2}/${cidrmask}
+Gateway=${gw}
