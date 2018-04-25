@@ -1,4 +1,0 @@
-[epel]
-name=epel
-baseurl=$YUM2/$basearch/
-gpgcheck=1

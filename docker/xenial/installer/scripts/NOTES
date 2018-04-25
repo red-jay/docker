@@ -1,1 +1,0 @@
-one of the openbsd autoinstalls complain about a missing boot file or server? run it again with /autoinstall -a -m install

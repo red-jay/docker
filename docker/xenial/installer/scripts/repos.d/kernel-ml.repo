@@ -1,4 +1,0 @@
-[elrepo-kernel]
-name=elrepo-kernel
-baseurl=$YUM3/$basearch
-gpgcheck=1
