@@ -263,19 +263,30 @@ wipedisk () {
 # it returns which device got which partition encoded here (biosboot,efiboot,sysboot,system,data)
 # I use it with a while loop to create strings of partitions _to_ RAID.
 partition_disk () {
-  local disk raidflag partition syssz
+  local disk name raidflag partition syssz pblsz align optio chunk mult biosend pstart efiend bootend
   partition="0"
   raidflag="1"
-  disk="/dev/${1}"
+  name="${1}"
+  disk="/dev/${name}"
   [ ! -z "${2+x}" ] && {
     raidflag="${2}"
   }
+  # calculate partition alignment
+  read -r pblsz < "/sys/class/block/${name}/queue/physical_block_size"
+  read -r optio < "/sys/class/block/${name}/queue/optimal_io_size"
+  read -r align < "/sys/class/block/${name}/alignment_offset"
+
+  chunk=$(($((optio + align)) / pblsz))
+  # we use 4096 bytes as a 'base' unit for small partition calculations
+  mult=$((4096 / pblsz))
+
   # partition label
   parted "${disk}" mklabel gpt > /dev/null
 
   # legacy BIOS boot partition
   {
-    parted "${disk}" mkpart biosboot 1m 5m && partition=$((partition + 1))
+    biosend=$(($((mult * 1024)) + chunk))
+    parted -a optimal "${disk}" mkpart biosboot "${chunk}s" "${biosend}s" && partition=$((partition + 1))
     parted "${disk}" toggle "${partition}" bios_grub
     parted "${disk}" toggle "${partition}" legacy_boot
   } > /dev/null 2>&1
@@ -283,14 +294,18 @@ partition_disk () {
 
   # EFI system partition
   {
-    parted "${disk}" mkpart '"EFI System Partition"' 5m 300m && partition=$((partition + 1))
+    pstart=1 ; while [ $((pstart * chunk)) -lt "${biosend}" ] ; do pstart=$((pstart + 1)) ; done
+    parted -a optimal "${disk}" mkpart '"EFI System Partition"' "$((pstart * chunk))s" 300MB && partition=$((partition + 1))
     parted "${disk}" toggle "${partition}" boot
   } > /dev/null 2>&1
   echo "efiboot=${disk}${partition}"
 
   # /boot partition
   {
-    parted "${disk}" mkpart sysboot 300m 800m && partition=$((partition + 1))
+    efiend=$(printf 'unit s\nprint' | parted "${disk}" | awk -F' ' "\$1 == ${partition} { print \$3; }")
+    efiend="${efiend%s}"
+    pstart=1 ; while [ $((pstart * chunk)) -lt "${efiend}" ] ; do pstart=$((pstart + 1)) ; done
+    parted "${disk}" mkpart sysboot "$((pstart * chunk))s" 800m && partition=$((partition + 1))
     if [ "${raidflag}" -gt 1 ] ; then
       parted "${disk}" toggle "${partition}" raid
     fi
@@ -304,7 +319,10 @@ partition_disk () {
     syssz="100%"
   fi
   {
-    parted "${disk}" mkpart system 800m "${syssz}" && partition=$((partition + 1))
+    bootend=$(printf 'unit s\nprint' | parted "${disk}" | awk -F' ' "\$1 == ${partition} { print \$3; }")
+    bootend="${bootend%s}"
+    pstart=1 ; while [ $((pstart * chunk)) -lt "${bootend}" ] ; do pstart=$((pstart + 1)) ; done
+    parted "${disk}" mkpart system "$((pstart * chunk))s" "${syssz}" && partition=$((partition + 1))
     if [ "${raidflag}" -gt 1 ] ; then
       parted "${disk}" toggle "${partition}" raid
     fi
@@ -926,7 +944,7 @@ else
 
   # do we have arrays?
   mds_defined=( /dev/md/* )
-  if [ ! -z "${mds_defined[*]}" ] ; then
+  if [ ! -z "${mds_defined[*]+x}" ] ; then
     mkdir  "${TARGETPATH}/etc/mdadm"
     mdadm --examine --scan > "${TARGETPATH}/etc/mdadm/mdadm.conf"
   fi
