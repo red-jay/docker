@@ -2,6 +2,10 @@ FROM redjays/xenial:lxcore
 MAINTAINER RJ <rbergero@gmail.com>
 RUN env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y software-properties-common && apt-get clean all
 
+ADD ca-certificates /usr/local/share/ca-certificates/extra
+
+RUN update-ca-certificates
+
 RUN add-apt-repository -m ppa:notarrjay/fio-dkms && apt-get update && apt-get clean all
 
 ADD apt-keys/hpe.asc /etc/apt/trusted.gpg.d/hpe.asc
@@ -28,7 +32,7 @@ RUN apt-get update && env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get -q -y 
     dkms add "${i[0]}" && dkms autoinstall -k "${k}"' && apt-get -q -y clean all && \
     rm -f /boot/initrd.*.old-dkms
 
-RUN wget -o /boot/macboot.img http://mirrors.kernel.org/fedora/releases/27/Server/x86_64/os/images/macboot.img
+RUN wget -o /boot/macboot.img http://mirrors.kernel.org/fedora/releases/27/Server/x86_64/os/images/macboot.img && rm -f /macboot.img
 
 RUN mkdir /isolinux && cp /usr/lib/ISOLINUX/isolinux.bin /isolinux/isolinux.bin && \
                        cp /usr/lib/syslinux/modules/bios/*.c32 /isolinux && \
@@ -49,5 +53,7 @@ RUN truncate -s 12M /boot/efiboot.img && mkfs.vfat -F16 /boot/efiboot.img && \
       echo "insmod linux" >> "/EFI/BOOT/grub.cfg" && echo "configfile /boot/grub/grub.cfg" >> "/EFI/BOOT/grub.cfg"
 
 RUN bash -c 'd="" ; c="/isolinux/syslinux.cfg.tpl" ; g="/boot/grub/grub.cfg.tpl" ; for i in /boot/initrd.img* ; do v="${i%-generic*}" ; v="${v#*.img-}" ; { [ ! -z "${d}" ] && d="${v}" ; echo "DEFAULT ${v}" >> "${c}" ; } ; echo "LABEL ${v}" >> "${c}" ; echo " KERNEL vmlinuz-${v}-generic" >> "${c}" ; echo " INITRD initrd.img-${v}-generic" >> "${c}" ; echo " APPEND console=tty0 root=UNSET rw" >> "${c}" ; echo "menuentry ${v} {" >> "${g}" ; echo "  linux /boot/vmlinuz-${v}-generic console=tty0 root=UNSET rw" >> "${g}" ; echo "  initrd /boot/initrd.img-${v}-generic" >> "${g}" ; echo "}" >> "${g}" ; done'
+
+ADD grub.d/* /etc/grub.d/
 
 RUN mktemp /.bootid.XXXXXX
