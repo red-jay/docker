@@ -1,15 +1,22 @@
 FROM redjays/xenial:lxcore
 MAINTAINER RJ <rbergero@gmail.com>
 RUN env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y software-properties-common && apt-get clean all
-RUN env LC_ALL=C DEBIAN_FRONTENV=noninteractive add-apt-repository ppa:notarrjay/fio-dkms && apt-get update && apt-get clean all
+
+RUN add-apt-repository -m ppa:notarrjay/fio-dkms && apt-get update && apt-get clean all
+
+ADD apt-keys/hpe.asc /etc/apt/trusted.gpg.d/hpe.asc
+
+RUN echo "deb http://downloads.linux.hpe.com/SDR/downloads/MCP/ubuntu xenial/current non-free" > /etc/apt/sources.list.d/hpe.list && \
+    apt-key add /etc/apt/trusted.gpg.d/hpe.asc && \
+    apt-get update && apt-get clean all
 
 RUN env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y ubuntu-standard \
                  casper lupin-casper discover laptop-detect os-prober \
-                 linux-generic dracut-core \
+                 linux-generic dracut-core dbus \
                  lvm2 thin-provisioning-tools cryptsetup mdadm xfsprogs bcache-tools \
                  memtest86+ nwipe smartmontools lm-sensors ethtool smartmontools fio \
                  openssh-server augeas-tools \
-                 dbus \
+                 ssacli hpsmh \
                  grub-efi-amd64-bin grub-efi-ia32-bin grub-efi-amd64-signed shim-signed shim syslinux isolinux hfsprogs hfsplus && apt-get clean all
 
 RUN dpkg-divert --rename /usr/sbin/update-grub && ln -s /bin/true /usr/sbin/update-grub && \
