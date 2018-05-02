@@ -277,6 +277,7 @@ partition_disk () {
   read -r align < "/sys/class/block/${name}/alignment_offset"
 
   chunk=$(($((optio + align)) / pblsz))
+  [ "${chunk}" -eq 0 ] && chunk=4096
   # we use 4096 bytes as a 'base' unit for small partition calculations
   mult=$((4096 / pblsz))
 
@@ -294,7 +295,7 @@ partition_disk () {
 
   # EFI system partition
   {
-    pstart=1 ; while [ $((pstart * chunk)) -lt "${biosend}" ] ; do pstart=$((pstart + 1)) ; done
+    pstart=1 ; while [ $((pstart * chunk)) -lt "${biosend}" ] ; do pstart=$((pstart + 1)) ; done ; pstart=$((pstart + 1))
     parted -a optimal "${disk}" mkpart '"EFI System Partition"' "$((pstart * chunk))s" 300MB && partition=$((partition + 1))
     parted "${disk}" toggle "${partition}" boot
   } > /dev/null 2>&1
