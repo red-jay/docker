@@ -1,0 +1,7 @@
+[Unit]
+Description=serial-console for all 16550A-serial ports
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/startcons.sh

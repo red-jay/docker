@@ -26,12 +26,15 @@ RUN env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y ubuntu-sta
 
 RUN dpkg-divert --rename /usr/sbin/update-grub && ln -s /bin/true /usr/sbin/update-grub && \
     env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get -q -y install tboot && \
+    printf 'GRUB_DISABLE_OS_PROBER=true\n' >> /etc/default/grub && \
     rm /usr/sbin/update-grub && dpkg-divert --rename --remove /usr/sbin/update-grub
 
 RUN apt-get update && env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get -q -y install iomemory-vsl-dkms && \
     bash -c 'i=(/usr/src/iomemory-vsl*) && k=(/boot/vmlinuz-*) && k=${k[0]#*-} && \
     dkms add "${i[0]}" && dkms autoinstall -k "${k}"' && apt-get -q -y clean all && \
     rm -f /boot/initrd.*.old-dkms
+
+ADD /iomemory-dracut /usr/lib/dracut/modules.d/10iomemory-md
 
 RUN wget -o /boot/macboot.img http://mirrors.kernel.org/fedora/releases/27/Server/x86_64/os/images/macboot.img && rm -f /macboot.img
 
@@ -57,4 +60,4 @@ RUN bash -c 'd="" ; c="/isolinux/syslinux.cfg.tpl" ; g="/boot/grub/grub.cfg.tpl"
 
 ADD grub.d/* /etc/grub.d/
 
-RUN mktemp /.bootid.XXXXXX
+ADD /scripts /scripts

@@ -1,0 +1,15 @@
+#!/bin/bash
+
+mkdir -p "${initdir}/etc/mdadm"
+
+fiomds=(/sys/block/md*/slaves/fio*)
+arrays=""
+
+for slave in "${fiomds[@]}" ; do
+  basedev="${slave##*/}"
+  mddev="${slave#/sys/block/}"
+  mddev="${mddev%/slaves/${basedev}}"
+  mdadm --detail --scan "/dev/${mddev}" >> "${initdir}/etc/mdadm/fio.conf"
+done
+
+inst_hook initqueue/settled 20 "$moddir/iomemory-md.sh"

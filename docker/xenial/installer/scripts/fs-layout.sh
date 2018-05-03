@@ -236,7 +236,11 @@ stop_bcache () {
   # walk all assembled/active(?) bcaches
   for bcachef in /sys/fs/bcache/*-*-*-*-* ; do
     if [ -f "${bcachef}/stop" ] ; then if [ "${NOOP}" -eq 0 ] ; then printf 1 > "${bcachef}/stop" ; else echo "${bcachef}/stop" ; fi ; fi
+    sleep 1
+    if [ -f "${bcachef}/stop" ] ; then if [ "${NOOP}" -eq 0 ] ; then printf 1 > "${bcachef}/stop" ; else echo "${bcachef}/stop" ; fi ; fi
+    sleep 1
     if [ -f "${bcachef}/unregister" ] ; then if [ "${NOOP}" -eq 0 ] ; then printf 1 > "${bcachef}/unregister" ; else echo "${bcachef}/unregister" ; fi ; fi
+    sleep 1
   done
 
   # walk all arrays and stop bcache children on those, too
@@ -277,6 +281,7 @@ partition_disk () {
   read -r align < "/sys/class/block/${name}/alignment_offset"
 
   chunk=$(($((optio + align)) / pblsz))
+  [ "${chunk}" -eq 0 ] && chunk=4096
   # we use 4096 bytes as a 'base' unit for small partition calculations
   mult=$((4096 / pblsz))
 
@@ -294,7 +299,7 @@ partition_disk () {
 
   # EFI system partition
   {
-    pstart=1 ; while [ $((pstart * chunk)) -lt "${biosend}" ] ; do pstart=$((pstart + 1)) ; done
+    pstart=1 ; while [ $((pstart * chunk)) -lt "${biosend}" ] ; do pstart=$((pstart + 1)) ; done ; pstart=$((pstart + 1))
     parted -a optimal "${disk}" mkpart '"EFI System Partition"' "$((pstart * chunk))s" 300MB && partition=$((partition + 1))
     parted "${disk}" toggle "${partition}" boot
   } > /dev/null 2>&1
@@ -973,3 +978,6 @@ fi
 
 # write down the bios_bootdevs for grub handoff later
 printf 'BIOS_BOOTDEVS="%s"\n' "${bios_bootdevs}" >> "${ENV_OUTPUT_FILE}"
+
+mkdir -p "${TARGETPATH}/root"
+cp "${ENV_OUTPUT_FILE}" /mnt/sysimage/root/fs-env
