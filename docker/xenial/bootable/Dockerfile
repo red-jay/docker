@@ -34,6 +34,8 @@ RUN apt-get update && env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get -q -y 
     dkms add "${i[0]}" && dkms autoinstall -k "${k}"' && apt-get -q -y clean all && \
     rm -f /boot/initrd.*.old-dkms
 
+ADD /iomemory-dracut /usr/lib/dracut/modules.d/10iomemory-md
+
 RUN wget -o /boot/macboot.img http://mirrors.kernel.org/fedora/releases/27/Server/x86_64/os/images/macboot.img && rm -f /macboot.img
 
 RUN mkdir /isolinux && cp /usr/lib/ISOLINUX/isolinux.bin /isolinux/isolinux.bin && \

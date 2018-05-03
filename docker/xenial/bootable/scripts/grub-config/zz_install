@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+. /root/fs-env
+
+for d in 
