@@ -8,4 +8,5 @@ mount -o bind /dev/ /mnt/sysimage/dev/
 mount -o bind /proc/ /mnt/sysimage/proc/
 mount -o bind /sys/ /mnt/sysimage/sys/
 
-chroot /mnt/sysimage /usr/bin/env /scripts/update-default-grub.sh
+chroot /mnt/sysimage /bin/run-parts /scripts/grub-config
+chroot /mnt/sysimage /bin/run-parts /scripts/dracut-config
