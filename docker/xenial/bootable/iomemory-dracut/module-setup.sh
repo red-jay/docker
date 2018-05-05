@@ -6,7 +6,7 @@ check() {
     # No mdadm?  No mdraid support.
     require_binaries mdadm || return 1
     fiomds=(/sys/block/md*/slaves/fio*)
-    if [ -z "${fiomds[0]}" ] ; then return 1 ; fi
+    if [ -e "${fiomds[0]}" ] ; then return 1 ; fi
 }
 
 # called by dracut
@@ -28,10 +28,17 @@ install() {
     arrays=""
 
     for slave in "${fiomds[@]}" ; do
-      basedev="${slave##*/}"
-      mddev="${slave#/sys/block/}"
-      mddev="${mddev%/slaves/${basedev}}"
-      mdadm --detail --scan "/dev/${mddev}" >> "${initdir}/etc/mdadm/fio.conf"
+      if [ -e "${slave}" ] ; then
+        basedev="${slave##*/}"
+        mddev="${slave#/sys/block/}"
+        mddev="${mddev%/slaves/${basedev}}"
+        arrays="${mddev} ${arrays}"
+      fi
     done
-    inst_hook initqueue/settled 20 "$moddir/iomemory-md.sh"
+
+    for mddev in ${arrays} ; do
+        mdadm --detail --scan "/dev/${mddev}" >> "${initdir}/etc/mdadm/fio.conf"
+    done
+
+    inst_hook initqueue/finished 20 "$moddir/iomemory-md.sh"
 }
