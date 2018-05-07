@@ -4,6 +4,9 @@ RUN env LC_ALL=C DEBIAN_FRONTENV=noninteractive add-apt-repository ppa:notarrjay
 
 RUN dpkg-divert --rename /usr/sbin/update-grub && ln -s /bin/true /usr/sbin/update-grub && \
     env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get -q -y install xen-system-amd64 && \
-    rm /usr/sbin/update-grub && dpkg-divert --rename --remove /usr/sbin/update-grub
+    rm /usr/sbin/update-grub && dpkg-divert --rename --remove /usr/sbin/update-grub && \
+    ln -s 20_linux_xen /etc/grub.d/09_linux_xen
 
 RUN env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y libvirt-clients libvirt-daemon-system firewalld dnsmasq dhcpcd5 virtinst vncsnapshot
+
+ADD /scripts /scripts
