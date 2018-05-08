@@ -27,6 +27,9 @@ RUN env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y ubuntu-sta
 ADD hpsmhd.service /etc/systemd/system/hpsmhd.service
 RUN ln -sf /etc/systemd/system/hpsmhd.service "/etc/systemd/system/multi-user.target.wants/hpsmhd.service"
 
+RUN mkdir -p /etc/systemd/system/smartd.service.d
+ADD smartd.service.d /etc/systemd/system/smartd.service.d
+
 RUN dpkg-divert --rename /usr/sbin/update-grub && ln -s /bin/true /usr/sbin/update-grub && \
     env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get -q -y install tboot && \
     printf 'GRUB_DISABLE_OS_PROBER=true\n' >> /etc/default/grub && \
