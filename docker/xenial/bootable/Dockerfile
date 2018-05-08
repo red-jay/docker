@@ -24,6 +24,9 @@ RUN env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y ubuntu-sta
                  grub-efi-amd64-bin grub-efi-ia32-bin grub-efi-amd64-signed shim-signed shim syslinux isolinux hfsprogs hfsplus && apt-get clean all && \
                  rm -f /etc/ssh/ssh_host_*
 
+ADD hpsmhd.service /etc/systemd/system/hpsmhd.service
+RUN ln -sf /etc/systemd/system/hpsmhd.service "/etc/systemd/system/multi-user.target.wants/hpsmhd.service"
+
 RUN dpkg-divert --rename /usr/sbin/update-grub && ln -s /bin/true /usr/sbin/update-grub && \
     env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get -q -y install tboot && \
     printf 'GRUB_DISABLE_OS_PROBER=true\n' >> /etc/default/grub && \
