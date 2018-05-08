@@ -61,3 +61,7 @@ RUN bash -c 'd="" ; c="/isolinux/syslinux.cfg.tpl" ; g="/boot/grub/grub.cfg.tpl"
 ADD grub.d/* /etc/grub.d/
 
 ADD /scripts /scripts
+
+ADD platform-info/platform-info.service /etc/systemd/system/platform-info.service
+ADD platform-info/platform-info.sh      /usr/local/sbin/platform-info.sh
+RUN ln -sf /etc/systemd/system/platform-info.service "/etc/systemd/system/multi-user.target.wants/platform-info.service"
