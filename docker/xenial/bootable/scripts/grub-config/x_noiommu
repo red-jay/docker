@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+iommu=(/sys/class/iommu/*)
+
+if [ ! -e "${iommu[0]}" ] ; then
+  rm -rf /etc/grub.d/*tboot*
+fi
