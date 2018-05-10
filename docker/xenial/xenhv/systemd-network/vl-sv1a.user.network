@@ -1,0 +1,7 @@
+[Match]
+Name=vl-sv1a.user
+[Network]
+Bridge=sv1a.user
+LinkLocalAddressing=no
+LLMNR=false
+IPv6AcceptRA=no

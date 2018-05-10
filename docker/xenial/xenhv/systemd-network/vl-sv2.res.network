@@ -1,0 +1,7 @@
+[Match]
+Name=vl-sv2.res
+[Network]
+Bridge=sv2.res
+LinkLocalAddressing=no
+LLMNR=false
+IPv6AcceptRA=no

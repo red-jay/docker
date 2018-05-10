@@ -10,3 +10,5 @@ mount -o bind /sys/ /mnt/sysimage/sys/
 
 chroot /mnt/sysimage /bin/run-parts /scripts/grub-config
 chroot /mnt/sysimage /bin/run-parts /scripts/dracut-config
+
+systemd-machine-id-setup --root=/mnt/sysimage

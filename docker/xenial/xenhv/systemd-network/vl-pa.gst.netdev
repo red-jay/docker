@@ -1,0 +1,5 @@
+[NetDev]
+Name=vl-pa.gst
+Kind=vlan
+[VLAN]
+Id=531

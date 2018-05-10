@@ -1,0 +1,6 @@
+[Match]
+Name=pa.user
+[Network]
+LinkLocalAddressing=no
+LLMNR=false
+IPv6AcceptRA=no

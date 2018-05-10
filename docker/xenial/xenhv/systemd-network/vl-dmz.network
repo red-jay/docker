@@ -1,0 +1,7 @@
+[Match]
+Name=vl-dmz
+[Network]
+Bridge=dmz
+LinkLocalAddressing=no
+LLMNR=false
+IPv6AcceptRA=no

@@ -1,0 +1,7 @@
+[Match]
+Name=vl-srv
+[Network]
+Bridge=srv
+LinkLocalAddressing=no
+LLMNR=false
+IPv6AcceptRA=no

@@ -1,0 +1,5 @@
+[NetDev]
+Name=vl-sv1a.gst
+Kind=vlan
+[VLAN]
+Id=32

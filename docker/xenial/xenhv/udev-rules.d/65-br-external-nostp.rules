@@ -1,0 +1,6 @@
+SUBSYSTEM!="net", GOTO="nostp_end"
+ACTION!="add", GOTO="nostp_end"
+ENV{DEVTYPE}!="bridge", GOTO="nostp_end"
+ENV{INTERFACE}!="external", GOTO="nostp_end"
+ENV{NO_STP}="1"
+LABEL="nostp_end"

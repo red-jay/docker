@@ -1,0 +1,7 @@
+[Unit]
+Description=platform information service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/platform-info.sh

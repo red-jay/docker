@@ -1,0 +1,5 @@
+[NetDev]
+Name=vl-sv1.res
+Kind=vlan
+[VLAN]
+Id=20

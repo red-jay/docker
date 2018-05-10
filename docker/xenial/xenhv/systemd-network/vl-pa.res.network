@@ -1,0 +1,7 @@
+[Match]
+Name=vl-pa.res
+[Network]
+Bridge=pa.res
+LinkLocalAddressing=no
+LLMNR=false
+IPv6AcceptRA=no

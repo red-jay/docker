@@ -24,6 +24,12 @@ RUN env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y ubuntu-sta
                  grub-efi-amd64-bin grub-efi-ia32-bin grub-efi-amd64-signed shim-signed shim syslinux isolinux hfsprogs hfsplus && apt-get clean all && \
                  rm -f /etc/ssh/ssh_host_*
 
+ADD hpsmhd.service /etc/systemd/system/hpsmhd.service
+RUN ln -sf /etc/systemd/system/hpsmhd.service "/etc/systemd/system/multi-user.target.wants/hpsmhd.service"
+
+RUN mkdir -p /etc/systemd/system/smartd.service.d
+ADD smartd.service.d /etc/systemd/system/smartd.service.d
+
 RUN dpkg-divert --rename /usr/sbin/update-grub && ln -s /bin/true /usr/sbin/update-grub && \
     env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get -q -y install tboot && \
     printf 'GRUB_DISABLE_OS_PROBER=true\n' >> /etc/default/grub && \
@@ -56,8 +62,12 @@ RUN truncate -s 12M /boot/efiboot.img && mkfs.vfat -F16 /boot/efiboot.img && \
       mkdir -p /EFI/BOOT/i386-efi && cp /usr/lib/grub/i386-efi/*.mod /EFI/BOOT/i386-efi && \
       echo "insmod linux" >> "/EFI/BOOT/grub.cfg" && echo "configfile /boot/grub/grub.cfg" >> "/EFI/BOOT/grub.cfg"
 
-RUN bash -c 'd="" ; c="/isolinux/syslinux.cfg.tpl" ; g="/boot/grub/grub.cfg.tpl" ; for i in /boot/initrd.img* ; do v="${i%-generic*}" ; v="${v#*.img-}" ; { [ ! -z "${d}" ] && d="${v}" ; echo "DEFAULT ${v}" >> "${c}" ; } ; echo "LABEL ${v}" >> "${c}" ; echo " KERNEL vmlinuz-${v}-generic" >> "${c}" ; echo " INITRD initrd.img-${v}-generic" >> "${c}" ; echo " APPEND console=tty0 root=UNSET intel_iommu=on iommu=pt iommu=1 rw" >> "${c}" ; echo "menuentry ${v} {" >> "${g}" ; echo "  linux /boot/vmlinuz-${v}-generic console=tty0 root=UNSET rw" >> "${g}" ; echo "  initrd /boot/initrd.img-${v}-generic" >> "${g}" ; echo "}" >> "${g}" ; done'
+RUN bash -c 'd="" ; c="/isolinux/syslinux.cfg.tpl" ; g="/boot/grub/grub.cfg.tpl" ; for i in /boot/initrd.img* ; do v="${i%-generic*}" ; v="${v#*.img-}" ; { [ ! -z "${d}" ] && d="${v}" ; echo "DEFAULT ${v}" >> "${c}" ; } ; echo "LABEL ${v}" >> "${c}" ; echo " KERNEL vmlinuz-${v}-generic" >> "${c}" ; echo " INITRD initrd.img-${v}-generic" >> "${c}" ; echo " APPEND console=tty0 root=UNSET intel_iommu=on iommu=pt iommu=1 rw" >> "${c}" ; echo "menuentry '\''${v}'\'' {" >> "${g}" ; echo "  linux /boot/vmlinuz-${v}-generic console=tty0 root=UNSET intel_iommu=on iommu=pt iommu=1 rw" >> "${g}" ; echo "  initrd /boot/initrd.img-${v}-generic" >> "${g}" ; echo "}" >> "${g}" ; done'
 
 ADD grub.d/* /etc/grub.d/
 
 ADD /scripts /scripts
+
+ADD platform-info/platform-info.service /etc/systemd/system/platform-info.service
+ADD platform-info/platform-info.sh      /usr/local/sbin/platform-info.sh
+RUN ln -sf /etc/systemd/system/platform-info.service "/etc/systemd/system/multi-user.target.wants/platform-info.service"

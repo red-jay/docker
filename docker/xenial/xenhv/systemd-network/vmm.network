@@ -1,0 +1,7 @@
+[Match]
+Name=vmm
+[Network]
+LinkLocalAddressing=no
+LLMNR=false
+IPv6AcceptRA=no
+Address=192.168.128.129/25

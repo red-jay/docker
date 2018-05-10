@@ -1,0 +1,7 @@
+[Match]
+Name=vl-pln
+[Network]
+Bridge=pln
+LinkLocalAddressing=no
+LLMNR=false
+IPv6AcceptRA=no

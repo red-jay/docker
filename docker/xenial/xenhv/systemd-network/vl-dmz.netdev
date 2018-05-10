@@ -1,0 +1,5 @@
+[NetDev]
+Name=vl-dmz
+Kind=vlan
+[VLAN]
+Id=303

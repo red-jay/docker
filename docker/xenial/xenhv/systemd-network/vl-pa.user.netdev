@@ -1,0 +1,5 @@
+[NetDev]
+Name=vl-pa.user
+Kind=vlan
+[VLAN]
+Id=500

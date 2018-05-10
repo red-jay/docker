@@ -1,0 +1,7 @@
+[Match]
+Name=vl-sv1a.iot
+[Network]
+Bridge=sv1a.iot
+LinkLocalAddressing=no
+LLMNR=false
+IPv6AcceptRA=no
