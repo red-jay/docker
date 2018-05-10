@@ -13,7 +13,7 @@ After=remote-fs.target
 After=platform-info.service
 Conflicts=shutdown.target
 ConditionPathExists=/etc/init.d/hpsmhd
-ConditionPathExists=/run/platform-info/board_vendor_words/hp
+ConditionPathExists=/run/platform-info/chassis_vendor_words/hp
 
 [Service]
 Type=forking
