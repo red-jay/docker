@@ -18,7 +18,7 @@ else
   memmax="384M"
 fi
 
-xen_cmdline="dom0_max_vcpus=${cpumax} dom0_mem=${memmax}"
+xen_cmdline="dom0_max_vcpus=${cpumax} dom0_mem=${memmax} allow_unsafe"
 
 # figure out serial console by asking grub what _it_ does
 grub_term=$(augtool print /files/etc/default/grub/GRUB_TERMINAL)
