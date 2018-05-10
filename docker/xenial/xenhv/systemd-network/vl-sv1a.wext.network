@@ -1,0 +1,7 @@
+[Match]
+Name=vl-sv1a.wext
+[Network]
+Bridge=sv1a.wext
+LinkLocalAddressing=no
+LLMNR=false
+IPv6AcceptRA=no

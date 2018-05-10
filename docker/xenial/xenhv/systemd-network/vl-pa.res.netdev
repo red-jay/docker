@@ -1,0 +1,5 @@
+[NetDev]
+Name=vl-pa.res
+Kind=vlan
+[VLAN]
+Id=521

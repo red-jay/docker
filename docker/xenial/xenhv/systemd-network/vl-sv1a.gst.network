@@ -1,0 +1,7 @@
+[Match]
+Name=vl-sv1a.gst
+[Network]
+Bridge=sv1a.gst
+LinkLocalAddressing=no
+LLMNR=false
+IPv6AcceptRA=no

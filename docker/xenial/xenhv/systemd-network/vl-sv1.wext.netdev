@@ -1,0 +1,5 @@
+[NetDev]
+Name=vl-sv1.wext
+Kind=vlan
+[VLAN]
+Id=40

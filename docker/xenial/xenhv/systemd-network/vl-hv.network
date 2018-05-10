@@ -1,0 +1,7 @@
+[Match]
+Name=vl-hv
+[Network]
+Bridge=hv
+LinkLocalAddressing=no
+LLMNR=false
+IPv6AcceptRA=no

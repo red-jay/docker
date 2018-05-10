@@ -1,0 +1,6 @@
+[Match]
+Name=sv1.res
+[Network]
+LinkLocalAddressing=no
+LLMNR=false
+IPv6AcceptRA=no

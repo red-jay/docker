@@ -9,4 +9,30 @@ RUN dpkg-divert --rename /usr/sbin/update-grub && ln -s /bin/true /usr/sbin/upda
 
 RUN env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y libvirt-clients libvirt-daemon-system firewalld dnsmasq dhcpcd5 virtinst vncsnapshot
 
+ADD /systemd-network /etc/systemd/network
+
+RUN mkdir -p /run/firewalld && \
+    /usr/bin/firewall-offline-cmd --new-zone vmm && \
+    /usr/bin/firewall-offline-cmd --zone vmm --add-interface vmm && \
+    /usr/bin/firewall-offline-cmd --direct --add-rule eb filter FORWARD 0 --logical-in vmm -j DROP && \
+    /usr/bin/firewall-offline-cmd --direct --add-rule eb filter FORWARD 1 --logical-out vmm -j DROP && \
+    /usr/bin/firewall-offline-cmd --zone vmm --add-service dhcp && \
+    /usr/bin/firewall-offline-cmd --zone vmm --add-service ntp && \
+    /usr/bin/firewall-offline-cmd --zone vmm --add-service http && \
+    /usr/bin/firewall-offline-cmd --zone vmm --add-port 3493/tcp && \
+    rm -rf /run/firewalld
+
+ADD dnsmasq.conf /etc/dnsmasq.conf
+
+RUN ln -sf /lib/systemd/system/dnsmasq.service /etc/systemd/system/multi-user.target.wants/dnsmasq.service && \
+    mkdir -p /etc/systemd/system/dnsmasq.service.d
+
+ADD /systemd-system-dnsmasq.service.d /etc/systemd/system/dnsmasq.service.d
+
+ADD /modprobe.d /etc/modprobe.d
+
+ADD /sysctl.d /etc/sysctl.d
+
+ADD /udev-rules.d /etc/udev/rules.d
+
 ADD /scripts /scripts

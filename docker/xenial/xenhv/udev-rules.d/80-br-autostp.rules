@@ -1,0 +1,7 @@
+SUBSYSTEM!="net", GOTO="autostp_end"
+ACTION!="add", GOTO="autostp_end"
+ENV{DEVTYPE}!="bridge", GOTO="autostp_end"
+ENV{NO_STP}=="1", GOTO="autostp_end"
+RUN+="/bin/sh -c 'printf 1 > /sys/class/net/%k/bridge/stp_state'"
+RUN+="/bin/sh -c 'printf 200 > /sys/class/net/%k/bridge/forward_delay'"
+LABEL="autostp_end"

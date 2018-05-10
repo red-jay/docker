@@ -1,0 +1,5 @@
+[NetDev]
+Name=vl-sv2.gst
+Kind=vlan
+[VLAN]
+Id=31

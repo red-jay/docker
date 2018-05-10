@@ -1,0 +1,7 @@
+[Match]
+Name=vl-netm
+[Network]
+Bridge=netm
+LinkLocalAddressing=no
+LLMNR=false
+IPv6AcceptRA=no

@@ -1,0 +1,7 @@
+[Match]
+Name=vl-pa.gst
+[Network]
+Bridge=pa.gst
+LinkLocalAddressing=no
+LLMNR=false
+IPv6AcceptRA=no

@@ -1,0 +1,7 @@
+[Match]
+Name=vl-xsit
+[Network]
+Bridge=xsit
+LinkLocalAddressing=no
+LLMNR=false
+IPv6AcceptRA=no

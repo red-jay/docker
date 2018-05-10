@@ -1,0 +1,7 @@
+[Match]
+Name=vl-external
+[Network]
+Bridge=external
+LinkLocalAddressing=no
+LLMNR=false
+IPv6AcceptRA=no

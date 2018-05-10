@@ -1,0 +1,5 @@
+[NetDev]
+Name=vl-sv2.iot
+Kind=vlan
+[VLAN]
+Id=51

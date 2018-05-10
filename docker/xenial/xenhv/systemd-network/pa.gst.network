@@ -1,0 +1,6 @@
+[Match]
+Name=pa.gst
+[Network]
+LinkLocalAddressing=no
+LLMNR=false
+IPv6AcceptRA=no
