@@ -68,6 +68,8 @@ ADD grub.d/* /etc/grub.d/
 
 ADD /scripts /scripts
 
+ADD hvc0-console.service /etc/systemd/system/hvc0-console.service
+
 ADD platform-info/platform-info.service /etc/systemd/system/platform-info.service
 ADD platform-info/platform-info.sh      /usr/local/sbin/platform-info.sh
 RUN ln -sf /etc/systemd/system/platform-info.service "/etc/systemd/system/multi-user.target.wants/platform-info.service"
