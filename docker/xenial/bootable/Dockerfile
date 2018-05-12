@@ -27,6 +27,9 @@ RUN env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y ubuntu-sta
 ADD hpsmhd.service /etc/systemd/system/hpsmhd.service
 RUN ln -sf /etc/systemd/system/hpsmhd.service "/etc/systemd/system/multi-user.target.wants/hpsmhd.service"
 
+ADD mdadm.service /etc/systemd/system/mdadm.service
+RUN ln -sf /etc/systemd/system/mdadm.service "/etc/systemd/system/multi-user.target.wants/mdadm.service"
+
 RUN mkdir -p /etc/systemd/system/smartd.service.d
 ADD smartd.service.d /etc/systemd/system/smartd.service.d
 
