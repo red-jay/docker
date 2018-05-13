@@ -123,7 +123,7 @@ case "${packagemanager}" in
   ;;
   apt)
     keyring=( "config/${distribution}/gpg-keys"/*.gpg )
-    debootstrap --foreign --keyring="${keyring[0]}" "${releasever}"
+    debootstrap --foreign --keyring="${keyring[0]}" "${releasever}" || true
     sudo mkdir -p --mode=0755 "${rootdir}/var/lib/resolvconf" && sudo touch "${rootdir}/var/lib/resolvconf/linkified"
     sudo install -m644 "config/${distribution}/sources.list" "${rootdir}/apt-sources.list"
     case "${distribution}" in
@@ -137,6 +137,7 @@ sudo tar cp '--exclude=./dev*' -C "${rootdir}" . > "${distribution}.tar"
 # create config tar
 scratch=$(mktemp -d --tmpdir $(basename $0).XXXXXX)
 mkdir -p             "${scratch}"/etc/sysconfig
+chmod a+rx           "${scratch}"/etc/sysconfig
 case "${packagemanager}" in
   yum)
 mkdir -p --mode=0755 "${scratch}"/var/cache/yum
