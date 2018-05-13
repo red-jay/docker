@@ -1,0 +1,8 @@
+[Unit]
+Description=hvc0 console
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/systemctl start serial-getty@hvc0
+ConditionPathExists=/dev/hvc0

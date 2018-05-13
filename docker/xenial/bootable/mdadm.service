@@ -2,18 +2,18 @@
 
 [Unit]
 Documentation=man:systemd-sysv-generator(8)
-SourcePath=/etc/init.d/hpsmhd
-Description=LSB: HP System Management Homepage initscript
+SourcePath=/etc/init.d/mdadm
+Description=LSB: MD monitoring daemon
 Before=multi-user.target
 Before=multi-user.target
 Before=multi-user.target
 Before=graphical.target
 Before=shutdown.target
-After=remote-fs.target
-After=platform-info.service
+After=local-fs.target
+After=systemd-journald-dev-log.socket
 Conflicts=shutdown.target
-ConditionPathExists=/etc/init.d/hpsmhd
-ConditionPathExists=/run/platform-info/chassis_vendor_words/hp
+|ConditionKernelCommandLine=placeholder
+|ConditionVirtualization=false
 
 [Service]
 Type=forking
@@ -23,5 +23,6 @@ IgnoreSIGPIPE=no
 KillMode=process
 GuessMainPID=no
 RemainAfterExit=yes
-ExecStart=/etc/init.d/hpsmhd start
-ExecStop=/etc/init.d/hpsmhd stop
+ExecStart=/etc/init.d/mdadm start
+ExecStop=/etc/init.d/mdadm stop
+ExecReload=/etc/init.d/mdadm reload

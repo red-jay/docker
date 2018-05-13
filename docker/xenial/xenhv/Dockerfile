@@ -24,6 +24,8 @@ RUN mkdir -p /run/firewalld && \
 
 ADD dnsmasq.conf /etc/dnsmasq.conf
 
+ADD resolvconf-interface-order /etc/resolvconf/interface-order
+
 RUN ln -sf /lib/systemd/system/dnsmasq.service /etc/systemd/system/multi-user.target.wants/dnsmasq.service && \
     mkdir -p /etc/systemd/system/dnsmasq.service.d
 
