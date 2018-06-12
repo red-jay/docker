@@ -1,5 +1,5 @@
 [Match]
-Name=em* eth*
+Name=em* eth* en*
 [Network]
 LinkLocalAddressing=yes
 LLMNR=true

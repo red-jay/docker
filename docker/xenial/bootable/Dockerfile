@@ -20,9 +20,11 @@ RUN env LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get install -q -y ubuntu-sta
                  lvm2 thin-provisioning-tools cryptsetup mdadm xfsprogs bcache-tools \
                  memtest86+ nwipe smartmontools lm-sensors ethtool smartmontools fio \
                  openssh-server augeas-tools \
-                 ssacli hpsmh \
+                 ssacli hpsmh cloud-init \
                  grub-efi-amd64-bin grub-efi-ia32-bin grub-efi-amd64-signed shim-signed shim syslinux isolinux hfsprogs hfsplus && apt-get clean all && \
-                 rm -f /etc/ssh/ssh_host_*
+                 rm -f /etc/ssh/ssh_host_* && \
+                 touch /var/lib/cloud/instance/warnings/.skip && \
+                 printf '%s' 'network: {config: disabled}\n' > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
 
 ADD hpsmhd.service /etc/systemd/system/hpsmhd.service
 RUN ln -sf /etc/systemd/system/hpsmhd.service "/etc/systemd/system/multi-user.target.wants/hpsmhd.service"
